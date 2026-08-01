@@ -4,9 +4,11 @@ const STATES = require("../constants/states");
 
 const keyboard = require("../keyboards/mainKeyboard");
 const expenseKeyboard = require("../keyboards/expenseKeyboard");
+const incomeKeyboard = require("../keyboards/incomeKeyboard");
 
 const salesFlow = require("../flows/salesFlow");
 const expenseFlow = require("../flows/expenseFlow");
+const incomeFlow = require("../flows/incomeFlow");
 const reportFlow = require("../flows/reportFlow");
 
 module.exports = (bot) => {
@@ -15,14 +17,11 @@ module.exports = (bot) => {
 
         const text = ctx.message.text;
 
-        // Ignore /start
-        if (text === "/start") {
-            return;
-        }
+        if (text === "/start") return;
 
-        // =====================================
-        // RECORD SALE
-        // =====================================
+        // ==========================
+        // SALES
+        // ==========================
         if (text === "📦 Record Sale") {
 
             setSession(ctx.from.id, {
@@ -35,9 +34,9 @@ module.exports = (bot) => {
 
         }
 
-        // =====================================
-        // RECORD EXPENSE
-        // =====================================
+        // ==========================
+        // EXPENSE
+        // ==========================
         if (text === "💸 Record Expense") {
 
             setSession(ctx.from.id, {
@@ -51,18 +50,34 @@ module.exports = (bot) => {
 
         }
 
-        // =====================================
+        // ==========================
+        // INCOME
+        // ==========================
+        if (text === "💰 Record Income") {
+
+            setSession(ctx.from.id, {
+                state: STATES.WAITING_FOR_INCOME_SOURCE
+            });
+
+            return ctx.reply(
+                "💰 Select an income source:",
+                incomeKeyboard
+            );
+
+        }
+
+        // ==========================
         // REPORTS
-        // =====================================
+        // ==========================
         if (text === "📊 Reports") {
 
             return reportFlow(ctx);
 
         }
 
-        // =====================================
+        // ==========================
         // ACTIVE SESSION
-        // =====================================
+        // ==========================
         const session = getSession(ctx.from.id);
 
         if (!session) {
@@ -74,9 +89,6 @@ module.exports = (bot) => {
 
         }
 
-        // =====================================
-        // ROUTER
-        // =====================================
         switch (session.state) {
 
             // SALES
@@ -84,7 +96,6 @@ module.exports = (bot) => {
             case STATES.WAITING_FOR_QUANTITY:
             case STATES.WAITING_FOR_PRICE:
             case STATES.WAITING_FOR_CUSTOMER:
-
                 return salesFlow(ctx);
 
             // EXPENSES
@@ -92,8 +103,13 @@ module.exports = (bot) => {
             case STATES.WAITING_FOR_EXPENSE_DESCRIPTION:
             case STATES.WAITING_FOR_EXPENSE_AMOUNT:
             case STATES.WAITING_FOR_EXPENSE_NOTE:
-
                 return expenseFlow(ctx);
+
+            // INCOME
+            case STATES.WAITING_FOR_INCOME_SOURCE:
+            case STATES.WAITING_FOR_INCOME_AMOUNT:
+            case STATES.WAITING_FOR_INCOME_NOTE:
+                return incomeFlow(ctx);
 
             default:
 
