@@ -1,11 +1,7 @@
-node_modules
+node_modules/
 
 .env
 
-logs
+data/cfo.db
 
-reports
-
-*.db
-
-*.sqlite
+logs/application.log

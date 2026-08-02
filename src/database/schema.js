@@ -17,19 +17,36 @@ function initializeDatabase() {
     `).run();
 
     // ==========================
+    // CUSTOMERS
+    // ==========================
+    db.prepare(`
+        CREATE TABLE IF NOT EXISTS customers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            phone TEXT,
+            email TEXT,
+            address TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    `).run();
+
+    // ==========================
     // SALES
     // ==========================
     db.prepare(`
         CREATE TABLE IF NOT EXISTS sales (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
+            customer_id INTEGER,
             item TEXT NOT NULL,
             quantity INTEGER NOT NULL,
             unit_price REAL NOT NULL,
             total REAL NOT NULL,
-            customer_name TEXT,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(user_id) REFERENCES users(id)
+            FOREIGN KEY(user_id) REFERENCES users(id),
+            FOREIGN KEY(customer_id) REFERENCES customers(id)
         )
     `).run();
 
@@ -65,22 +82,6 @@ function initializeDatabase() {
     `).run();
 
     // ==========================
-    // CUSTOMERS
-    // ==========================
-    db.prepare(`
-        CREATE TABLE IF NOT EXISTS customers (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            name TEXT NOT NULL,
-            phone TEXT,
-            email TEXT,
-            address TEXT,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(user_id) REFERENCES users(id)
-        )
-    `).run();
-
-    // ==========================
     // INVENTORY
     // ==========================
     db.prepare(`
@@ -103,13 +104,13 @@ function initializeDatabase() {
         CREATE TABLE IF NOT EXISTS debtors (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
-            customer_name TEXT NOT NULL,
-            phone TEXT,
+            customer_id INTEGER,
             amount REAL NOT NULL,
             due_date TEXT,
             status TEXT DEFAULT 'UNPAID',
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(user_id) REFERENCES users(id)
+            FOREIGN KEY(user_id) REFERENCES users(id),
+            FOREIGN KEY(customer_id) REFERENCES customers(id)
         )
     `).run();
 

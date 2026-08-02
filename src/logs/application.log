@@ -1,0 +1,39 @@
+[2026-08-01T23:54:35.166Z] INFO: AI CFO Bot started successfully.
+[2026-08-01T23:56:28.741Z] ERROR: Telegram Error (message): Error: User not found.
+    at getUserId (C:\Users\hp\Desktop\cfo-telegram-bot\src\services\salesService.js:16:15)
+    at saveSale (C:\Users\hp\Desktop\cfo-telegram-bot\src\services\salesService.js:27:20)
+    at salesFlow (C:\Users\hp\Desktop\cfo-telegram-bot\src\flows\salesFlow.js:92:13)
+    at C:\Users\hp\Desktop\cfo-telegram-bot\src\handlers\router.js:211:24
+    at C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:165:111
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:518:17)
+    at async C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:519:21
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:518:17)
+    at async C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:519:21
+[2026-08-02T00:01:04.664Z] ERROR: Telegram Error (message): SqliteError: table sales has no column named customer_name
+    at Database.prepare (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\better-sqlite3\lib\methods\wrappers.js:5:21)
+    at saveSale (C:\Users\hp\Desktop\cfo-telegram-bot\src\services\salesService.js:29:8)
+    at salesFlow (C:\Users\hp\Desktop\cfo-telegram-bot\src\flows\salesFlow.js:92:13)
+    at C:\Users\hp\Desktop\cfo-telegram-bot\src\handlers\router.js:211:24
+    at C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:165:111
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:518:17)
+    at async C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:519:21
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:518:17)
+    at async C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:519:21
+[2026-08-02T00:03:33.915Z] INFO: Bot stopped (SIGINT)
+[2026-08-02T00:09:37.291Z] INFO: AI CFO Bot started successfully.
+[2026-08-02T00:10:11.958Z] ERROR: Telegram Error (message): SqliteError: table sales has no column named customer_name
+    at Database.prepare (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\better-sqlite3\lib\methods\wrappers.js:5:21)
+    at saveSale (C:\Users\hp\Desktop\cfo-telegram-bot\src\services\salesService.js:42:8)
+    at salesFlow (C:\Users\hp\Desktop\cfo-telegram-bot\src\flows\salesFlow.js:92:13)
+    at C:\Users\hp\Desktop\cfo-telegram-bot\src\handlers\router.js:211:24
+    at C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:165:111
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:518:17)
+    at async C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:519:21
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:518:17)
+    at async C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:519:21
+[2026-08-02T00:18:19.867Z] INFO: Bot stopped (SIGINT)
+[2026-08-02T00:18:22.042Z] INFO: AI CFO Bot started successfully.
+[2026-08-02T00:22:19.631Z] INFO: Bot stopped (SIGINT)
