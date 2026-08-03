@@ -1,6 +1,7 @@
 const userRepository = require("../repositories/userRepository");
 const salesRepository = require("../repositories/salesRepository");
 const customerService = require("./customerService");
+const inventoryService = require("./inventoryService");
 
 /**
  * Returns the internal database user ID
@@ -24,11 +25,33 @@ function saveSale(telegramId, sale) {
 
     const userId = getUserId(telegramId);
 
+    // ==========================
+    // CUSTOMER
+    // ==========================
     const customer = customerService.findOrCreateCustomer(
+
         telegramId,
+
         sale.customer
+
     );
 
+    // ==========================
+    // INVENTORY
+    // ==========================
+    inventoryService.reduceStock(
+
+        telegramId,
+
+        sale.product,
+
+        sale.quantity
+
+    );
+
+    // ==========================
+    // SAVE SALE
+    // ==========================
     return salesRepository.create({
 
         userId,

@@ -7,6 +7,9 @@ const initializeDatabase = require("./src/database/schema");
 const runMigrations = require("./src/database/migrationRunner");
 const logger = require("./src/utils/logger");
 
+// ==========================
+// CHECK BOT TOKEN
+// ==========================
 if (!config.botToken) {
 
     console.error("❌ BOT_TOKEN is missing.");
@@ -15,40 +18,85 @@ if (!config.botToken) {
 
 }
 
-// Initialize database
+// ==========================
+// INITIALIZE DATABASE
+// ==========================
 initializeDatabase();
 
-// Run migrations
 runMigrations();
 
-// Create bot
+// ==========================
+// CREATE BOT
+// ==========================
 const bot = new Telegraf(config.botToken);
 
 console.log("======================================");
 console.log(`🤖 ${config.botName} is starting...`);
 console.log("======================================");
 
-// Register handlers
+// ==========================
+// REGISTER HANDLERS
+// ==========================
 require("./src/handlers/start")(bot);
 require("./src/handlers/router")(bot);
 
-// Global error handler
+// ==========================
+// GLOBAL ERROR HANDLER
+// ==========================
 bot.catch((error, ctx) => {
 
     logger.error(
-        `Telegram Error (${ctx.updateType}): ${error.stack || error.message}`
+        `Telegram Error (${ctx?.updateType || "unknown"}): ${error.stack || error.message}`
     );
 
 });
 
-// Launch bot
-bot.launch();
+// ==========================
+// START BOT
+// ==========================
+(async () => {
 
-logger.info("AI CFO Bot started successfully.");
+    try {
 
-console.log("✅ AI CFO Bot is running...");
+        console.log("Step 1");
 
-// Graceful shutdown
+        const me = await bot.telegram.getMe();
+
+        console.log("Step 2:", me.username);
+
+        console.log("Step 3");
+
+        await bot.launch({
+            dropPendingUpdates: true
+        });
+
+        console.log("Step 4");
+
+        console.log("======================================");
+        console.log("✅ Launch successful");
+        console.log(`🤖 Connected as: @${me.username}`);
+        console.log("======================================");
+
+        logger.info("AI CFO Bot started successfully.");
+
+        console.log("✅ AI CFO Bot is running...");
+
+    } catch (error) {
+
+        console.error("======================================");
+        console.error("❌ BOT FAILED TO START");
+        console.error(error);
+        console.error("======================================");
+
+        process.exit(1);
+
+    }
+
+})();
+
+// ==========================
+// GRACEFUL SHUTDOWN
+// ==========================
 process.once("SIGINT", () => {
 
     logger.info("Bot stopped (SIGINT)");
