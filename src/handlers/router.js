@@ -11,6 +11,8 @@ const customerFlow = require("../flows/customerFlow");
 const inventoryFlow = require("../flows/inventoryFlow");
 const debtorFlow = require("../flows/debtorFlow");
 const supplierFlow = require("../flows/supplierFlow");
+const creditorFlow = require("../flows/creditorFlow");
+const purchaseFlow = require("../flows/purchaseFlow");
 
 const menuHandler = require("./menuHandler");
 const customerHandler = require("./customerHandler");
@@ -18,6 +20,8 @@ const inventoryHandler = require("./inventoryHandler");
 const reportHandler = require("./reportHandler");
 const debtorHandler = require("./debtorHandler");
 const supplierHandler = require("./supplierHandler");
+const creditorHandler = require("./creditorHandler");
+const purchaseHandler = require("./purchaseHandler");
 
 module.exports = (bot) => {
 
@@ -62,6 +66,20 @@ module.exports = (bot) => {
         // SUPPLIERS MENU
         // ==========================
         if (await supplierHandler(ctx)) {
+            return;
+        }
+
+        // ==========================
+        // CREDITORS MENU
+        // ==========================
+        if (await creditorHandler(ctx)) {
+            return;
+        }
+
+        // ==========================
+        // PURCHASE MENU
+        // ==========================
+        if (await purchaseHandler(ctx)) {
             return;
         }
 
@@ -142,6 +160,26 @@ module.exports = (bot) => {
             case STATES.WAITING_FOR_SUPPLIER_EMAIL:
             case STATES.WAITING_FOR_SUPPLIER_ADDRESS:
                 return supplierFlow(ctx);
+
+            case STATES.WAITING_FOR_SUPPLIER_SEARCH:
+                return supplierHandler.handleSearchResult(ctx);
+
+            // ==========================
+            // CREDITORS
+            // ==========================
+            case STATES.WAITING_FOR_CREDITOR_SUPPLIER:
+            case STATES.WAITING_FOR_CREDITOR_PAYMENT:
+                return creditorFlow(ctx);
+
+            // ==========================
+// PURCHASES
+// ==========================
+case STATES.WAITING_FOR_PURCHASE_SUPPLIER:
+case STATES.WAITING_FOR_PURCHASE_PRODUCT:
+case STATES.WAITING_FOR_PURCHASE_QUANTITY:
+case STATES.WAITING_FOR_PURCHASE_COST:
+case STATES.WAITING_FOR_PURCHASE_PAID:
+    return purchaseFlow(ctx);
 
             // ==========================
             // UNKNOWN SESSION

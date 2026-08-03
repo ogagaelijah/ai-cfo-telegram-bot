@@ -3,6 +3,8 @@ const expenseKeyboard = require("../keyboards/expenseKeyboard");
 const incomeKeyboard = require("../keyboards/incomeKeyboard");
 const customerKeyboard = require("../keyboards/customerKeyboard");
 const inventoryKeyboard = require("../keyboards/inventoryKeyboard");
+const creditorKeyboard = require("../keyboards/creditorKeyboard");
+const purchaseKeyboard = require("../keyboards/purchaseKeyboard");
 
 const {
     setSession,
@@ -32,9 +34,7 @@ module.exports = async function menuHandler(ctx) {
     if (text === "📦 Record Sale") {
 
         setSession(ctx.from.id, {
-
             state: STATES.WAITING_FOR_PRODUCT
-
         });
 
         await ctx.reply(
@@ -51,17 +51,12 @@ module.exports = async function menuHandler(ctx) {
     if (text === "💸 Record Expense") {
 
         setSession(ctx.from.id, {
-
             state: STATES.WAITING_FOR_EXPENSE_CATEGORY
-
         });
 
         await ctx.reply(
-
             "💸 Select an expense category:",
-
             expenseKeyboard
-
         );
 
         return true;
@@ -74,17 +69,12 @@ module.exports = async function menuHandler(ctx) {
     if (text === "💰 Record Income") {
 
         setSession(ctx.from.id, {
-
             state: STATES.WAITING_FOR_INCOME_SOURCE
-
         });
 
         await ctx.reply(
-
             "💰 Select an income source:",
-
             incomeKeyboard
-
         );
 
         return true;
@@ -92,18 +82,15 @@ module.exports = async function menuHandler(ctx) {
     }
 
     // ==========================
-    // INVENTORY
+    // PURCHASES
     // ==========================
-    if (text === "📦 Inventory") {
+    if (text === "🛒 Purchases") {
 
         clearSession(ctx.from.id);
 
         await ctx.reply(
-
-            "📦 INVENTORY MANAGEMENT",
-
-            inventoryKeyboard
-
+            "🛒 PURCHASE MANAGEMENT",
+            purchaseKeyboard
         );
 
         return true;
@@ -118,11 +105,40 @@ module.exports = async function menuHandler(ctx) {
         clearSession(ctx.from.id);
 
         await ctx.reply(
-
             "👥 CUSTOMER MANAGEMENT",
-
             customerKeyboard
+        );
 
+        return true;
+
+    }
+
+    // ==========================
+    // INVENTORY
+    // ==========================
+    if (text === "📦 Inventory") {
+
+        clearSession(ctx.from.id);
+
+        await ctx.reply(
+            "📦 INVENTORY MANAGEMENT",
+            inventoryKeyboard
+        );
+
+        return true;
+
+    }
+
+    // ==========================
+    // CREDITORS
+    // ==========================
+    if (text === "📕 Creditors") {
+
+        clearSession(ctx.from.id);
+
+        await ctx.reply(
+            "📕 CREDITORS MANAGEMENT",
+            creditorKeyboard
         );
 
         return true;
@@ -137,11 +153,8 @@ module.exports = async function menuHandler(ctx) {
         clearSession(ctx.from.id);
 
         await ctx.reply(
-
             "🏠 Main Menu",
-
             keyboard
-
         );
 
         return true;

@@ -4,9 +4,11 @@ module.exports = Markup.keyboard([
 
     ["📦 Record Sale", "💸 Record Expense"],
 
-    ["💰 Record Income", "👥 Customers"],
+    ["💰 Record Income", "📥 Purchases"],
 
-    ["📒 Debtors", "🏢 Suppliers"],
+    ["👥 Customers", "🏢 Suppliers"],
+
+    ["📒 Debtors", "📕 Creditors"],
 
     ["📦 Inventory", "📊 Reports"],
 
@@ -14,5 +16,4 @@ module.exports = Markup.keyboard([
 
     ["❓ Help"]
 
-])
-.resize();
+]).resize();
