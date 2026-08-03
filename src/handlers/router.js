@@ -9,11 +9,13 @@ const expenseFlow = require("../flows/expenseFlow");
 const incomeFlow = require("../flows/incomeFlow");
 const customerFlow = require("../flows/customerFlow");
 const inventoryFlow = require("../flows/inventoryFlow");
+const debtorFlow = require("../flows/debtorFlow");
 
 const menuHandler = require("./menuHandler");
 const customerHandler = require("./customerHandler");
 const inventoryHandler = require("./inventoryHandler");
 const reportHandler = require("./reportHandler");
+const debtorHandler = require("./debtorHandler");
 
 module.exports = (bot) => {
 
@@ -48,6 +50,13 @@ module.exports = (bot) => {
         }
 
         // ==========================
+// DEBTORS MENU
+// ==========================
+if (await debtorHandler(ctx)) {
+    return;
+}
+
+        // ==========================
         // ACTIVE SESSION
         // ==========================
         const session = getSession(ctx.from.id);
@@ -73,6 +82,7 @@ module.exports = (bot) => {
             case STATES.WAITING_FOR_QUANTITY:
             case STATES.WAITING_FOR_PRICE:
             case STATES.WAITING_FOR_CUSTOMER:
+            case STATES.WAITING_FOR_PAYMENT_STATUS:
                 return salesFlow(ctx);
 
             // ==========================
@@ -110,6 +120,13 @@ module.exports = (bot) => {
             case STATES.WAITING_FOR_COST_PRICE:
             case STATES.WAITING_FOR_SELLING_PRICE:
                 return inventoryFlow(ctx);
+
+                // ==========================
+// DEBTOR FLOW
+// ==========================
+case STATES.WAITING_FOR_PAYMENT_CUSTOMER:
+case STATES.WAITING_FOR_PAYMENT_AMOUNT:
+    return debtorFlow(ctx);
 
             // ==========================
             // UNKNOWN SESSION

@@ -1,4 +1,5 @@
 const keyboard = require("../keyboards/mainKeyboard");
+const paymentKeyboard = require("../keyboards/paymentKeyboard");
 
 const {
     getSession,
@@ -11,6 +12,10 @@ const STATES = require("../constants/states");
 const {
     saveSale
 } = require("../services/salesService");
+
+const {
+    createDebt
+} = require("../services/debtorService");
 
 module.exports = async function salesFlow(ctx) {
 
@@ -94,9 +99,116 @@ module.exports = async function salesFlow(ctx) {
 
             session.customer = ctx.message.text.trim();
 
+            session.state =
+                STATES.WAITING_FOR_PAYMENT_STATUS;
+
+            setSession(ctx.from.id, session);
+
+            return ctx.reply(
+
+                "💳 Has the customer paid?",
+
+                paymentKeyboard
+
+            );
+                    // ==========================
+        // PAYMENT STATUS
+        // ==========================
+        case STATES.WAITING_FOR_PAYMENT_STATUS:
+
+            if (
+                ctx.message.text !== "✅ Paid" &&
+                ctx.message.text !== "❌ Owes Me"
+            ) {
+
+                return ctx.reply(
+                    "Please choose one of the options below.",
+                    paymentKeyboard
+                );
+
+            }
+
             try {
 
-                saveSale(ctx.from.id, session);
+                const result = saveSale(
+
+                    ctx.from.id,
+
+                    session
+
+                );
+
+                // ==========================
+                // CREATE DEBT
+                // ==========================
+                if (ctx.message.text === "❌ Owes Me") {
+
+                    createDebt(
+
+                        ctx.from.id,
+
+                        result.customer.name,
+
+                        result.sale.id,
+
+                        result.sale.total
+
+                    );
+
+                }
+
+                const total =
+                    session.quantity * session.price;
+
+                let message =
+`✅ Sale Recorded Successfully
+
+📦 Product:
+${session.product}
+
+🔢 Quantity:
+${session.quantity}
+
+💵 Unit Price:
+₦${session.price.toLocaleString()}
+
+👤 Customer:
+${session.customer}
+
+━━━━━━━━━━━━━━━━━━
+
+💰 Total Sale:
+₦${total.toLocaleString()}`;
+
+                if (ctx.message.text === "❌ Owes Me") {
+
+                    message += `
+
+━━━━━━━━━━━━━━━━━━
+
+🧾 This sale has been added to Debtors.`;
+
+                } else {
+
+                    message += `
+
+━━━━━━━━━━━━━━━━━━
+
+✅ Customer paid in full.`;
+
+                }
+
+                await ctx.reply(
+
+                    message,
+
+                    keyboard
+
+                );
+
+                clearSession(ctx.from.id);
+
+                return;
 
             } catch (error) {
 
@@ -131,38 +243,6 @@ module.exports = async function salesFlow(ctx) {
                 throw error;
 
             }
-
-            const total =
-                session.quantity * session.price;
-
-            await ctx.reply(
-
-`✅ Sale Recorded Successfully
-
-📦 Product:
-${session.product}
-
-🔢 Quantity:
-${session.quantity}
-
-💵 Unit Price:
-₦${session.price.toLocaleString()}
-
-👤 Customer:
-${session.customer}
-
-━━━━━━━━━━━━━━━━━━
-
-💰 Total Sale:
-₦${total.toLocaleString()}`,
-
-                keyboard
-
-            );
-
-            clearSession(ctx.from.id);
-
-            return;
 
     }
 

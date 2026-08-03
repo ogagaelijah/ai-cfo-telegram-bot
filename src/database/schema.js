@@ -98,21 +98,25 @@ function initializeDatabase() {
     `).run();
 
     // ==========================
-    // DEBTORS
-    // ==========================
-    db.prepare(`
-        CREATE TABLE IF NOT EXISTS debtors (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            customer_id INTEGER,
-            amount REAL NOT NULL,
-            due_date TEXT,
-            status TEXT DEFAULT 'UNPAID',
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(user_id) REFERENCES users(id),
-            FOREIGN KEY(customer_id) REFERENCES customers(id)
-        )
-    `).run();
+// DEBTORS
+// ==========================
+db.prepare(`
+    CREATE TABLE IF NOT EXISTS debtors (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        customer_id INTEGER NOT NULL,
+        sale_id INTEGER NOT NULL,
+        total_amount REAL NOT NULL,
+        amount_paid REAL DEFAULT 0,
+        balance REAL NOT NULL,
+        status TEXT DEFAULT 'UNPAID',
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+
+        FOREIGN KEY(user_id) REFERENCES users(id),
+        FOREIGN KEY(customer_id) REFERENCES customers(id),
+        FOREIGN KEY(sale_id) REFERENCES sales(id)
+    )
+`).run();
 
     console.log("✅ Database initialized successfully.");
 }

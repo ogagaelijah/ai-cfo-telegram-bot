@@ -52,7 +52,7 @@ function saveSale(telegramId, sale) {
     // ==========================
     // SAVE SALE
     // ==========================
-    return salesRepository.create({
+    const savedSale = salesRepository.create({
 
         userId,
 
@@ -67,6 +67,14 @@ function saveSale(telegramId, sale) {
         total: sale.quantity * sale.price
 
     });
+
+    return {
+
+        sale: savedSale,
+
+        customer
+
+    };
 
 }
 
