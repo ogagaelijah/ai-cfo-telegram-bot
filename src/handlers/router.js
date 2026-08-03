@@ -10,12 +10,14 @@ const incomeFlow = require("../flows/incomeFlow");
 const customerFlow = require("../flows/customerFlow");
 const inventoryFlow = require("../flows/inventoryFlow");
 const debtorFlow = require("../flows/debtorFlow");
+const supplierFlow = require("../flows/supplierFlow");
 
 const menuHandler = require("./menuHandler");
 const customerHandler = require("./customerHandler");
 const inventoryHandler = require("./inventoryHandler");
 const reportHandler = require("./reportHandler");
 const debtorHandler = require("./debtorHandler");
+const supplierHandler = require("./supplierHandler");
 
 module.exports = (bot) => {
 
@@ -50,11 +52,18 @@ module.exports = (bot) => {
         }
 
         // ==========================
-// DEBTORS MENU
-// ==========================
-if (await debtorHandler(ctx)) {
-    return;
-}
+        // DEBTORS MENU
+        // ==========================
+        if (await debtorHandler(ctx)) {
+            return;
+        }
+
+        // ==========================
+        // SUPPLIERS MENU
+        // ==========================
+        if (await supplierHandler(ctx)) {
+            return;
+        }
 
         // ==========================
         // ACTIVE SESSION
@@ -64,11 +73,8 @@ if (await debtorHandler(ctx)) {
         if (!session) {
 
             return ctx.reply(
-
                 "Please choose an option below.",
-
                 keyboard
-
             );
 
         }
@@ -86,7 +92,7 @@ if (await debtorHandler(ctx)) {
                 return salesFlow(ctx);
 
             // ==========================
-            // EXPENSE
+            // EXPENSES
             // ==========================
             case STATES.WAITING_FOR_EXPENSE_CATEGORY:
             case STATES.WAITING_FOR_EXPENSE_DESCRIPTION:
@@ -103,7 +109,7 @@ if (await debtorHandler(ctx)) {
                 return incomeFlow(ctx);
 
             // ==========================
-            // CUSTOMER FLOW
+            // CUSTOMERS
             // ==========================
             case STATES.WAITING_FOR_CUSTOMER_NAME:
             case STATES.WAITING_FOR_CUSTOMER_PHONE:
@@ -113,7 +119,7 @@ if (await debtorHandler(ctx)) {
                 return customerFlow(ctx);
 
             // ==========================
-            // INVENTORY FLOW
+            // INVENTORY
             // ==========================
             case STATES.WAITING_FOR_INVENTORY_PRODUCT:
             case STATES.WAITING_FOR_INVENTORY_QUANTITY:
@@ -121,12 +127,21 @@ if (await debtorHandler(ctx)) {
             case STATES.WAITING_FOR_SELLING_PRICE:
                 return inventoryFlow(ctx);
 
-                // ==========================
-// DEBTOR FLOW
-// ==========================
-case STATES.WAITING_FOR_PAYMENT_CUSTOMER:
-case STATES.WAITING_FOR_PAYMENT_AMOUNT:
-    return debtorFlow(ctx);
+            // ==========================
+            // DEBTORS
+            // ==========================
+            case STATES.WAITING_FOR_PAYMENT_CUSTOMER:
+            case STATES.WAITING_FOR_PAYMENT_AMOUNT:
+                return debtorFlow(ctx);
+
+            // ==========================
+            // SUPPLIERS
+            // ==========================
+            case STATES.WAITING_FOR_SUPPLIER_NAME:
+            case STATES.WAITING_FOR_SUPPLIER_PHONE:
+            case STATES.WAITING_FOR_SUPPLIER_EMAIL:
+            case STATES.WAITING_FOR_SUPPLIER_ADDRESS:
+                return supplierFlow(ctx);
 
             // ==========================
             // UNKNOWN SESSION
@@ -136,11 +151,8 @@ case STATES.WAITING_FOR_PAYMENT_AMOUNT:
                 clearSession(ctx.from.id);
 
                 return ctx.reply(
-
                     "⚠️ Session expired. Please start again.",
-
                     keyboard
-
                 );
 
         }

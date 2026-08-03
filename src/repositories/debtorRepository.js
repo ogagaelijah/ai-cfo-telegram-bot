@@ -56,7 +56,7 @@ function findById(id) {
 }
 
 /**
- * Get all debtor records
+ * Get ACTIVE debtors only
  */
 function findAll(userId) {
 
@@ -75,7 +75,10 @@ function findAll(userId) {
         LEFT JOIN sales s
             ON s.id = d.sale_id
 
-        WHERE d.user_id = ?
+        WHERE
+            d.user_id = ?
+        AND
+            d.status = 'UNPAID'
 
         ORDER BY d.created_at DESC
     `).all(userId);

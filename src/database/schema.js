@@ -33,6 +33,22 @@ function initializeDatabase() {
     `).run();
 
     // ==========================
+    // SUPPLIERS
+    // ==========================
+    db.prepare(`
+        CREATE TABLE IF NOT EXISTS suppliers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            phone TEXT,
+            email TEXT,
+            address TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    `).run();
+
+    // ==========================
     // SALES
     // ==========================
     db.prepare(`
@@ -98,25 +114,45 @@ function initializeDatabase() {
     `).run();
 
     // ==========================
-// DEBTORS
-// ==========================
-db.prepare(`
-    CREATE TABLE IF NOT EXISTS debtors (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        customer_id INTEGER NOT NULL,
-        sale_id INTEGER NOT NULL,
-        total_amount REAL NOT NULL,
-        amount_paid REAL DEFAULT 0,
-        balance REAL NOT NULL,
-        status TEXT DEFAULT 'UNPAID',
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    // DEBTORS
+    // ==========================
+    db.prepare(`
+        CREATE TABLE IF NOT EXISTS debtors (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            customer_id INTEGER NOT NULL,
+            sale_id INTEGER NOT NULL,
+            total_amount REAL NOT NULL,
+            amount_paid REAL DEFAULT 0,
+            balance REAL NOT NULL,
+            status TEXT DEFAULT 'UNPAID',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
 
-        FOREIGN KEY(user_id) REFERENCES users(id),
-        FOREIGN KEY(customer_id) REFERENCES customers(id),
-        FOREIGN KEY(sale_id) REFERENCES sales(id)
-    )
-`).run();
+            FOREIGN KEY(user_id) REFERENCES users(id),
+            FOREIGN KEY(customer_id) REFERENCES customers(id),
+            FOREIGN KEY(sale_id) REFERENCES sales(id)
+        )
+    `).run();
+
+    // ==========================
+    // CREDITORS
+    // ==========================
+    db.prepare(`
+        CREATE TABLE IF NOT EXISTS creditors (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            supplier_id INTEGER NOT NULL,
+            purchase_description TEXT NOT NULL,
+            total_amount REAL NOT NULL,
+            amount_paid REAL DEFAULT 0,
+            balance REAL NOT NULL,
+            status TEXT DEFAULT 'UNPAID',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+
+            FOREIGN KEY(user_id) REFERENCES users(id),
+            FOREIGN KEY(supplier_id) REFERENCES suppliers(id)
+        )
+    `).run();
 
     console.log("✅ Database initialized successfully.");
 }

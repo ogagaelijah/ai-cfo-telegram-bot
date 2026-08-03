@@ -84,3 +84,64 @@
 [2026-08-03T11:20:11.568Z] INFO: AI CFO Bot started successfully.
 [2026-08-03T11:28:52.037Z] INFO: Bot stopped (SIGINT)
 [2026-08-03T11:28:52.445Z] INFO: AI CFO Bot started successfully.
+[2026-08-03T18:31:23.215Z] INFO: Bot stopped (SIGINT)
+[2026-08-03T18:31:23.635Z] INFO: AI CFO Bot started successfully.
+[2026-08-03T19:52:40.378Z] INFO: Bot stopped (SIGINT)
+[2026-08-03T19:52:41.429Z] INFO: AI CFO Bot started successfully.
+[2026-08-03T19:53:32.629Z] ERROR: Telegram Error (message): TypeError: supplierHandler is not a function
+    at C:\Users\hp\Desktop\cfo-telegram-bot\src\handlers\router.js:64:19
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:501:17)
+    at async C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:502:21
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:501:17)
+    at async C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:502:21
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:501:17)
+    at async C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:502:21
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:501:17)
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:501:17)
+[2026-08-03T19:53:41.985Z] ERROR: Telegram Error (message): TypeError: supplierHandler is not a function
+    at C:\Users\hp\Desktop\cfo-telegram-bot\src\handlers\router.js:64:19
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:501:17)
+    at async C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:502:21
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:501:17)
+    at async C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:502:21
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:501:17)
+    at async C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:502:21
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:501:17)
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:501:17)
+[2026-08-03T19:53:52.697Z] ERROR: Telegram Error (message): TypeError: supplierHandler is not a function
+    at C:\Users\hp\Desktop\cfo-telegram-bot\src\handlers\router.js:64:19
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:501:17)
+    at async C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:502:21
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:501:17)
+    at async C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:502:21
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:501:17)
+    at async C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:502:21
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:501:17)
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:501:17)
+[2026-08-03T19:54:19.832Z] ERROR: Telegram Error (message): TypeError: supplierHandler is not a function
+    at C:\Users\hp\Desktop\cfo-telegram-bot\src\handlers\router.js:64:19
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:501:17)
+    at async C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:502:21
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:501:17)
+    at async C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:502:21
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:501:17)
+    at async C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:502:21
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:501:17)
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:501:17)
+[2026-08-03T19:54:52.958Z] ERROR: Telegram Error (message): TypeError: supplierHandler is not a function
+    at C:\Users\hp\Desktop\cfo-telegram-bot\src\handlers\router.js:64:19
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:501:17)
+    at async C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:502:21
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:501:17)
+    at async C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:502:21
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:501:17)
+    at async C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:502:21
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:501:17)
+    at async execute (C:\Users\hp\Desktop\cfo-telegram-bot\node_modules\telegraf\lib\composer.js:501:17)
+[2026-08-03T20:01:42.214Z] INFO: Bot stopped (SIGINT)
+[2026-08-03T20:01:42.826Z] INFO: AI CFO Bot started successfully.
