@@ -10,13 +10,23 @@ function create(sale) {
         (
             user_id,
             customer_id,
+            inventory_id,
             item,
             quantity,
             unit_price,
+            cost_price,
+            revenue,
+            cost_of_goods,
+            profit,
             total
         )
         VALUES
         (
+            ?,
+            ?,
+            ?,
+            ?,
+            ?,
             ?,
             ?,
             ?,
@@ -30,11 +40,21 @@ function create(sale) {
 
         sale.customerId,
 
+        sale.inventoryId,
+
         sale.item,
 
         sale.quantity,
 
         sale.unitPrice,
+
+        sale.costPrice,
+
+        sale.revenue,
+
+        sale.costOfGoods,
+
+        sale.profit,
 
         sale.total
 

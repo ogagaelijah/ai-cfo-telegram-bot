@@ -129,11 +129,30 @@ function getLowStock(telegramId, threshold = 5) {
 
 }
 
+/**
+ * Find product
+ */
+function findProduct(telegramId, productName) {
+
+    const userId = getUserId(telegramId);
+
+    return inventoryRepository.findByProductName(
+
+        userId,
+
+        productName
+
+    );
+
+}
+
 module.exports = {
 
     addStock,
 
     reduceStock,
+
+    findProduct,
 
     getInventory,
 

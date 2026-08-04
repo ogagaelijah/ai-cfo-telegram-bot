@@ -2,6 +2,6 @@ node_modules/
 
 .env
 
-data/cfo.db
+data/
 
-logs/application.log
+logs/

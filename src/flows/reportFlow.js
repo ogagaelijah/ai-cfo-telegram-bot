@@ -1,65 +1,112 @@
 const keyboard = require("../keyboards/mainKeyboard");
 
 const {
-    getTodaySummary
-} = require("../services/reportService");
+    getBusinessSnapshot,
+    getBusinessHealth,
+    getCashMetrics,
+    getDebtMetrics
+} = require("../services/financialAnalyticsService");
 
 module.exports = async function reportFlow(ctx) {
 
-    const summary = getTodaySummary(ctx.from.id);
+    const snapshot = getBusinessSnapshot(ctx.from.id);
 
-    let health = "🟢 Excellent";
-    let advice = "Great job! Keep recording every transaction.";
+    const cash = getCashMetrics(ctx.from.id);
 
-    if (summary.sales === 0 && summary.expenses > 0) {
-        health = "🔴 Loss";
-        advice = "You have expenses but no recorded sales today.";
-    }
-    else if (summary.profit < 0) {
-        health = "🔴 Loss";
-        advice = "Today's expenses are higher than today's sales.";
-    }
-    else if (summary.sales > 0) {
+    const debt = getDebtMetrics(ctx.from.id);
 
-        const expenseRate = (summary.expenses / summary.sales) * 100;
-
-        if (expenseRate > 70) {
-            health = "🟠 High Expenses";
-            advice = "Your expenses are consuming most of your revenue.";
-        }
-        else if (expenseRate > 40) {
-            health = "🟡 Fair";
-            advice = "Monitor your spending closely.";
-        }
-    }
+    const health = getBusinessHealth(ctx.from.id);
 
     await ctx.reply(
 
-`📊 AI CFO DAILY SUMMARY
+`🏢 AI CFO EXECUTIVE DASHBOARD
 
 ━━━━━━━━━━━━━━━━━━
 
-💰 Sales
-₦${summary.sales.toLocaleString()}
+💰 PROFITABILITY
 
-💸 Expenses
-₦${summary.expenses.toLocaleString()}
+📈 Revenue
+₦${snapshot.sales.toLocaleString()}
 
-📈 Profit
-₦${summary.profit.toLocaleString()}
+📦 Cost of Goods Sold
+₦${snapshot.costOfGoods.toLocaleString()}
 
-🧾 Transactions
-${summary.transactions}
+💵 Gross Profit
+₦${snapshot.grossProfit.toLocaleString()}
+
+📊 Gross Margin
+${snapshot.grossMargin.toFixed(2)}%
 
 ━━━━━━━━━━━━━━━━━━
 
-📊 Financial Health
+💵 CASH FLOW
 
-${health}
+💰 Cash In
+₦${cash.cashIn.toLocaleString()}
 
-💡 AI Insight
+💸 Cash Out
+₦${cash.cashOut.toLocaleString()}
 
-${advice}`,
+💳 Cash Position
+₦${cash.cashPosition.toLocaleString()}
+
+━━━━━━━━━━━━━━━━━━
+
+📦 INVENTORY
+
+💼 Inventory Value
+₦${snapshot.inventoryValue.toLocaleString()}
+
+📦 Products
+${snapshot.productCount}
+
+━━━━━━━━━━━━━━━━━━
+
+👥 RECEIVABLES & PAYABLES
+
+👤 Outstanding Debtors
+₦${debt.debtors.toLocaleString()}
+
+🏢 Outstanding Creditors
+₦${debt.creditors.toLocaleString()}
+
+━━━━━━━━━━━━━━━━━━
+
+📈 BUSINESS PERFORMANCE
+
+💸 Operating Expenses
+₦${snapshot.expenses.toLocaleString()}
+
+💵 Other Income
+₦${snapshot.income.toLocaleString()}
+
+🏆 Net Profit
+₦${snapshot.netProfit.toLocaleString()}
+
+━━━━━━━━━━━━━━━━━━
+
+🤖 AI CFO HEALTH
+
+${health.status}
+
+⭐ Business Score
+${health.score}/100
+
+━━━━━━━━━━━━━━━━━━
+
+🏆 Strengths
+
+${health.strengths.length > 0
+    ? health.strengths.map(item => `✅ ${item}`).join("\n")
+    : "None"}
+
+━━━━━━━━━━━━━━━━━━
+
+⚠️ Risks
+
+${health.risks.length > 0
+    ? health.risks.map(item => `⚠️ ${item}`).join("\n")
+    : "No major risks detected."}`,
 
         keyboard
 

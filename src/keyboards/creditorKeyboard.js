@@ -2,9 +2,9 @@ const { Markup } = require("telegraf");
 
 module.exports = Markup.keyboard([
 
-    ["👥 View Creditors", "💵 Pay Supplier"],
+    ["📚 Creditors History", "⏳ Outstanding Creditors"],
 
-    ["📊 Creditors Report"],
+    ["💵 Pay Supplier", "📊 Creditors Report"],
 
     ["⬅️ Back"]
 

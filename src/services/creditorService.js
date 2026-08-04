@@ -25,10 +25,8 @@ function createCreditor(telegramId, creditor) {
     const userId = getUserId(telegramId);
 
     const supplier = supplierService.findOrCreateSupplier(
-
         telegramId,
         creditor.supplier
-
     );
 
     return creditorRepository.create({
@@ -61,6 +59,17 @@ function getCreditors(telegramId) {
 }
 
 /**
+ * Get only outstanding creditors
+ */
+function getOutstandingCreditors(telegramId) {
+
+    const userId = getUserId(telegramId);
+
+    return creditorRepository.findOutstanding(userId);
+
+}
+
+/**
  * Find supplier unpaid balance
  */
 function findSupplierDebt(telegramId, supplierName) {
@@ -68,10 +77,8 @@ function findSupplierDebt(telegramId, supplierName) {
     const userId = getUserId(telegramId);
 
     const supplier = supplierService.findSupplierByName(
-
         telegramId,
         supplierName
-
     );
 
     if (!supplier) {
@@ -81,10 +88,8 @@ function findSupplierDebt(telegramId, supplierName) {
     }
 
     return creditorRepository.findBySupplier(
-
         userId,
         supplier.id
-
     );
 
 }
@@ -93,21 +98,14 @@ function findSupplierDebt(telegramId, supplierName) {
  * Record supplier payment
  */
 function recordPayment(
-
     telegramId,
-
     supplierName,
-
     payment
-
 ) {
 
     const debt = findSupplierDebt(
-
         telegramId,
-
         supplierName
-
     );
 
     if (!debt) {
@@ -126,9 +124,15 @@ function recordPayment(
 
     const balance = debt.balance - payment;
 
-    const status = balance === 0
-        ? "PAID"
-        : "UNPAID";
+    let status;
+
+    if (balance === 0) {
+        status = "PAID";
+    } else if (amountPaid === 0) {
+        status = "UNPAID";
+    } else {
+        status = "PARTIAL";
+    }
 
     return creditorRepository.updatePayment(
 
@@ -160,6 +164,8 @@ module.exports = {
     createCreditor,
 
     getCreditors,
+
+    getOutstandingCreditors,
 
     findSupplierDebt,
 

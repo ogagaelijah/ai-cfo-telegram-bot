@@ -39,6 +39,38 @@ function saveSale(telegramId, sale) {
     // ==========================
     // INVENTORY
     // ==========================
+    const product = inventoryService.findProduct(
+
+        telegramId,
+
+        sale.product
+
+    );
+
+    if (!product) {
+
+        throw new Error("Product not found in inventory.");
+
+    }
+
+    if (product.quantity < sale.quantity) {
+
+        throw new Error("Insufficient stock.");
+
+    }
+
+    // ==========================
+    // CALCULATIONS
+    // ==========================
+    const revenue = sale.quantity * sale.price;
+
+    const costOfGoods = sale.quantity * product.cost_price;
+
+    const profit = revenue - costOfGoods;
+
+    // ==========================
+    // REDUCE STOCK
+    // ==========================
     inventoryService.reduceStock(
 
         telegramId,
@@ -58,13 +90,23 @@ function saveSale(telegramId, sale) {
 
         customerId: customer.id,
 
-        item: sale.product,
+        inventoryId: product.id,
+
+        item: product.product_name,
 
         quantity: sale.quantity,
 
         unitPrice: sale.price,
 
-        total: sale.quantity * sale.price
+        costPrice: product.cost_price,
+
+        revenue,
+
+        costOfGoods,
+
+        profit,
+
+        total: revenue
 
     });
 

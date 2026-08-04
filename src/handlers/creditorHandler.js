@@ -10,6 +10,7 @@ const STATES = require("../constants/states");
 
 const {
     getCreditors,
+    getOutstandingCreditors,
     getOutstandingTotal
 } = require("../services/creditorService");
 
@@ -36,16 +37,16 @@ module.exports = async function creditorHandler(ctx) {
     }
 
     // ==========================
-    // VIEW CREDITORS
+    // VIEW ALL CREDITORS
     // ==========================
-    if (text === "👥 View Creditors") {
+    if (text === "📚 Creditors History") {
 
         const creditors = getCreditors(ctx.from.id);
 
         if (creditors.length === 0) {
 
             await ctx.reply(
-                "✅ You have no creditors.",
+                "📭 No creditor history found.",
                 creditorKeyboard
             );
 
@@ -53,25 +54,31 @@ module.exports = async function creditorHandler(ctx) {
 
         }
 
-        let message = "📕 CREDITORS LIST\n\n";
+        let message = "📚 CREDITORS HISTORY\n\n";
 
         creditors.forEach((creditor, index) => {
+
+            const icon =
+                creditor.status === "PAID"
+                    ? "🟢"
+                    : creditor.status === "PARTIAL"
+                    ? "🟡"
+                    : "🔴";
 
             message += `${index + 1}.
 
 🏢 ${creditor.supplier_name}
 
-💰 Total Debt:
+💰 Total:
 ₦${Number(creditor.total_amount).toLocaleString()}
 
 💵 Paid:
 ₦${Number(creditor.amount_paid).toLocaleString()}
 
-🧾 Balance:
+📒 Balance:
 ₦${Number(creditor.balance).toLocaleString()}
 
-📊 Status:
-${creditor.status}
+${icon} ${creditor.status}
 
 ━━━━━━━━━━━━━━━━━━
 
@@ -89,7 +96,59 @@ ${creditor.status}
     }
 
     // ==========================
-    // RECEIVE PAYMENT
+    // OUTSTANDING CREDITORS
+    // ==========================
+    if (text === "⏳ Outstanding Creditors") {
+
+        const creditors = getOutstandingCreditors(ctx.from.id);
+
+        if (creditors.length === 0) {
+
+            await ctx.reply(
+                "🎉 You have no outstanding creditors.",
+                creditorKeyboard
+            );
+
+            return true;
+
+        }
+
+        let message = "⏳ OUTSTANDING CREDITORS\n\n";
+
+        creditors.forEach((creditor, index) => {
+
+            message += `${index + 1}.
+
+🏢 ${creditor.supplier_name}
+
+💰 Total:
+₦${Number(creditor.total_amount).toLocaleString()}
+
+💵 Paid:
+₦${Number(creditor.amount_paid).toLocaleString()}
+
+📒 Balance:
+₦${Number(creditor.balance).toLocaleString()}
+
+🟡 ${creditor.status}
+
+━━━━━━━━━━━━━━━━━━
+
+`;
+
+        });
+
+        await ctx.reply(
+            message,
+            creditorKeyboard
+        );
+
+        return true;
+
+    }
+
+    // ==========================
+    // PAY SUPPLIER
     // ==========================
     if (text === "💵 Pay Supplier") {
 
@@ -131,7 +190,7 @@ ${creditor.status}
     }
 
     // ==========================
-    // SEARCH SESSION
+    // PAYMENT SESSION
     // ==========================
     if (
         session &&
