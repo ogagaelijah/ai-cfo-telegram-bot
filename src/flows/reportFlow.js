@@ -7,6 +7,14 @@ const {
     getDebtMetrics
 } = require("../services/financialAnalyticsService");
 
+const {
+    getBusinessInsights
+} = require("../services/businessInsightsService");
+
+const {
+    getBusinessRecommendations
+} = require("../services/businessRecommendationService");
+
 module.exports = async function reportFlow(ctx) {
 
     const snapshot = getBusinessSnapshot(ctx.from.id);
@@ -16,6 +24,11 @@ module.exports = async function reportFlow(ctx) {
     const debt = getDebtMetrics(ctx.from.id);
 
     const health = getBusinessHealth(ctx.from.id);
+
+    const insights = getBusinessInsights(ctx.from.id);
+
+    const recommendations =
+        getBusinessRecommendations(ctx.from.id);
 
     await ctx.reply(
 
@@ -106,7 +119,23 @@ ${health.strengths.length > 0
 
 ${health.risks.length > 0
     ? health.risks.map(item => `⚠️ ${item}`).join("\n")
-    : "No major risks detected."}`,
+    : "No major risks detected."}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 AI CFO INSIGHTS
+
+${insights.length > 0
+    ? insights.join("\n")
+    : "No business insights available yet."}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 AI CFO RECOMMENDATIONS
+
+${recommendations.length > 0
+    ? recommendations.join("\n")
+    : "No recommendations at this time."}`,
 
         keyboard
 
