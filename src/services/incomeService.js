@@ -1,68 +1,69 @@
-const db = require("../database/database");
+const incomeRepository = require("../repositories/incomeRepository");
 
-function getUserId(telegramId) {
-
-    const user = db.prepare(`
-        SELECT id
-        FROM users
-        WHERE telegram_id = ?
-    `).get(telegramId);
-
-    if (!user) {
-        throw new Error("User not found.");
-    }
-
-    return user.id;
-}
-
+// ==========================
+// SAVE INCOME
+// ==========================
 function saveIncome(telegramId, income) {
 
-    const userId = getUserId(telegramId);
+    return incomeRepository.create(
+        telegramId,
+        {
 
-    db.prepare(`
-        INSERT INTO income
-        (
-            user_id,
-            source,
-            amount,
-            notes
-        )
-        VALUES
-        (
-            ?,
-            ?,
-            ?,
-            ?
-        )
-    `).run(
+            source:
+                income.source,
 
-        userId,
-        income.source,
-        income.amount,
-        income.notes
+            amount:
+                Number(income.amount),
 
+            notes:
+                income.notes || ""
+
+        }
     );
 
 }
 
+// ==========================
+// TODAY'S INCOME
+// ==========================
 function getTodayIncome(telegramId) {
 
-    const userId = getUserId(telegramId);
+    return incomeRepository.getTodayTotal(
+        telegramId
+    );
 
-    const result = db.prepare(`
-        SELECT SUM(amount) AS total
-        FROM income
-        WHERE user_id = ?
-        AND DATE(created_at)=DATE('now','localtime')
-    `).get(userId);
+}
 
-    return result.total || 0;
+// ==========================
+// MONTHLY INCOME
+// ==========================
+function getMonthlyIncome(telegramId) {
+
+    return incomeRepository.getMonthlyTotal(
+        telegramId
+    );
+
+}
+
+// ==========================
+// ALL INCOME
+// ==========================
+function getIncome(telegramId) {
+
+    return incomeRepository.findAll(
+        telegramId
+    );
 
 }
 
 module.exports = {
 
     saveIncome,
-    getTodayIncome
+
+    getTodayIncome,
+
+    getMonthlyIncome,
+
+    getIncome
 
 };

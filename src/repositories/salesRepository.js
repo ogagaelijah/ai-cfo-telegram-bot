@@ -112,7 +112,8 @@ function findToday(userId) {
         LEFT JOIN customers c
             ON s.customer_id = c.id
         WHERE s.user_id = ?
-        AND DATE(s.created_at) = DATE('now')
+        AND DATE(s.created_at, 'localtime') =
+            DATE('now', 'localtime')
         ORDER BY s.created_at DESC
     `).all(userId);
 
@@ -125,12 +126,12 @@ function getTotalSales(userId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(SUM(total),0) AS totalSales
+            COALESCE(SUM(total), 0) AS totalSales
         FROM sales
         WHERE user_id = ?
     `).get(userId);
 
-    return result.totalSales;
+    return Number(result.totalSales) || 0;
 
 }
 

@@ -1,6 +1,17 @@
 const reportKeyboard = require("../keyboards/reportKeyboard");
 
 const reportFlow = require("../flows/reportFlow");
+const forecastFlow = require("../flows/forecastFlow");
+const kpiFlow = require("../flows/kpiFlow");
+const businessTrendsFlow = require("../flows/businessTrendsFlow");
+const profitLossFlow = require("../flows/profitLossFlow");
+const cashFlowFlow = require("../flows/cashFlowFlow");
+const inventoryReportFlow = require("../flows/inventoryReportFlow");
+const debtorsReportFlow = require("../flows/debtorsReportFlow");
+const creditorsReportFlow = require("../flows/creditorsReportFlow");
+const executiveReportFlow = require("../flows/executiveReportFlow");
+const periodReportFlow = require("../flows/periodReportFlow");
+const aiInsightsFlow = require("../flows/aiInsightsFlow");
 
 module.exports = async function reportHandler(ctx) {
 
@@ -21,11 +32,44 @@ module.exports = async function reportHandler(ctx) {
     }
 
     // ==========================
-    // DASHBOARD
+    // EXECUTIVE DASHBOARD
     // ==========================
-    if (text === "📈 Dashboard") {
+    if (text === "📊 Executive Dashboard") {
 
         await reportFlow(ctx);
+
+        return true;
+
+    }
+
+    // ==========================
+    // BUSINESS FORECAST
+    // ==========================
+    if (text === "📈 Business Forecast") {
+
+        await forecastFlow(ctx);
+
+        return true;
+
+    }
+
+    // ==========================
+    // KPI DASHBOARD
+    // ==========================
+    if (text === "📊 KPI Dashboard") {
+
+        await kpiFlow(ctx);
+
+        return true;
+
+    }
+
+    // ==========================
+    // BUSINESS TRENDS
+    // ==========================
+    if (text === "📉 Business Trends") {
+
+        await businessTrendsFlow(ctx);
 
         return true;
 
@@ -36,10 +80,7 @@ module.exports = async function reportHandler(ctx) {
     // ==========================
     if (text === "📅 Daily Report") {
 
-        await ctx.reply(
-            "🚧 Daily Report is coming soon.",
-            reportKeyboard
-        );
+        await periodReportFlow(ctx, "daily");
 
         return true;
 
@@ -50,10 +91,7 @@ module.exports = async function reportHandler(ctx) {
     // ==========================
     if (text === "📆 Weekly Report") {
 
-        await ctx.reply(
-            "🚧 Weekly Report is coming soon.",
-            reportKeyboard
-        );
+        await periodReportFlow(ctx, "weekly");
 
         return true;
 
@@ -64,10 +102,18 @@ module.exports = async function reportHandler(ctx) {
     // ==========================
     if (text === "🗓 Monthly Report") {
 
-        await ctx.reply(
-            "🚧 Monthly Report is coming soon.",
-            reportKeyboard
-        );
+        await periodReportFlow(ctx, "monthly");
+
+        return true;
+
+    }
+
+    // ==========================
+    // EXECUTIVE REPORT
+    // ==========================
+    if (text === "📑 Executive Report") {
+
+        await executiveReportFlow(ctx);
 
         return true;
 
@@ -78,10 +124,7 @@ module.exports = async function reportHandler(ctx) {
     // ==========================
     if (text === "💰 Profit & Loss") {
 
-        await ctx.reply(
-            "🚧 Profit & Loss Report is coming soon.",
-            reportKeyboard
-        );
+        await profitLossFlow(ctx);
 
         return true;
 
@@ -92,10 +135,7 @@ module.exports = async function reportHandler(ctx) {
     // ==========================
     if (text === "💵 Cash Flow") {
 
-        await ctx.reply(
-            "🚧 Cash Flow Report is coming soon.",
-            reportKeyboard
-        );
+        await cashFlowFlow(ctx);
 
         return true;
 
@@ -106,10 +146,7 @@ module.exports = async function reportHandler(ctx) {
     // ==========================
     if (text === "📦 Inventory Report") {
 
-        await ctx.reply(
-            "🚧 Inventory Report is coming soon.",
-            reportKeyboard
-        );
+        await inventoryReportFlow(ctx);
 
         return true;
 
@@ -120,10 +157,7 @@ module.exports = async function reportHandler(ctx) {
     // ==========================
     if (text === "👥 Debtors Report") {
 
-        await ctx.reply(
-            "🚧 Debtors Report is coming soon.",
-            reportKeyboard
-        );
+        await debtorsReportFlow(ctx);
 
         return true;
 
@@ -134,10 +168,7 @@ module.exports = async function reportHandler(ctx) {
     // ==========================
     if (text === "🏢 Creditors Report") {
 
-        await ctx.reply(
-            "🚧 Creditors Report is coming soon.",
-            reportKeyboard
-        );
+        await creditorsReportFlow(ctx);
 
         return true;
 
@@ -148,10 +179,7 @@ module.exports = async function reportHandler(ctx) {
     // ==========================
     if (text === "🤖 AI Insights") {
 
-        await ctx.reply(
-            "🚧 AI Insights is coming soon.",
-            reportKeyboard
-        );
+        await aiInsightsFlow(ctx);
 
         return true;
 

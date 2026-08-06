@@ -2,9 +2,13 @@ const { Markup } = require("telegraf");
 
 module.exports = Markup.keyboard([
 
-    ["📈 Dashboard", "📅 Daily Report"],
+    ["📊 Executive Dashboard", "📈 Business Forecast"],
 
-    ["📆 Weekly Report", "🗓 Monthly Report"],
+    ["📊 KPI Dashboard", "📉 Business Trends"],
+
+    ["📅 Daily Report", "📆 Weekly Report"],
+
+    ["🗓 Monthly Report", "📑 Executive Report"],
 
     ["💰 Profit & Loss", "💵 Cash Flow"],
 

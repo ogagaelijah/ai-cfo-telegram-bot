@@ -12,7 +12,9 @@ function getUserId(telegramId) {
     `).get(telegramId);
 
     if (!user) {
+
         throw new Error("User not found.");
+
     }
 
     return user.id;
@@ -26,7 +28,7 @@ function getTotalSales(userId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(SUM(total),0) AS total
+            COALESCE(SUM(total), 0) AS total
         FROM sales
         WHERE user_id = ?
     `).get(userId);
@@ -42,7 +44,7 @@ function getTotalPurchases(userId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(SUM(total_amount),0) AS total
+            COALESCE(SUM(total_amount), 0) AS total
         FROM purchases
         WHERE user_id = ?
     `).get(userId);
@@ -58,7 +60,7 @@ function getTotalExpenses(userId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(SUM(amount),0) AS total
+            COALESCE(SUM(amount), 0) AS total
         FROM expenses
         WHERE user_id = ?
     `).get(userId);
@@ -74,7 +76,7 @@ function getTotalIncome(userId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(SUM(amount),0) AS total
+            COALESCE(SUM(amount), 0) AS total
         FROM income
         WHERE user_id = ?
     `).get(userId);
@@ -90,7 +92,7 @@ function getInventoryValue(userId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(SUM(quantity * cost_price),0) AS total
+            COALESCE(SUM(quantity * cost_price), 0) AS total
         FROM inventory
         WHERE user_id = ?
     `).get(userId);
@@ -122,12 +124,10 @@ function getOutstandingDebtors(userId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(SUM(balance),0) AS total
+            COALESCE(SUM(balance), 0) AS total
         FROM debtors
-        WHERE
-            user_id = ?
-        AND
-            balance > 0
+        WHERE user_id = ?
+        AND balance > 0
     `).get(userId);
 
     return result.total;
@@ -141,12 +141,10 @@ function getOutstandingCreditors(userId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(SUM(balance),0) AS total
+            COALESCE(SUM(balance), 0) AS total
         FROM creditors
-        WHERE
-            user_id = ?
-        AND
-            balance > 0
+        WHERE user_id = ?
+        AND balance > 0
     `).get(userId);
 
     return result.total;
@@ -160,7 +158,7 @@ function getCostOfGoodsSold(userId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(SUM(cost_of_goods),0) AS total
+            COALESCE(SUM(cost_of_goods), 0) AS total
         FROM sales
         WHERE user_id = ?
     `).get(userId);
@@ -174,14 +172,7 @@ function getCostOfGoodsSold(userId) {
 // ==========================
 function getOperatingExpenses(userId) {
 
-    const result = db.prepare(`
-        SELECT
-            COALESCE(SUM(amount),0) AS total
-        FROM expenses
-        WHERE user_id = ?
-    `).get(userId);
-
-    return result.total;
+    return getTotalExpenses(userId);
 
 }
 
@@ -206,9 +197,11 @@ function getSupplierCount(userId) {
 // ==========================
 function getInventoryTurnover(userId) {
 
-    const sales = getTotalSales(userId);
+    const sales =
+        getTotalSales(userId);
 
-    const inventory = getInventoryValue(userId);
+    const inventory =
+        getInventoryValue(userId);
 
     if (inventory === 0) {
 
@@ -242,10 +235,10 @@ module.exports = {
 
     getCostOfGoodsSold,
 
-getOperatingExpenses,
+    getOperatingExpenses,
 
-getSupplierCount,
+    getSupplierCount,
 
-getInventoryTurnover,
+    getInventoryTurnover
 
 };

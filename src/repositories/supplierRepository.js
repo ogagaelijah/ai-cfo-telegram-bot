@@ -1,8 +1,8 @@
 const db = require("../database/database");
 
-/**
- * Create supplier
- */
+// ==========================
+// CREATE SUPPLIER
+// ==========================
 function create(supplier) {
 
     const result = db.prepare(`
@@ -25,9 +25,13 @@ function create(supplier) {
     `).run(
 
         supplier.userId,
+
         supplier.name,
+
         supplier.phone,
+
         supplier.email,
+
         supplier.address
 
     );
@@ -36,9 +40,9 @@ function create(supplier) {
 
 }
 
-/**
- * Find supplier by ID
- */
+// ==========================
+// FIND SUPPLIER BY ID
+// ==========================
 function findById(id) {
 
     return db.prepare(`
@@ -49,9 +53,9 @@ function findById(id) {
 
 }
 
-/**
- * Get all suppliers
- */
+// ==========================
+// GET ALL SUPPLIERS
+// ==========================
 function findAll(userId) {
 
     return db.prepare(`
@@ -63,10 +67,13 @@ function findAll(userId) {
 
 }
 
-/**
- * Search suppliers
- */
+// ==========================
+// SEARCH SUPPLIERS
+// ==========================
 function search(userId, keyword) {
+
+    const searchTerm =
+        `%${keyword.trim()}%`;
 
     return db.prepare(`
         SELECT *
@@ -77,21 +84,26 @@ function search(userId, keyword) {
         (
             name LIKE ?
             OR phone LIKE ?
+            OR email LIKE ?
         )
         ORDER BY name
     `).all(
 
         userId,
-        `%${keyword}%`,
-        `%${keyword}%`
+
+        searchTerm,
+
+        searchTerm,
+
+        searchTerm
 
     );
 
 }
 
-/**
- * Find supplier by name
- */
+// ==========================
+// FIND SUPPLIER BY NAME
+// ==========================
 function findByName(userId, name) {
 
     return db.prepare(`
@@ -105,6 +117,7 @@ function findByName(userId, name) {
     `).get(
 
         userId,
+
         name.trim()
 
     );

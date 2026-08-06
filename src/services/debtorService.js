@@ -2,24 +2,27 @@ const userRepository = require("../repositories/userRepository");
 const debtorRepository = require("../repositories/debtorRepository");
 const customerRepository = require("../repositories/customerRepository");
 
-/**
- * Get internal user ID
- */
+// ==========================
+// GET INTERNAL USER ID
+// ==========================
 function getUserId(telegramId) {
 
-    const user = userRepository.findByTelegramId(telegramId);
+    const user =
+        userRepository.findByTelegramId(telegramId);
 
     if (!user) {
+
         throw new Error("User not found.");
+
     }
 
     return user.id;
 
 }
 
-/**
- * Create debtor
- */
+// ==========================
+// CREATE DEBT
+// ==========================
 function createDebt(
     telegramId,
     customerName,
@@ -27,7 +30,8 @@ function createDebt(
     totalAmount
 ) {
 
-    const userId = getUserId(telegramId);
+    const userId =
+        getUserId(telegramId);
 
     const customer =
         customerRepository.findByName(
@@ -36,7 +40,9 @@ function createDebt(
         );
 
     if (!customer) {
+
         throw new Error("Customer not found.");
+
     }
 
     return debtorRepository.create({
@@ -59,29 +65,30 @@ function createDebt(
 
 }
 
-/**
- * View debtors
- */
+// ==========================
+// GET DEBTORS
+// ==========================
 function getDebtors(telegramId) {
 
-    const userId = getUserId(telegramId);
+    const userId =
+        getUserId(telegramId);
 
     return debtorRepository.findAll(userId);
 
 }
 
-/**
- * Receive payment
- */
+// ==========================
+// RECEIVE PAYMENT
+// ==========================
 function receivePayment(
     telegramId,
     customerName,
     payment
 ) {
 
-    const userId = getUserId(telegramId);
+    const userId =
+        getUserId(telegramId);
 
-    // Find customer by name
     const customer =
         customerRepository.findByName(
             userId,
@@ -89,10 +96,11 @@ function receivePayment(
         );
 
     if (!customer) {
+
         throw new Error("Customer not found.");
+
     }
 
-    // Find customer's outstanding debt
     const debt =
         debtorRepository.findByCustomer(
             userId,
@@ -100,13 +108,17 @@ function receivePayment(
         );
 
     if (!debt) {
+
         throw new Error("Customer has no outstanding debt.");
+
     }
 
     if (payment > debt.balance) {
+
         throw new Error(
             "Payment exceeds outstanding balance."
         );
+
     }
 
     const amountPaid =
@@ -115,10 +127,21 @@ function receivePayment(
     const balance =
         Number(debt.balance) - payment;
 
-    const status =
-        balance <= 0
-            ? "PAID"
-            : "UNPAID";
+    let status;
+
+    if (balance <= 0) {
+
+        status = "PAID";
+
+    } else if (amountPaid === 0) {
+
+        status = "UNPAID";
+
+    } else {
+
+        status = "PARTIAL";
+
+    }
 
     return debtorRepository.updatePayment(
 
@@ -134,19 +157,15 @@ function receivePayment(
 
 }
 
-/**
- * Outstanding debt total
- */
-function getOutstandingTotal(
-    telegramId
-) {
+// ==========================
+// OUTSTANDING TOTAL
+// ==========================
+function getOutstandingTotal(telegramId) {
 
     const userId =
         getUserId(telegramId);
 
-    return debtorRepository.getOutstandingTotal(
-        userId
-    );
+    return debtorRepository.getOutstandingTotal(userId);
 
 }
 

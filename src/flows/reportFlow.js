@@ -1,10 +1,12 @@
-const keyboard = require("../keyboards/mainKeyboard");
+const keyboard = require("../keyboards/reportKeyboard");
 
 const {
     getBusinessSnapshot,
     getBusinessHealth,
     getCashMetrics,
-    getDebtMetrics
+    getDebtMetrics,
+    getBusinessKPIs,
+    getBusinessForecast
 } = require("../services/financialAnalyticsService");
 
 const {
@@ -24,6 +26,11 @@ module.exports = async function reportFlow(ctx) {
     const debt = getDebtMetrics(ctx.from.id);
 
     const health = getBusinessHealth(ctx.from.id);
+
+    const kpis = getBusinessKPIs(ctx.from.id);
+
+    const forecast =
+    getBusinessForecast(ctx.from.id);
 
     const insights = getBusinessInsights(ctx.from.id);
 
@@ -98,6 +105,31 @@ ${snapshot.productCount}
 
 ━━━━━━━━━━━━━━━━━━
 
+📊 KEY PERFORMANCE INDICATORS
+
+📈 Gross Margin
+${kpis.grossMargin.toFixed(2)}%
+
+💰 Net Margin
+${kpis.netMargin.toFixed(2)}%
+
+💸 Expense Ratio
+${kpis.expenseRatio.toFixed(2)}%
+
+🏦 Cash Ratio
+${kpis.cashRatio.toFixed(2)}%
+
+📋 Debt Ratio
+${kpis.debtRatio.toFixed(2)}%
+
+📦 Inventory Turnover
+${kpis.inventoryTurnover.toFixed(2)}
+
+🛒 Revenue per Product
+₦${kpis.revenuePerProduct.toLocaleString()}
+
+━━━━━━━━━━━━━━━━━━
+
 🤖 AI CFO HEALTH
 
 ${health.status}
@@ -128,6 +160,34 @@ ${health.risks.length > 0
 ${insights.length > 0
     ? insights.join("\n")
     : "No business insights available yet."}
+
+    ━━━━━━━━━━━━━━━━━━
+
+🔮 FORECAST TEST
+
+📈 Average Daily Sales
+
+₦${forecast.averageDailySales.toLocaleString()}
+
+💸 Average Daily Expenses
+
+₦${forecast.averageDailyExpenses.toLocaleString()}
+
+📅 7-Day Revenue Forecast
+
+₦${forecast.forecast7DaysRevenue.toLocaleString()}
+
+📅 30-Day Revenue Forecast
+
+₦${forecast.forecast30DaysRevenue.toLocaleString()}
+
+💰 7-Day Cash Forecast
+
+₦${forecast.forecast7DaysCash.toLocaleString()}
+
+💰 30-Day Cash Forecast
+
+₦${forecast.forecast30DaysCash.toLocaleString()}
 
 ━━━━━━━━━━━━━━━━━━
 

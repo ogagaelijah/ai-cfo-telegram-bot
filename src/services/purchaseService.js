@@ -9,10 +9,13 @@ const creditorRepository = require("../repositories/creditorRepository");
 // ==========================
 function getUserId(telegramId) {
 
-    const user = userRepository.findByTelegramId(telegramId);
+    const user =
+        userRepository.findByTelegramId(telegramId);
 
     if (!user) {
+
         throw new Error("User not found.");
+
     }
 
     return user.id;
@@ -24,62 +27,101 @@ function getUserId(telegramId) {
 // ==========================
 function recordPurchase(telegramId, data) {
 
-    const userId = getUserId(telegramId);
+    if (Number(data.quantity) <= 0) {
 
-    // Find supplier
-    const supplier = supplierRepository.findByName(
-        userId,
-        data.supplierName
-    );
+        throw new Error("Quantity must be greater than zero.");
+
+    }
+
+    if (Number(data.unitCost) < 0) {
+
+        throw new Error("Unit cost cannot be negative.");
+
+    }
+
+    if (Number(data.totalAmount) < 0) {
+
+        throw new Error("Total amount cannot be negative.");
+
+    }
+
+    if (Number(data.amountPaid) < 0) {
+
+        throw new Error("Amount paid cannot be negative.");
+
+    }
+
+    if (Number(data.balance) < 0) {
+
+        throw new Error("Balance cannot be negative.");
+
+    }
+
+    const userId =
+        getUserId(telegramId);
+
+    const supplier =
+        supplierRepository.findByName(
+
+            userId,
+
+            data.supplierName.trim()
+
+        );
 
     if (!supplier) {
+
         throw new Error("Supplier not found.");
+
     }
 
-    // Find inventory item
-    const inventory = inventoryRepository.findByProductName(
-        userId,
-        data.productName
-    );
+    const inventory =
+        inventoryRepository.findByProductName(
+
+            userId,
+
+            data.productName.trim()
+
+        );
 
     if (!inventory) {
+
         throw new Error("Inventory item not found.");
+
     }
 
-    // Save purchase
-    const purchase = purchaseRepository.create({
+    const purchase =
+        purchaseRepository.create({
 
-        userId,
+            userId,
 
-        supplierId: supplier.id,
+            supplierId: supplier.id,
 
-        inventoryId: inventory.id,
+            inventoryId: inventory.id,
 
-        quantity: data.quantity,
+            quantity: Number(data.quantity),
 
-        unitCost: data.unitCost,
+            unitCost: Number(data.unitCost),
 
-        totalAmount: data.totalAmount,
+            totalAmount: Number(data.totalAmount),
 
-        paymentStatus: data.paymentStatus,
+            paymentStatus: data.paymentStatus,
 
-        amountPaid: data.amountPaid,
+            amountPaid: Number(data.amountPaid),
 
-        balance: data.balance
+            balance: Number(data.balance)
 
-    });
+        });
 
-    // Increase stock
     inventoryRepository.increaseStock(
 
-    inventory.id,
+        inventory.id,
 
-    data.quantity
+        Number(data.quantity)
 
-);
+    );
 
-    // Create creditor if balance exists
-    if (data.balance > 0) {
+    if (Number(data.balance) > 0) {
 
         creditorRepository.create({
 
@@ -89,15 +131,18 @@ function recordPurchase(telegramId, data) {
 
             purchaseId: purchase.id,
 
-            totalAmount: data.totalAmount,
+            totalAmount: Number(data.totalAmount),
 
-            amountPaid: data.amountPaid,
+            amountPaid: Number(data.amountPaid),
 
-            balance: data.balance,
+            balance: Number(data.balance),
 
             status:
-                data.balance === data.totalAmount
+
+                Number(data.balance) === Number(data.totalAmount)
+
                     ? "UNPAID"
+
                     : "PARTIAL"
 
         });
@@ -113,9 +158,11 @@ function recordPurchase(telegramId, data) {
 // ==========================
 function getPurchases(telegramId) {
 
-    const userId = getUserId(telegramId);
+    return purchaseRepository.findAll(
 
-    return purchaseRepository.findAll(userId);
+        getUserId(telegramId)
+
+    );
 
 }
 

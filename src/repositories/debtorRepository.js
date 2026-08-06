@@ -1,8 +1,8 @@
 const db = require("../database/database");
 
-/**
- * Create a debt record
- */
+// ==========================
+// CREATE DEBT RECORD
+// ==========================
 function create(debt) {
 
     const result = db.prepare(`
@@ -29,11 +29,17 @@ function create(debt) {
     `).run(
 
         debt.userId,
+
         debt.customerId,
+
         debt.saleId,
+
         debt.totalAmount,
+
         debt.amountPaid,
+
         debt.balance,
+
         debt.status
 
     );
@@ -42,9 +48,9 @@ function create(debt) {
 
 }
 
-/**
- * Find debt by ID
- */
+// ==========================
+// FIND DEBT BY ID
+// ==========================
 function findById(id) {
 
     return db.prepare(`
@@ -55,9 +61,9 @@ function findById(id) {
 
 }
 
-/**
- * Get ACTIVE debtors only
- */
+// ==========================
+// GET ACTIVE DEBTORS
+// ==========================
 function findAll(userId) {
 
     return db.prepare(`
@@ -69,7 +75,7 @@ function findAll(userId) {
             s.unit_price
         FROM debtors d
 
-        JOIN customers c
+        LEFT JOIN customers c
             ON c.id = d.customer_id
 
         LEFT JOIN sales s
@@ -85,9 +91,9 @@ function findAll(userId) {
 
 }
 
-/**
- * Find customer's unpaid debt
- */
+// ==========================
+// FIND CUSTOMER'S UNPAID DEBT
+// ==========================
 function findByCustomer(userId, customerId) {
 
     return db.prepare(`
@@ -103,15 +109,16 @@ function findByCustomer(userId, customerId) {
     `).get(
 
         userId,
+
         customerId
 
     );
 
 }
 
-/**
- * Update payment
- */
+// ==========================
+// UPDATE PAYMENT
+// ==========================
 function updatePayment(id, amountPaid, balance, status) {
 
     db.prepare(`
@@ -124,8 +131,11 @@ function updatePayment(id, amountPaid, balance, status) {
     `).run(
 
         amountPaid,
+
         balance,
+
         status,
+
         id
 
     );
@@ -134,9 +144,9 @@ function updatePayment(id, amountPaid, balance, status) {
 
 }
 
-/**
- * Total outstanding balance
- */
+// ==========================
+// TOTAL OUTSTANDING BALANCE
+// ==========================
 function getOutstandingTotal(userId) {
 
     const result = db.prepare(`
@@ -149,7 +159,7 @@ function getOutstandingTotal(userId) {
             status = 'UNPAID'
     `).get(userId);
 
-    return result.total;
+    return Number(result.total) || 0;
 
 }
 

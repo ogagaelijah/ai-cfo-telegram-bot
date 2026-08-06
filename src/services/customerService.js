@@ -6,10 +6,13 @@ const userRepository = require("../repositories/userRepository");
 // ==========================
 function getUserId(telegramId) {
 
-    const user = userRepository.findByTelegramId(telegramId);
+    const user =
+        userRepository.findByTelegramId(telegramId);
 
     if (!user) {
+
         throw new Error("User not found.");
+
     }
 
     return user.id;
@@ -21,7 +24,8 @@ function getUserId(telegramId) {
 // ==========================
 function saveCustomer(telegramId, customer) {
 
-    const userId = getUserId(telegramId);
+    const userId =
+        getUserId(telegramId);
 
     return customerRepository.create({
 
@@ -44,7 +48,8 @@ function saveCustomer(telegramId, customer) {
 // ==========================
 function findOrCreateCustomer(telegramId, customerName) {
 
-    const userId = getUserId(telegramId);
+    const userId =
+        getUserId(telegramId);
 
     return customerRepository.findOrCreate(
 
@@ -61,7 +66,8 @@ function findOrCreateCustomer(telegramId, customerName) {
 // ==========================
 function searchCustomers(telegramId, keyword) {
 
-    const userId = getUserId(telegramId);
+    const userId =
+        getUserId(telegramId);
 
     return customerRepository.search(
 
@@ -78,7 +84,8 @@ function searchCustomers(telegramId, keyword) {
 // ==========================
 function getCustomers(telegramId) {
 
-    const userId = getUserId(telegramId);
+    const userId =
+        getUserId(telegramId);
 
     return customerRepository.findAll(userId);
 

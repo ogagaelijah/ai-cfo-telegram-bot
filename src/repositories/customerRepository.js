@@ -1,8 +1,8 @@
 const db = require("../database/database");
 
-/**
- * Create a new customer
- */
+// ==========================
+// CREATE CUSTOMER
+// ==========================
 function create(customer) {
 
     const result = db.prepare(`
@@ -25,9 +25,13 @@ function create(customer) {
     `).run(
 
         customer.userId,
+
         customer.name,
+
         customer.phone || null,
+
         customer.email || null,
+
         customer.address || null
 
     );
@@ -36,9 +40,9 @@ function create(customer) {
 
 }
 
-/**
- * Find customer by ID
- */
+// ==========================
+// FIND CUSTOMER BY ID
+// ==========================
 function findById(id) {
 
     return db.prepare(`
@@ -49,35 +53,41 @@ function findById(id) {
 
 }
 
-/**
- * Find customer by exact name
- */
+// ==========================
+// FIND CUSTOMER BY NAME
+// ==========================
 function findByName(userId, name) {
 
     return db.prepare(`
         SELECT *
         FROM customers
-        WHERE user_id = ?
-        AND LOWER(name) = LOWER(?)
+        WHERE
+            user_id = ?
+        AND
+            LOWER(name) = LOWER(?)
         LIMIT 1
     `).get(
 
         userId,
+
         name.trim()
 
     );
 
 }
 
-/**
- * Find customer or create automatically
- */
+// ==========================
+// FIND CUSTOMER OR CREATE
+// ==========================
 function findOrCreate(userId, name) {
 
-    let customer = findByName(userId, name);
+    const customer =
+        findByName(userId, name);
 
     if (customer) {
+
         return customer;
+
     }
 
     return create({
@@ -96,9 +106,9 @@ function findOrCreate(userId, name) {
 
 }
 
-/**
- * Get all customers
- */
+// ==========================
+// GET ALL CUSTOMERS
+// ==========================
 function findAll(userId) {
 
     return db.prepare(`
@@ -110,15 +120,16 @@ function findAll(userId) {
 
 }
 
-/**
- * Search customers
- */
+// ==========================
+// SEARCH CUSTOMERS
+// ==========================
 function search(userId, keyword) {
 
     return db.prepare(`
         SELECT *
         FROM customers
-        WHERE user_id = ?
+        WHERE
+            user_id = ?
         AND
         (
             name LIKE ?

@@ -8,10 +8,13 @@ const inventoryService = require("./inventoryService");
  */
 function getUserId(telegramId) {
 
-    const user = userRepository.findByTelegramId(telegramId);
+    const user =
+        userRepository.findByTelegramId(telegramId);
 
     if (!user) {
+
         throw new Error("User not found.");
+
     }
 
     return user.id;
@@ -23,50 +26,104 @@ function getUserId(telegramId) {
  */
 function saveSale(telegramId, sale) {
 
-    const userId = getUserId(telegramId);
+    if (Number(sale.quantity) <= 0) {
+
+        throw new Error("Quantity must be greater than zero.");
+
+    }
+
+    if (Number(sale.price) < 0) {
+
+        throw new Error("Price cannot be negative.");
+
+    }
+
+    const userId =
+        getUserId(telegramId);
 
     // ==========================
     // CUSTOMER
     // ==========================
-    const customer = customerService.findOrCreateCustomer(
+    const customer =
+        customerService.findOrCreateCustomer(
 
-        telegramId,
+            telegramId,
 
-        sale.customer
+            sale.customer.trim()
 
-    );
+        );
 
     // ==========================
     // INVENTORY
     // ==========================
-    const product = inventoryService.findProduct(
+    const product =
+        inventoryService.findProduct(
 
-        telegramId,
+            telegramId,
 
-        sale.product
+            sale.product.trim()
 
-    );
+        );
 
     if (!product) {
 
-        throw new Error("Product not found in inventory.");
+        throw new Error(
+            "Product not found in inventory."
+        );
 
     }
 
-    if (product.quantity < sale.quantity) {
+    if (product.quantity < Number(sale.quantity)) {
 
-        throw new Error("Insufficient stock.");
+        throw new Error(
+            "Insufficient stock."
+        );
 
     }
 
     // ==========================
     // CALCULATIONS
     // ==========================
-    const revenue = sale.quantity * sale.price;
+    const revenue =
+        Number(sale.quantity) *
+        Number(sale.price);
 
-    const costOfGoods = sale.quantity * product.cost_price;
+    const costOfGoods =
+        Number(sale.quantity) *
+        Number(product.cost_price);
 
-    const profit = revenue - costOfGoods;
+    const profit =
+        revenue - costOfGoods;
+
+    // ==========================
+    // SAVE SALE
+    // ==========================
+    const savedSale =
+        salesRepository.create({
+
+            userId,
+
+            customerId: customer.id,
+
+            inventoryId: product.id,
+
+            item: product.product_name,
+
+            quantity: Number(sale.quantity),
+
+            unitPrice: Number(sale.price),
+
+            costPrice: Number(product.cost_price),
+
+            revenue,
+
+            costOfGoods,
+
+            profit,
+
+            total: revenue
+
+        });
 
     // ==========================
     // REDUCE STOCK
@@ -77,38 +134,9 @@ function saveSale(telegramId, sale) {
 
         sale.product,
 
-        sale.quantity
+        Number(sale.quantity)
 
     );
-
-    // ==========================
-    // SAVE SALE
-    // ==========================
-    const savedSale = salesRepository.create({
-
-        userId,
-
-        customerId: customer.id,
-
-        inventoryId: product.id,
-
-        item: product.product_name,
-
-        quantity: sale.quantity,
-
-        unitPrice: sale.price,
-
-        costPrice: product.cost_price,
-
-        revenue,
-
-        costOfGoods,
-
-        profit,
-
-        total: revenue
-
-    });
 
     return {
 

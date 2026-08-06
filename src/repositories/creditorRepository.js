@@ -1,48 +1,56 @@
 const db = require("../database/database");
 
-/**
- * Create creditor
- */
+// ==========================
+// CREATE CREDITOR
+// ==========================
 function create(creditor) {
 
     const result = db.prepare(`
         INSERT INTO creditors
-(
-    user_id,
-    supplier_id,
-    purchase_id,
-    total_amount,
-    amount_paid,
-    balance,
-    status
-)
-VALUES
-(
-    ?,
-    ?,
-    ?,
-    ?,
-    ?,
-    ?,
-    ?
-)
+        (
+            user_id,
+            supplier_id,
+            purchase_id,
+            total_amount,
+            amount_paid,
+            balance,
+            status
+        )
+        VALUES
+        (
+            ?,
+            ?,
+            ?,
+            ?,
+            ?,
+            ?,
+            ?
+        )
     `).run(
-    creditor.userId,
-    creditor.supplierId,
-    creditor.purchaseId,
-    creditor.totalAmount,
-    creditor.amountPaid,
-    creditor.balance,
-    creditor.status
-);
+
+        creditor.userId,
+
+        creditor.supplierId,
+
+        creditor.purchaseId,
+
+        creditor.totalAmount,
+
+        creditor.amountPaid,
+
+        creditor.balance,
+
+        creditor.status
+
+    );
 
     return findById(result.lastInsertRowid);
 
 }
 
-/**
- * Find by ID
- */
+// ==========================
+// FIND CREDITOR BY ID
+// ==========================
 function findById(id) {
 
     return db.prepare(`
@@ -53,9 +61,9 @@ function findById(id) {
 
 }
 
-/**
- * Get all creditors
- */
+// ==========================
+// GET ALL CREDITORS
+// ==========================
 function findAll(userId) {
 
     return db.prepare(`
@@ -64,19 +72,20 @@ function findAll(userId) {
             s.name AS supplier_name
         FROM creditors cr
 
-        JOIN suppliers s
+        LEFT JOIN suppliers s
             ON s.id = cr.supplier_id
 
-        WHERE cr.user_id = ?
+        WHERE
+            cr.user_id = ?
 
         ORDER BY cr.created_at DESC
     `).all(userId);
 
 }
 
-/**
- * Find unpaid creditor
- */
+// ==========================
+// FIND SUPPLIER'S OUTSTANDING DEBT
+// ==========================
 function findBySupplier(userId, supplierId) {
 
     return db.prepare(`
@@ -92,15 +101,16 @@ function findBySupplier(userId, supplierId) {
     `).get(
 
         userId,
+
         supplierId
 
     );
 
 }
 
-/**
- * Update payment
- */
+// ==========================
+// UPDATE PAYMENT
+// ==========================
 function updatePayment(id, amountPaid, balance, status) {
 
     db.prepare(`
@@ -113,8 +123,11 @@ function updatePayment(id, amountPaid, balance, status) {
     `).run(
 
         amountPaid,
+
         balance,
+
         status,
+
         id
 
     );
@@ -123,9 +136,9 @@ function updatePayment(id, amountPaid, balance, status) {
 
 }
 
-/**
- * Outstanding balance
- */
+// ==========================
+// TOTAL OUTSTANDING BALANCE
+// ==========================
 function getOutstandingTotal(userId) {
 
     const result = db.prepare(`
@@ -138,13 +151,13 @@ function getOutstandingTotal(userId) {
             balance > 0
     `).get(userId);
 
-    return result.total;
+    return Number(result.total) || 0;
 
 }
 
-/**
- * Outstanding creditors only
- */
+// ==========================
+// GET OUTSTANDING CREDITORS
+// ==========================
 function findOutstanding(userId) {
 
     return db.prepare(`
@@ -153,7 +166,7 @@ function findOutstanding(userId) {
             s.name AS supplier_name
         FROM creditors cr
 
-        JOIN suppliers s
+        LEFT JOIN suppliers s
             ON s.id = cr.supplier_id
 
         WHERE

@@ -1,8 +1,8 @@
 const db = require("../database/database");
 
-/**
- * Create a new inventory item
- */
+// ==========================
+// CREATE INVENTORY ITEM
+// ==========================
 function create(item) {
 
     const result = db.prepare(`
@@ -25,9 +25,13 @@ function create(item) {
     `).run(
 
         item.userId,
+
         item.productName,
+
         item.quantity,
+
         item.costPrice,
+
         item.sellingPrice
 
     );
@@ -36,9 +40,9 @@ function create(item) {
 
 }
 
-/**
- * Find inventory item by ID
- */
+// ==========================
+// FIND INVENTORY ITEM BY ID
+// ==========================
 function findById(id) {
 
     return db.prepare(`
@@ -49,35 +53,41 @@ function findById(id) {
 
 }
 
-/**
- * Find inventory item by product name
- */
+// ==========================
+// FIND INVENTORY ITEM BY PRODUCT NAME
+// ==========================
 function findByProductName(userId, productName) {
 
     return db.prepare(`
         SELECT *
         FROM inventory
-        WHERE user_id = ?
-        AND LOWER(product_name) = LOWER(?)
+        WHERE
+            user_id = ?
+        AND
+            LOWER(product_name) = LOWER(?)
         LIMIT 1
     `).get(
 
         userId,
+
         productName.trim()
 
     );
 
 }
 
-/**
- * Find existing product or create a new one
- */
+// ==========================
+// FIND EXISTING PRODUCT OR CREATE NEW
+// ==========================
 function findOrCreate(userId, productName) {
 
-    let item = findByProductName(userId, productName);
+    const item =
+        findByProductName(userId, productName);
 
     if (item) {
+
         return item;
+
     }
 
     return create({
@@ -96,9 +106,9 @@ function findOrCreate(userId, productName) {
 
 }
 
-/**
- * Increase stock
- */
+// ==========================
+// INCREASE STOCK
+// ==========================
 function increaseStock(id, quantity) {
 
     db.prepare(`
@@ -108,6 +118,7 @@ function increaseStock(id, quantity) {
     `).run(
 
         quantity,
+
         id
 
     );
@@ -116,18 +127,19 @@ function increaseStock(id, quantity) {
 
 }
 
-/**
- * Decrease stock
- */
+// ==========================
+// DECREASE STOCK
+// ==========================
 function decreaseStock(id, quantity) {
 
     db.prepare(`
         UPDATE inventory
-        SET quantity = quantity - ?
+        SET quantity = MAX(quantity - ?, 0)
         WHERE id = ?
     `).run(
 
         quantity,
+
         id
 
     );
@@ -136,9 +148,9 @@ function decreaseStock(id, quantity) {
 
 }
 
-/**
- * Update prices
- */
+// ==========================
+// UPDATE PRICES
+// ==========================
 function updatePrices(id, costPrice, sellingPrice) {
 
     db.prepare(`
@@ -150,7 +162,9 @@ function updatePrices(id, costPrice, sellingPrice) {
     `).run(
 
         costPrice,
+
         sellingPrice,
+
         id
 
     );
@@ -159,9 +173,9 @@ function updatePrices(id, costPrice, sellingPrice) {
 
 }
 
-/**
- * Get all inventory
- */
+// ==========================
+// GET ALL INVENTORY
+// ==========================
 function findAll(userId) {
 
     return db.prepare(`
@@ -173,20 +187,25 @@ function findAll(userId) {
 
 }
 
-/**
- * Find low-stock items
- */
+// ==========================
+// FIND LOW-STOCK ITEMS
+// ==========================
 function findLowStock(userId, threshold = 5) {
 
     return db.prepare(`
         SELECT *
         FROM inventory
-        WHERE user_id = ?
-        AND quantity <= ?
-        ORDER BY quantity ASC
+        WHERE
+            user_id = ?
+        AND
+            quantity <= ?
+        ORDER BY
+            quantity ASC,
+            product_name ASC
     `).all(
 
         userId,
+
         threshold
 
     );

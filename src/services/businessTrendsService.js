@@ -1,9 +1,9 @@
 const trendsRepository = require("../repositories/businessTrendsRepository");
 
 // ==========================
-// PERCENTAGE CHANGE
+// CALCULATE PERCENTAGE CHANGE
 // ==========================
-function percentageChange(current, previous) {
+function calculatePercentageChange(current, previous) {
 
     if (previous === 0) {
 
@@ -12,6 +12,7 @@ function percentageChange(current, previous) {
         }
 
         return 100;
+
     }
 
     return ((current - previous) / previous) * 100;
@@ -19,9 +20,9 @@ function percentageChange(current, previous) {
 }
 
 // ==========================
-// SALES TRENDS
+// BUSINESS TRENDS
 // ==========================
-function getSalesTrends(telegramId) {
+function getBusinessTrends(telegramId) {
 
     const userId =
         trendsRepository.getUserId(telegramId);
@@ -44,28 +45,77 @@ function getSalesTrends(telegramId) {
     const lastMonth =
         trendsRepository.getLastMonthSales(userId);
 
+    const dailyGrowth =
+        calculatePercentageChange(today, yesterday);
+
+    const weeklyGrowth =
+        calculatePercentageChange(thisWeek, lastWeek);
+
+    const monthlyGrowth =
+        calculatePercentageChange(thisMonth, lastMonth);
+
+    let summary = "Business performance is stable.";
+
+    if (
+        dailyGrowth > 0 &&
+        weeklyGrowth > 0 &&
+        monthlyGrowth > 0
+    ) {
+
+        summary =
+            "📈 Sales are improving across daily, weekly and monthly periods.";
+
+    } else if (
+        dailyGrowth < 0 &&
+        weeklyGrowth < 0 &&
+        monthlyGrowth < 0
+    ) {
+
+        summary =
+            "📉 Sales are declining consistently. Consider reviewing pricing, marketing or customer retention.";
+
+    } else if (
+        monthlyGrowth > 0
+    ) {
+
+        summary =
+            "✅ Long-term business performance remains positive despite short-term fluctuations.";
+
+    }
+
     return {
 
-        today,
+        daily: {
 
-        yesterday,
+            today,
 
-        todayChange:
-            percentageChange(today, yesterday),
+            yesterday,
 
-        thisWeek,
+            growth: dailyGrowth
 
-        lastWeek,
+        },
 
-        weekChange:
-            percentageChange(thisWeek, lastWeek),
+        weekly: {
 
-        thisMonth,
+            thisWeek,
 
-        lastMonth,
+            lastWeek,
 
-        monthChange:
-            percentageChange(thisMonth, lastMonth)
+            growth: weeklyGrowth
+
+        },
+
+        monthly: {
+
+            thisMonth,
+
+            lastMonth,
+
+            growth: monthlyGrowth
+
+        },
+
+        summary
 
     };
 
@@ -73,6 +123,6 @@ function getSalesTrends(telegramId) {
 
 module.exports = {
 
-    getSalesTrends
+    getBusinessTrends
 
 };

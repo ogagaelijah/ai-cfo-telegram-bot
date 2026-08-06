@@ -10,15 +10,27 @@ const {
 // ==========================
 function getDashboard(telegramId) {
 
+    const snapshot =
+        getBusinessSnapshot(telegramId);
+
+    const cash =
+        getCashMetrics(telegramId);
+
+    const debt =
+        getDebtMetrics(telegramId);
+
+    const health =
+        getBusinessHealth(telegramId);
+
     return {
 
-        snapshot: getBusinessSnapshot(telegramId),
+        snapshot,
 
-        cash: getCashMetrics(telegramId),
+        cash,
 
-        debt: getDebtMetrics(telegramId),
+        debt,
 
-        health: getBusinessHealth(telegramId)
+        health
 
     };
 

@@ -1,112 +1,72 @@
-const db = require("../database/database");
+const expenseRepository = require("../repositories/expenseRepository");
 
-/**
- * Get internal user ID from Telegram ID
- */
-function getUserId(telegramId) {
-
-    const user = db.prepare(`
-        SELECT id
-        FROM users
-        WHERE telegram_id = ?
-    `).get(telegramId);
-
-    if (!user) {
-        throw new Error("User not found.");
-    }
-
-    return user.id;
-}
-
-/**
- * Save an expense
- */
+// ==========================
+// SAVE EXPENSE
+// ==========================
 function saveExpense(telegramId, expense) {
 
-    const userId = getUserId(telegramId);
+    return expenseRepository.create(
+        telegramId,
+        {
 
-    db.prepare(`
-        INSERT INTO expenses
-        (
-            user_id,
-            item,
-            category,
-            amount,
-            notes
-        )
-        VALUES
-        (
-            ?,
-            ?,
-            ?,
-            ?,
-            ?
-        )
-    `).run(
+            item:
+                expense.description,
 
-        userId,
-        expense.description,
-        expense.category,
-        expense.amount,
-        expense.notes || ""
+            category:
+                expense.category,
 
+            amount:
+                Number(expense.amount),
+
+            notes:
+                expense.notes || ""
+
+        }
     );
 
 }
 
-/**
- * Get today's total expenses
- */
+// ==========================
+// TODAY'S EXPENSES
+// ==========================
 function getTodayExpenses(telegramId) {
 
-    const userId = getUserId(telegramId);
-
-    const result = db.prepare(`
-        SELECT SUM(amount) AS total
-        FROM expenses
-        WHERE user_id = ?
-        AND DATE(created_at) = DATE('now','localtime')
-    `).get(userId);
-
-    return result.total || 0;
+    return expenseRepository.getTodayTotal(
+        telegramId
+    );
 
 }
 
-/**
- * Get this month's total expenses
- */
+// ==========================
+// MONTHLY EXPENSES
+// ==========================
 function getMonthlyExpenses(telegramId) {
 
-    const userId = getUserId(telegramId);
-
-    const result = db.prepare(`
-        SELECT SUM(amount) AS total
-        FROM expenses
-        WHERE user_id = ?
-        AND strftime('%Y-%m', created_at) =
-            strftime('%Y-%m','now','localtime')
-    `).get(userId);
-
-    return result.total || 0;
+    return expenseRepository.getMonthlyTotal(
+        telegramId
+    );
 
 }
 
-/**
- * Get expenses by category
- */
+// ==========================
+// EXPENSES BY CATEGORY
+// ==========================
 function getExpensesByCategory(telegramId) {
 
-    const userId = getUserId(telegramId);
+    return expenseRepository.getByCategory(
+        telegramId
+    );
 
-    return db.prepare(`
-        SELECT
-            category,
-            SUM(amount) AS total
-        FROM expenses
-        WHERE user_id = ?
-        GROUP BY category
-        ORDER BY total DESC
-    `).all(userId);
+}
+
+// ==========================
+// ALL EXPENSES
+// ==========================
+function getExpenses(telegramId) {
+
+    return expenseRepository.findAll(
+        telegramId
+    );
 
 }
 
@@ -118,6 +78,8 @@ module.exports = {
 
     getMonthlyExpenses,
 
-    getExpensesByCategory
+    getExpensesByCategory,
+
+    getExpenses
 
 };

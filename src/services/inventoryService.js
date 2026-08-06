@@ -1,50 +1,65 @@
 const inventoryRepository = require("../repositories/inventoryRepository");
 const userRepository = require("../repositories/userRepository");
 
-/**
- * Get internal user ID
- */
+// ==========================
+// GET INTERNAL USER ID
+// ==========================
 function getUserId(telegramId) {
 
-    const user = userRepository.findByTelegramId(telegramId);
+    const user =
+        userRepository.findByTelegramId(telegramId);
 
     if (!user) {
+
         throw new Error("User not found.");
+
     }
 
     return user.id;
 
 }
 
-/**
- * Add a new product or restock an existing one
- */
+// ==========================
+// ADD OR RESTOCK PRODUCT
+// ==========================
 function addStock(telegramId, item) {
 
-    const userId = getUserId(telegramId);
+    if (Number(item.quantity) <= 0) {
 
-    let product = inventoryRepository.findByProductName(
-        userId,
-        item.productName
-    );
+        throw new Error("Quantity must be greater than zero.");
 
-    if (!product) {
+    }
 
-        product = inventoryRepository.create({
+    const userId =
+        getUserId(telegramId);
+
+    const productName =
+        item.productName.trim();
+
+    let product =
+        inventoryRepository.findByProductName(
 
             userId,
 
-            productName: item.productName,
+            productName
 
-            quantity: item.quantity,
+        );
 
-            costPrice: item.costPrice,
+    if (!product) {
 
-            sellingPrice: item.sellingPrice
+        return inventoryRepository.create({
+
+            userId,
+
+            productName,
+
+            quantity: Number(item.quantity),
+
+            costPrice: Number(item.costPrice),
+
+            sellingPrice: Number(item.sellingPrice)
 
         });
-
-        return product;
 
     }
 
@@ -52,9 +67,9 @@ function addStock(telegramId, item) {
 
         product.id,
 
-        item.costPrice,
+        Number(item.costPrice),
 
-        item.sellingPrice
+        Number(item.sellingPrice)
 
     );
 
@@ -62,66 +77,89 @@ function addStock(telegramId, item) {
 
         product.id,
 
-        item.quantity
+        Number(item.quantity)
 
     );
 
 }
 
-/**
- * Reduce stock after a sale
- */
-function reduceStock(telegramId, productName, quantity) {
+// ==========================
+// REDUCE STOCK
+// ==========================
+function reduceStock(
+    telegramId,
+    productName,
+    quantity
+) {
 
-    const userId = getUserId(telegramId);
+    if (Number(quantity) <= 0) {
 
-    const product = inventoryRepository.findByProductName(
+        throw new Error("Quantity must be greater than zero.");
 
-        userId,
+    }
 
-        productName
+    const userId =
+        getUserId(telegramId);
 
-    );
+    const product =
+        inventoryRepository.findByProductName(
+
+            userId,
+
+            productName.trim()
+
+        );
 
     if (!product) {
-        throw new Error("Product not found in inventory.");
+
+        throw new Error(
+            "Product not found in inventory."
+        );
+
     }
 
     if (product.quantity < quantity) {
-        throw new Error("Insufficient stock.");
+
+        throw new Error(
+            "Insufficient stock."
+        );
+
     }
 
     return inventoryRepository.decreaseStock(
 
         product.id,
 
-        quantity
+        Number(quantity)
 
     );
 
 }
 
-/**
- * Get inventory list
- */
+// ==========================
+// GET INVENTORY
+// ==========================
 function getInventory(telegramId) {
 
-    const userId = getUserId(telegramId);
+    return inventoryRepository.findAll(
 
-    return inventoryRepository.findAll(userId);
+        getUserId(telegramId)
+
+    );
 
 }
 
-/**
- * Get low-stock products
- */
-function getLowStock(telegramId, threshold = 5) {
-
-    const userId = getUserId(telegramId);
+// ==========================
+// LOW STOCK
+// ==========================
+function getLowStock(
+    telegramId,
+    threshold = 5
+) {
 
     return inventoryRepository.findLowStock(
 
-        userId,
+        getUserId(telegramId),
 
         threshold
 
@@ -129,18 +167,19 @@ function getLowStock(telegramId, threshold = 5) {
 
 }
 
-/**
- * Find product
- */
-function findProduct(telegramId, productName) {
-
-    const userId = getUserId(telegramId);
+// ==========================
+// FIND PRODUCT
+// ==========================
+function findProduct(
+    telegramId,
+    productName
+) {
 
     return inventoryRepository.findByProductName(
 
-        userId,
+        getUserId(telegramId),
 
-        productName
+        productName.trim()
 
     );
 

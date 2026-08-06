@@ -21,6 +21,7 @@ function create(data) {
     `);
 
     const result = stmt.run(
+
         data.userId,
         data.supplierId,
         data.inventoryId,
@@ -30,6 +31,7 @@ function create(data) {
         data.paymentStatus,
         data.amountPaid,
         data.balance
+
     );
 
     return findById(result.lastInsertRowid);
@@ -60,9 +62,9 @@ function findAll(userId) {
             s.name AS supplier_name,
             i.product_name
         FROM purchases p
-        JOIN suppliers s
+        LEFT JOIN suppliers s
             ON p.supplier_id = s.id
-        JOIN inventory i
+        LEFT JOIN inventory i
             ON p.inventory_id = i.id
         WHERE p.user_id = ?
         ORDER BY p.created_at DESC
@@ -73,7 +75,9 @@ function findAll(userId) {
 module.exports = {
 
     create,
+
     findById,
+
     findAll
 
 };

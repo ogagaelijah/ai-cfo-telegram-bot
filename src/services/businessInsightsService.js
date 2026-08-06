@@ -1,5 +1,5 @@
 const {
-    getSalesTrends
+    getBusinessTrends
 } = require("./businessTrendsService");
 
 // ==========================
@@ -7,23 +7,24 @@ const {
 // ==========================
 function getBusinessInsights(telegramId) {
 
-    const sales = getSalesTrends(telegramId);
+    const trends =
+        getBusinessTrends(telegramId);
 
     const insights = [];
 
     // ==========================
-    // TODAY
+    // DAILY
     // ==========================
-    if (sales.todayChange > 0) {
+    if (trends.daily.growth > 0) {
 
         insights.push(
-            `📈 Today's sales increased by ${sales.todayChange.toFixed(1)}% compared to yesterday.`
+            `📈 Today's sales increased by ${trends.daily.growth.toFixed(1)}% compared to yesterday.`
         );
 
-    } else if (sales.todayChange < 0) {
+    } else if (trends.daily.growth < 0) {
 
         insights.push(
-            `📉 Today's sales decreased by ${Math.abs(sales.todayChange).toFixed(1)}% compared to yesterday.`
+            `📉 Today's sales decreased by ${Math.abs(trends.daily.growth).toFixed(1)}% compared to yesterday.`
         );
 
     } else {
@@ -35,40 +36,47 @@ function getBusinessInsights(telegramId) {
     }
 
     // ==========================
-    // WEEK
+    // WEEKLY
     // ==========================
-    if (sales.weekChange > 0) {
+    if (trends.weekly.growth > 0) {
 
         insights.push(
-            `📊 Weekly sales are up ${sales.weekChange.toFixed(1)}% compared to last week.`
+            `📊 Weekly sales increased by ${trends.weekly.growth.toFixed(1)}%.`
         );
 
-    } else if (sales.weekChange < 0) {
+    } else if (trends.weekly.growth < 0) {
 
         insights.push(
-            `📊 Weekly sales are down ${Math.abs(sales.weekChange).toFixed(1)}% compared to last week.`
+            `📊 Weekly sales declined by ${Math.abs(trends.weekly.growth).toFixed(1)}%.`
         );
 
     }
 
     // ==========================
-    // MONTH
+    // MONTHLY
     // ==========================
-    if (sales.monthChange > 0) {
+    if (trends.monthly.growth > 0) {
 
         insights.push(
-            `🚀 Monthly sales increased by ${sales.monthChange.toFixed(1)}%.`
+            `🚀 Monthly sales increased by ${trends.monthly.growth.toFixed(1)}%.`
         );
 
-    } else if (sales.monthChange < 0) {
+    } else if (trends.monthly.growth < 0) {
 
         insights.push(
-            `⚠️ Monthly sales declined by ${Math.abs(sales.monthChange).toFixed(1)}%.`
+            `⚠️ Monthly sales declined by ${Math.abs(trends.monthly.growth).toFixed(1)}%.`
         );
 
     }
 
-    return insights;
+    return {
+
+        summary:
+            insights.join("\n"),
+
+        insights
+
+    };
 
 }
 

@@ -29,7 +29,7 @@ function getBusinessSnapshot(telegramId) {
     const productCount =
         analyticsRepository.getProductCount(userId);
 
-        const supplierCount =
+    const supplierCount =
     analyticsRepository.getSupplierCount(userId);
 
     // ==========================
@@ -50,31 +50,31 @@ function getBusinessSnapshot(telegramId) {
     const netProfit =
         grossProfit - expenses + income;
 
-    return {
+        return {
 
-    sales,
+        sales,
 
-    purchases,
+        purchases,
 
-    costOfGoods,
+        costOfGoods,
 
-    expenses,
+        expenses,
 
-    income,
+        income,
 
-    grossProfit,
+        grossProfit,
 
-    grossMargin,
+        grossMargin,
 
-    netProfit,
+        netProfit,
 
-    inventoryValue,
+        inventoryValue,
 
-    productCount,
+        productCount,
 
-    supplierCount
+        supplierCount
 
-};
+    };
 
 }
 
@@ -367,6 +367,25 @@ function getBusinessHealth(telegramId) {
 // ==========================
 function getBusinessKPIs(telegramId) {
 
+    const {
+        getBusinessKPIs
+    } = require("./businessKPIService");
+
+    return getBusinessKPIs(telegramId);
+
+}
+
+// ==========================
+// BUSINESS FORECAST
+// ==========================
+function getBusinessForecast(telegramId) {
+
+    const {
+        getBusinessForecast
+    } = require("./businessForecastService");
+
+    return getBusinessForecast(telegramId);
+
 }
 
 module.exports = {
@@ -385,6 +404,8 @@ module.exports = {
 
     getBusinessHealth,
 
-    getBusinessKPIs
+    getBusinessKPIs,
+
+    getBusinessForecast
 
 };

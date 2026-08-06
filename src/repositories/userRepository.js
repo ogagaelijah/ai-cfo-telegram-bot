@@ -1,5 +1,8 @@
 const db = require("../database/database");
 
+// ==========================
+// FIND USER BY TELEGRAM ID
+// ==========================
 function findByTelegramId(telegramId) {
 
     return db.prepare(`
@@ -10,6 +13,9 @@ function findByTelegramId(telegramId) {
 
 }
 
+// ==========================
+// CREATE USER
+// ==========================
 function createUser(user) {
 
     const result = db.prepare(`
@@ -28,7 +34,9 @@ function createUser(user) {
     `).run(
 
         user.telegramId,
+
         user.fullName,
+
         user.username
 
     );
@@ -37,25 +45,33 @@ function createUser(user) {
 
 }
 
+// ==========================
+// UPDATE BUSINESS NAME
+// ==========================
 function updateBusinessName(userId, businessName) {
 
-    db.prepare(`
+    const result = db.prepare(`
         UPDATE users
         SET business_name = ?
         WHERE id = ?
     `).run(
 
         businessName,
+
         userId
 
     );
+
+    return result.changes > 0;
 
 }
 
 module.exports = {
 
     findByTelegramId,
+
     createUser,
+
     updateBusinessName
 
 };
