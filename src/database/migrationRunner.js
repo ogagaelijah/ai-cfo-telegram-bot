@@ -2,7 +2,8 @@ const db = require("./database");
 
 const migrations = [
     require("./migrations/001_initial_schema"),
-    require("./migrations/002_update_sales_table")
+    require("./migrations/002_update_sales_table"),
+    require("./migrations/003_add_notification_settings")
 ];
 
 function runMigrations() {

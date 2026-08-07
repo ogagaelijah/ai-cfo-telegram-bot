@@ -6,6 +6,8 @@ const config = require("./src/config/config");
 const initializeDatabase = require("./src/database/schema");
 const runMigrations = require("./src/database/migrationRunner");
 const logger = require("./src/utils/logger");
+const telegramService = require("./src/services/telegramService");
+const { startSchedulers } = require("./src/scheduler/scheduler");
 
 // ==========================
 // CHECK BOT TOKEN
@@ -29,6 +31,11 @@ runMigrations();
 // CREATE BOT
 // ==========================
 const bot = new Telegraf(config.botToken);
+
+// ==========================
+// REGISTER TELEGRAM BOT
+// ==========================
+telegramService.registerBot(bot);
 
 console.log("======================================");
 console.log(`🤖 ${config.botName} is starting...`);
@@ -67,8 +74,15 @@ bot.catch((error, ctx) => {
         console.log("Step 3");
 
         await bot.launch({
+
             dropPendingUpdates: true
+
         });
+
+        // ==========================
+        // START ALL SCHEDULERS
+        // ==========================
+        startSchedulers();
 
         console.log("Step 4");
 

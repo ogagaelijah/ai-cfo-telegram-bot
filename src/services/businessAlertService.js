@@ -1,6 +1,15 @@
 const analytics = require("./financialAnalyticsService");
 
 // ==========================
+// ALERT THRESHOLDS
+// ==========================
+const MIN_PRODUCTS = 5;
+
+const HIGH_DEBT = 100000;
+
+const MIN_HEALTH_SCORE = 70;
+
+// ==========================
 // BUSINESS ALERTS
 // ==========================
 function getBusinessAlerts(telegramId) {
@@ -20,15 +29,19 @@ function getBusinessAlerts(telegramId) {
     const alerts = [];
 
     // ==========================
-    // LOW CASH
+    // NEGATIVE CASH FLOW
     // ==========================
     if (cash.cashPosition < 0) {
 
         alerts.push({
-            level: "HIGH",
+
+            level: "CRITICAL",
+
             title: "Negative Cash Flow",
+
             message:
                 "Cash outflow is greater than cash inflow."
+
         });
 
     }
@@ -36,69 +49,89 @@ function getBusinessAlerts(telegramId) {
     // ==========================
     // LOW INVENTORY
     // ==========================
-    if (snapshot.productCount < 5) {
+    if (snapshot.productCount < MIN_PRODUCTS) {
 
         alerts.push({
-            level: "MEDIUM",
+
+            level: "WARNING",
+
             title: "Low Inventory",
+
             message:
                 "Your inventory contains fewer than 5 products."
+
         });
 
     }
 
     // ==========================
-    // HIGH CREDITORS
+    // HIGH SUPPLIER DEBT
     // ==========================
-    if (debt.creditors > 100000) {
+    if (debt.creditors > HIGH_DEBT) {
 
         alerts.push({
-            level: "HIGH",
-            title: "Supplier Debt",
+
+            level: "CRITICAL",
+
+            title: "High Supplier Debt",
+
             message:
                 "Outstanding supplier balances are becoming high."
+
         });
 
     }
 
     // ==========================
-    // HIGH DEBTORS
+    // HIGH CUSTOMER DEBT
     // ==========================
-    if (debt.debtors > 100000) {
+    if (debt.debtors > HIGH_DEBT) {
 
         alerts.push({
-            level: "MEDIUM",
-            title: "Customer Debts",
+
+            level: "WARNING",
+
+            title: "High Customer Debt",
+
             message:
                 "Large amounts are yet to be collected from customers."
+
         });
 
     }
 
     // ==========================
-    // LOW HEALTH SCORE
+    // LOW BUSINESS HEALTH
     // ==========================
-    if (health.score < 70) {
+    if (health.score < MIN_HEALTH_SCORE) {
 
         alerts.push({
-            level: "HIGH",
+
+            level: "CRITICAL",
+
             title: "Business Health",
+
             message:
-                "Overall business health requires attention."
+                "Overall business health requires immediate attention."
+
         });
 
     }
 
     // ==========================
-    // HEALTHY BUSINESS
+    // NO ALERTS
     // ==========================
     if (alerts.length === 0) {
 
         alerts.push({
-            level: "GOOD",
+
+            level: "INFO",
+
             title: "Business Healthy",
+
             message:
                 "No critical business alerts detected."
+
         });
 
     }
