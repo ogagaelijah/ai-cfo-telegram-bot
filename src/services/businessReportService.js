@@ -38,6 +38,8 @@ function buildBusinessReport(telegramId) {
     const recommendation =
         recommendations.getBusinessRecommendations(telegramId);
 
+        console.log("Recommendations:", recommendation);
+
     const businessAlerts =
         alerts.getBusinessAlerts(telegramId);
 

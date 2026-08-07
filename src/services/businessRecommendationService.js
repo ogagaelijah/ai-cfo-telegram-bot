@@ -22,9 +22,14 @@ function getBusinessRecommendations(telegramId) {
     // ==========================
     if (snapshot.grossMargin < 20) {
 
-        recommendations.push(
-            "💡 Review product pricing or negotiate better supplier prices to improve your gross margin."
-        );
+        recommendations.push({
+
+            level: "HIGH",
+
+            message:
+                "Review product pricing or negotiate better supplier prices to improve your gross margin."
+
+        });
 
     }
 
@@ -33,9 +38,14 @@ function getBusinessRecommendations(telegramId) {
     // ==========================
     if (cash.cashPosition < 0) {
 
-        recommendations.push(
-            "💰 Your cash outflow exceeds inflow. Reduce unnecessary spending and improve collections."
-        );
+        recommendations.push({
+
+            level: "HIGH",
+
+            message:
+                "Your cash outflow exceeds inflow. Reduce unnecessary spending and improve collections."
+
+        });
 
     }
 
@@ -44,9 +54,14 @@ function getBusinessRecommendations(telegramId) {
     // ==========================
     if (debt.debtors > snapshot.sales * 0.30) {
 
-        recommendations.push(
-            "📋 A large amount of money is tied up with customers. Follow up on outstanding payments."
-        );
+        recommendations.push({
+
+            level: "MEDIUM",
+
+            message:
+                "A large amount of money is tied up with customers. Follow up on outstanding payments."
+
+        });
 
     }
 
@@ -55,20 +70,30 @@ function getBusinessRecommendations(telegramId) {
     // ==========================
     if (debt.creditors > debt.debtors) {
 
-        recommendations.push(
-            "🏢 Supplier debt is higher than customer debt. Plan repayments to maintain good supplier relationships."
-        );
+        recommendations.push({
+
+            level: "MEDIUM",
+
+            message:
+                "Supplier debt is higher than customer debt. Plan repayments to maintain good supplier relationships."
+
+        });
 
     }
 
     // ==========================
-    // HEALTH SCORE
+    // LOW HEALTH SCORE
     // ==========================
     if (health.score < 70) {
 
-        recommendations.push(
-            "🚨 Your overall business health needs attention. Focus on improving profitability and cash flow."
-        );
+        recommendations.push({
+
+            level: "HIGH",
+
+            message:
+                "Your overall business health needs attention. Focus on improving profitability and cash flow."
+
+        });
 
     }
 
@@ -77,9 +102,14 @@ function getBusinessRecommendations(telegramId) {
     // ==========================
     if (recommendations.length === 0) {
 
-        recommendations.push(
-            "✅ Business performance looks healthy. Keep recording transactions consistently."
-        );
+        recommendations.push({
+
+            level: "GOOD",
+
+            message:
+                "Business performance looks healthy. Keep recording transactions consistently."
+
+        });
 
     }
 

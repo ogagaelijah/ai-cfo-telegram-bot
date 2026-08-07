@@ -16,36 +16,53 @@ function startMorningBriefScheduler() {
 
     cron.schedule(schedule, async () => {
 
+        console.log("");
+        console.log("======================================");
         console.log("📨 Running Morning Brief Scheduler...");
+        console.log("======================================");
 
         const users =
             notificationRepository.getMorningBriefUsers();
 
         console.log(`👥 ${users.length} user(s) found.`);
 
+        if (users.length === 0) {
+
+            console.log("ℹ️ No users have Morning Brief enabled.");
+
+            return;
+
+        }
+
         for (const user of users) {
 
             try {
 
+                console.log(
+                    `📤 Sending Morning Brief to ${user.business_name}...`
+                );
+
                 await notificationService.sendMorningBrief(user);
 
                 console.log(
-                    `✅ Morning Brief sent to ${user.business_name}`
+                    `✅ Successfully sent to ${user.business_name}`
                 );
 
             } catch (error) {
 
                 console.error(
-
-                    `❌ Failed to send Morning Brief to ${user.business_name}`,
-
-                    error
-
+                    `❌ Failed for ${user.business_name}`
                 );
+
+                console.error(error);
 
             }
 
         }
+
+        console.log("======================================");
+        console.log("✅ Morning Brief cycle completed.");
+        console.log("======================================");
 
     });
 
