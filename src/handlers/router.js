@@ -18,10 +18,13 @@ const menuHandler = require("./menuHandler");
 const customerHandler = require("./customerHandler");
 const inventoryHandler = require("./inventoryHandler");
 const reportHandler = require("./reportHandler");
+const forecastHandler = require("./forecastHandler");
+const businessHandler = require("./businessHandler");
 const debtorHandler = require("./debtorHandler");
 const supplierHandler = require("./supplierHandler");
 const creditorHandler = require("./creditorHandler");
 const purchaseHandler = require("./purchaseHandler");
+const analyticsHandler = require("./analyticsHandler");
 
 module.exports = (bot) => {
 
@@ -52,6 +55,27 @@ module.exports = (bot) => {
         // REPORT MENU
         // ==========================
         if (await reportHandler(ctx)) {
+            return;
+        }
+
+        // ==========================
+        // FORECAST
+        // ==========================
+        if (await forecastHandler(ctx)) {
+            return;
+        }
+
+        // ==========================
+        // BUSINESS MENU
+        // ==========================
+        if (await businessHandler(ctx)) {
+            return;
+        }
+
+        // ==========================
+        // ANALYTICS
+        // ==========================
+        if (await analyticsHandler(ctx)) {
             return;
         }
 
@@ -172,14 +196,14 @@ module.exports = (bot) => {
                 return creditorFlow(ctx);
 
             // ==========================
-// PURCHASES
-// ==========================
-case STATES.WAITING_FOR_PURCHASE_SUPPLIER:
-case STATES.WAITING_FOR_PURCHASE_PRODUCT:
-case STATES.WAITING_FOR_PURCHASE_QUANTITY:
-case STATES.WAITING_FOR_PURCHASE_COST:
-case STATES.WAITING_FOR_PURCHASE_PAID:
-    return purchaseFlow(ctx);
+            // PURCHASES
+            // ==========================
+            case STATES.WAITING_FOR_PURCHASE_SUPPLIER:
+            case STATES.WAITING_FOR_PURCHASE_PRODUCT:
+            case STATES.WAITING_FOR_PURCHASE_QUANTITY:
+            case STATES.WAITING_FOR_PURCHASE_COST:
+            case STATES.WAITING_FOR_PURCHASE_PAID:
+                return purchaseFlow(ctx);
 
             // ==========================
             // UNKNOWN SESSION

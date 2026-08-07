@@ -1,4 +1,4 @@
-const keyboard = require("../keyboards/reportKeyboard");
+const businessKeyboard = require("../keyboards/businessKeyboard");
 
 const {
     getPeriodReport
@@ -75,9 +75,13 @@ ${analysis}
 
 🎯 RECOMMENDATION
 
-${recommendation}`,
+${recommendation}
 
-        keyboard
+━━━━━━━━━━━━━━━━━━
+
+📈 Keep monitoring your business performance regularly to identify trends early and make better decisions.`,
+
+        businessKeyboard
 
     );
 

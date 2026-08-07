@@ -135,6 +135,37 @@ function getTotalSales(userId) {
 
 }
 
+/**
+ * Get complete sales history
+ */
+function getSalesHistory(userId) {
+
+    return db.prepare(`
+        SELECT
+            *
+        FROM sales
+        WHERE user_id = ?
+        ORDER BY created_at ASC
+    `).all(userId);
+
+}
+
+/**
+ * Get last 30 days sales
+ */
+function getLast30DaysSales(userId) {
+
+    return db.prepare(`
+        SELECT
+            *
+        FROM sales
+        WHERE user_id = ?
+        AND DATE(created_at) >= DATE('now', '-30 days')
+        ORDER BY created_at ASC
+    `).all(userId);
+
+}
+
 module.exports = {
 
     create,
@@ -145,6 +176,10 @@ module.exports = {
 
     findToday,
 
-    getTotalSales
+    getTotalSales,
+
+    getSalesHistory,
+
+    getLast30DaysSales
 
 };

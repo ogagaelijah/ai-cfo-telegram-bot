@@ -2,15 +2,11 @@ const { Markup } = require("telegraf");
 
 module.exports = Markup.keyboard([
 
-    ["📦 Record Sale", "💸 Record Expense"],
+    ["💰 Transactions", "📊 Business"],
 
-    ["💰 Record Income", "📥 Purchases"],
+    ["👥 Customers", "📦 Inventory"],
 
-    ["👥 Customers", "🏢 Suppliers"],
-
-    ["📒 Debtors", "📕 Creditors"],
-
-    ["📦 Inventory", "📊 Reports"],
+    ["🏢 Suppliers", "💳 Finance"],
 
     ["🤖 Ask AI", "⚙️ Settings"],
 

@@ -89,7 +89,10 @@ module.exports = async function reportHandler(ctx) {
     // ==========================
     // WEEKLY REPORT
     // ==========================
-    if (text === "📆 Weekly Report") {
+    if (
+        text === "📅 Weekly Report" ||
+        text === "📆 Weekly Report"
+    ) {
 
         await periodReportFlow(ctx, "weekly");
 
@@ -100,7 +103,7 @@ module.exports = async function reportHandler(ctx) {
     // ==========================
     // MONTHLY REPORT
     // ==========================
-    if (text === "🗓 Monthly Report") {
+    if (text === "📆 Monthly Report") {
 
         await periodReportFlow(ctx, "monthly");
 

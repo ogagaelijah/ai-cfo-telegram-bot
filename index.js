@@ -46,6 +46,7 @@ console.log("======================================");
 // ==========================
 require("./src/handlers/start")(bot);
 require("./src/handlers/router")(bot);
+require("./src/handlers/forecast")(bot);
 
 // ==========================
 // GLOBAL ERROR HANDLER

@@ -5,6 +5,8 @@ const customerKeyboard = require("../keyboards/customerKeyboard");
 const inventoryKeyboard = require("../keyboards/inventoryKeyboard");
 const creditorKeyboard = require("../keyboards/creditorKeyboard");
 const purchaseKeyboard = require("../keyboards/purchaseKeyboard");
+const businessKeyboard = require("../keyboards/businessKeyboard");
+const transactionKeyboard = require("../keyboards/transactionKeyboard");
 
 const {
     setSession,
@@ -15,7 +17,6 @@ const STATES = require("../constants/states");
 
 /**
  * Handles all top-level menu navigation.
- * Returns true if the message has been handled.
  */
 module.exports = async function menuHandler(ctx) {
 
@@ -26,6 +27,54 @@ module.exports = async function menuHandler(ctx) {
     // ==========================
     if (text === "/start") {
         return true;
+    }
+
+    // ==========================
+    // UNIVERSAL CANCEL
+    // ==========================
+    if (text === "❌ Cancel") {
+
+        clearSession(ctx.from.id);
+
+        await ctx.reply(
+            "✅ Current operation cancelled.\n\n🏠 Back to Main Menu.",
+            keyboard
+        );
+
+        return true;
+
+    }
+
+    // ==========================
+    // TRANSACTIONS MENU
+    // ==========================
+    if (text === "💰 Transactions") {
+
+        clearSession(ctx.from.id);
+
+        await ctx.reply(
+            "💰 TRANSACTIONS",
+            transactionKeyboard
+        );
+
+         return true;
+
+    }
+
+    // ==========================
+    // BUSINESS MENU
+    // ==========================
+    if (text === "📊 Business") {
+
+        clearSession(ctx.from.id);
+
+        await ctx.reply(
+            "📊 BUSINESS CENTER",
+            businessKeyboard
+        );
+
+        return true;
+
     }
 
     // ==========================
