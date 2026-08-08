@@ -1,4 +1,8 @@
-const trendsRepository = require("../repositories/businessTrendsRepository");
+const trendEngine =
+require("./trendEngines/trendEngine");
+
+const trendsRepository =
+require("../repositories/businessTrendsRepository");
 
 // ==========================
 // CALCULATE PERCENTAGE CHANGE
@@ -7,11 +11,7 @@ function calculatePercentageChange(current, previous) {
 
     if (previous === 0) {
 
-        if (current === 0) {
-            return 0;
-        }
-
-        return 100;
+        return current === 0 ? 0 : 100;
 
     }
 
@@ -20,13 +20,16 @@ function calculatePercentageChange(current, previous) {
 }
 
 // ==========================
-// BUSINESS TRENDS
+// BUSINESS TRENDS SERVICE
 // ==========================
 function getBusinessTrends(telegramId) {
 
     const userId =
         trendsRepository.getUserId(telegramId);
 
+    // ==========================
+    // HISTORICAL SALES
+    // ==========================
     const today =
         trendsRepository.getTodaySales(userId);
 
@@ -54,7 +57,17 @@ function getBusinessTrends(telegramId) {
     const monthlyGrowth =
         calculatePercentageChange(thisMonth, lastMonth);
 
-    let summary = "Business performance is stable.";
+    // ==========================
+    // TREND ENGINE
+    // ==========================
+    const trends =
+        trendEngine.getBusinessTrends(telegramId);
+
+    // ==========================
+    // SUMMARY
+    // ==========================
+    let summary =
+        "Business performance is stable.";
 
     if (
         dailyGrowth > 0 &&
@@ -65,7 +78,8 @@ function getBusinessTrends(telegramId) {
         summary =
             "📈 Sales are improving across daily, weekly and monthly periods.";
 
-    } else if (
+    }
+    else if (
         dailyGrowth < 0 &&
         weeklyGrowth < 0 &&
         monthlyGrowth < 0
@@ -74,9 +88,8 @@ function getBusinessTrends(telegramId) {
         summary =
             "📉 Sales are declining consistently. Consider reviewing pricing, marketing or customer retention.";
 
-    } else if (
-        monthlyGrowth > 0
-    ) {
+    }
+    else if (monthlyGrowth > 0) {
 
         summary =
             "✅ Long-term business performance remains positive despite short-term fluctuations.";
@@ -85,12 +98,11 @@ function getBusinessTrends(telegramId) {
 
     return {
 
+        // Existing reports
         daily: {
 
             today,
-
             yesterday,
-
             growth: dailyGrowth
 
         },
@@ -98,9 +110,7 @@ function getBusinessTrends(telegramId) {
         weekly: {
 
             thisWeek,
-
             lastWeek,
-
             growth: weeklyGrowth
 
         },
@@ -108,12 +118,35 @@ function getBusinessTrends(telegramId) {
         monthly: {
 
             thisMonth,
-
             lastMonth,
-
             growth: monthlyGrowth
 
         },
+
+        // New AI Trend Engine
+        revenueTrend:
+            trends.revenue.direction,
+
+        revenueGrowth:
+            trends.revenue.percentage,
+
+        profitTrend:
+            trends.profit.direction,
+
+        cashTrend:
+            trends.cash.direction,
+
+        expenseTrend:
+            trends.expenses.direction,
+
+        inventoryTrend:
+            trends.inventory.direction,
+
+        customerTrend:
+            trends.customers.direction,
+
+        details:
+            trends,
 
         summary
 

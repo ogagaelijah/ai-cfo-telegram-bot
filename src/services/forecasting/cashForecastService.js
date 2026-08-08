@@ -1,24 +1,109 @@
-const analytics = require("../financialAnalyticsService");
+const analytics =
+    require("../financialAnalyticsService");
+
+const {
+    getAverageDailySales,
+    getAverageDailyExpenses,
+    getAverageDailyPurchases
+} = require("../../repositories/businessTrendsRepository");
+
 
 // ==========================
 // CASH FLOW FORECAST ENGINE
 // ==========================
-function getCashForecast(userId) {
+function getCashForecast(telegramId) {
 
+    // ==========================
+    // CURRENT CASH
+    // ==========================
     const cash =
-        analytics.getCashMetrics(userId);
+        analytics.getCashMetrics(telegramId);
 
     const currentCash =
-        cash.cashPosition;
+        Number(cash.cashPosition) || 0;
+
 
     // ==========================
-    // DAILY CASH BURN
+    // DAILY CASH INFLOW
     // ==========================
-    const estimatedDailyBurn = 5000;
+    const averageDailySales =
+        Number(
+            getAverageDailySales(telegramId)
+        ) || 0;
 
-    let daysRemaining = Infinity;
 
-    if (currentCash < 0) {
+    // ==========================
+    // DAILY PURCHASE OUTFLOW
+    // ==========================
+    const averageDailyPurchases =
+        Number(
+            getAverageDailyPurchases(telegramId)
+        ) || 0;
+
+
+    // ==========================
+    // DAILY OPERATING EXPENSES
+    // ==========================
+    const averageDailyExpenses =
+        Number(
+            getAverageDailyExpenses(telegramId)
+        ) || 0;
+
+
+    // ==========================
+    // TOTAL DAILY OUTFLOW
+    // ==========================
+    const averageDailyOutflow =
+        averageDailyPurchases +
+        averageDailyExpenses;
+
+
+    // ==========================
+    // NET DAILY CASH FLOW
+    // ==========================
+    const estimatedDailyNetCashFlow =
+        averageDailySales -
+        averageDailyOutflow;
+
+
+    // ==========================
+    // CASH BURN
+    // ==========================
+    const estimatedDailyBurn =
+        estimatedDailyNetCashFlow < 0
+            ? Math.abs(
+                estimatedDailyNetCashFlow
+            )
+            : 0;
+
+
+    // ==========================
+    // PROJECTED CASH
+    // ==========================
+    const next7Days =
+        currentCash +
+        (
+            estimatedDailyNetCashFlow *
+            7
+        );
+
+
+    const next30Days =
+        currentCash +
+        (
+            estimatedDailyNetCashFlow *
+            30
+        );
+
+
+    // ==========================
+    // DAYS OF CASH REMAINING
+    // ==========================
+    let daysRemaining =
+        Infinity;
+
+
+    if (currentCash <= 0) {
 
         daysRemaining = 0;
 
@@ -27,85 +112,181 @@ function getCashForecast(userId) {
     else if (estimatedDailyBurn > 0) {
 
         daysRemaining =
-            Math.floor(currentCash / estimatedDailyBurn);
+            Math.floor(
+                currentCash /
+                estimatedDailyBurn
+            );
 
     }
 
+
     // ==========================
-    // STATUS
+    // CASH STATUS
     // ==========================
-    let status = "Healthy";
+    let status =
+        "Healthy";
+
 
     if (currentCash < 0) {
 
-        status = "Critical";
+        status =
+            "Critical";
 
     }
 
-    else if (daysRemaining <= 7) {
+    else if (next7Days < 0) {
 
-        status = "High Risk";
+        status =
+            "High Risk";
+
+    }
+
+    else if (next30Days < 0) {
+
+        status =
+            "Monitor Closely";
 
     }
 
-    else if (daysRemaining <= 30) {
 
-        status = "Monitor Closely";
+    // ==========================
+    // CASH TREND
+    // ==========================
+    let cashTrend =
+        "Stable";
+
+
+    if (estimatedDailyNetCashFlow > 0) {
+
+        cashTrend =
+            "Improving";
 
     }
+
+    else if (estimatedDailyNetCashFlow < 0) {
+
+        cashTrend =
+            "Declining";
+
+    }
+
 
     // ==========================
     // RECOMMENDATION
     // ==========================
     let recommendation =
-        "Cash flow is healthy.";
+        "Cash flow is healthy. Continue monitoring collections and expenses.";
+
 
     if (status === "Critical") {
 
         recommendation =
-            "Immediate action required. Increase collections and reduce spending.";
+            "Cash liquidity is currently negative. Prioritize collections, control purchases and reduce non-essential spending.";
 
     }
 
     else if (status === "High Risk") {
 
         recommendation =
-            "Cash reserves may become insufficient within one week.";
+            "Projected cash may become negative within seven days. Accelerate collections and control purchases and operating expenses.";
 
     }
 
     else if (status === "Monitor Closely") {
 
         recommendation =
-            "Monitor expenses carefully and improve customer collections.";
+            "Cash reserves may become insufficient within 30 days. Monitor purchases, expenses and customer collections.";
 
     }
 
+    else if (cashTrend === "Improving") {
+
+        recommendation =
+            "Cash flow is improving. Maintain disciplined purchasing and spending while building cash reserves.";
+
+    }
+
+
     // ==========================
-    // FORECAST
+    // CFO EXPLANATION
+    // ==========================
+    let explanation =
+        "Cash inflows are currently sufficient to cover estimated purchases and operating expenses.";
+
+
+    if (
+        estimatedDailyNetCashFlow < 0
+    ) {
+
+        explanation =
+            `Average daily cash inflow is approximately ₦${Math.round(
+                averageDailySales
+            ).toLocaleString()}, while estimated daily purchases are approximately ₦${Math.round(
+                averageDailyPurchases
+            ).toLocaleString()} and operating expenses are approximately ₦${Math.round(
+                averageDailyExpenses
+            ).toLocaleString()}. This creates an estimated daily cash deficit of ₦${Math.round(
+                estimatedDailyBurn
+            ).toLocaleString()}.`;
+
+    }
+
+    else if (
+        estimatedDailyNetCashFlow > 0
+    ) {
+
+        explanation =
+            `Average daily cash inflow is approximately ₦${Math.round(
+                averageDailySales
+            ).toLocaleString()}, compared with estimated daily purchases of ₦${Math.round(
+                averageDailyPurchases
+            ).toLocaleString()} and operating expenses of ₦${Math.round(
+                averageDailyExpenses
+            ).toLocaleString()}. This produces an estimated positive daily cash flow of ₦${Math.round(
+                estimatedDailyNetCashFlow
+            ).toLocaleString()}.`;
+
+    }
+
+
+    // ==========================
+    // RETURN
     // ==========================
     return {
 
         currentCash,
+
+        averageDailySales,
+
+        averageDailyPurchases,
+
+        averageDailyExpenses,
+
+        averageDailyOutflow,
+
+        estimatedDailyNetCashFlow,
 
         estimatedDailyBurn,
 
         estimatedDaysRemaining:
             daysRemaining,
 
-        next7Days:
-            currentCash - (estimatedDailyBurn * 7),
+        next7Days,
 
-        next30Days:
-            currentCash - (estimatedDailyBurn * 30),
+        next30Days,
 
         status,
+
+        cashTrend,
+
+        explanation,
 
         recommendation
 
     };
 
 }
+
 
 module.exports = {
 

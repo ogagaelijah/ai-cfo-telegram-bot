@@ -12,6 +12,8 @@ const priority = require("./businessAlertPriorityService");
 
 const summary = require("./businessAlertSummaryService");
 
+const decisionEngine = require("./decisionEngine");
+
 // ==========================
 // BUILD BUSINESS REPORT
 // ==========================
@@ -38,8 +40,6 @@ function buildBusinessReport(telegramId) {
     const recommendation =
         recommendations.getBusinessRecommendations(telegramId);
 
-        console.log("Recommendations:", recommendation);
-
     const businessAlerts =
         alerts.getBusinessAlerts(telegramId);
 
@@ -49,7 +49,16 @@ function buildBusinessReport(telegramId) {
     const alertSummary =
         summary.getAlertSummary(prioritizedAlerts);
 
+    // ==========================
+    // AI DECISION ENGINE
+    // ==========================
+    const decision =
+        decisionEngine.generateDecision(telegramId);
+
     return {
+
+        // NEW
+        telegramId,
 
         generatedAt: new Date(),
 
@@ -69,7 +78,10 @@ function buildBusinessReport(telegramId) {
 
         alerts: prioritizedAlerts,
 
-        alertSummary
+        alertSummary,
+
+        // NEW
+        decision
 
     };
 

@@ -3,81 +3,89 @@
 // ==========================
 function buildRecommendationSection(report) {
 
-    let priority =
-        "Continue operating normally while maintaining accurate financial records.";
-
-    let expectedBenefits = [
-        "✔ Maintain business stability"
-    ];
-
     // ==========================
-    // NEGATIVE CASH
+    // USE PRE-BUILT DECISION
     // ==========================
-    if (report.cash.cashPosition < 0) {
+    const decision =
+        report.decision;
 
-        priority =
-            "Collect outstanding customer payments before making any new non-essential purchases.";
+    const expectedBenefits = [];
 
-        expectedBenefits = [
+    switch (decision.priority) {
 
-            "✔ Improved liquidity",
+        case "Improve Cash Flow":
 
-            "✔ Stronger cash flow",
+            expectedBenefits.push(
+                "✔ Improved liquidity",
+                "✔ Stronger cash flow",
+                "✔ Better supplier confidence"
+            );
 
-            "✔ Better supplier confidence"
+            break;
 
-        ];
+        case "Increase Revenue":
 
-    }
+            expectedBenefits.push(
+                "✔ Higher sales",
+                "✔ More customers",
+                "✔ Stronger business growth"
+            );
 
-    // ==========================
-    // HIGH CUSTOMER DEBTS
-    // ==========================
-    else if (
-        report.debt.debtors >
-        report.snapshot.sales * 0.30
-    ) {
+            break;
 
-        priority =
-            "Follow up customers with overdue invoices and accelerate collections.";
+        case "Protect Profit":
 
-        expectedBenefits = [
+            expectedBenefits.push(
+                "✔ Higher profitability",
+                "✔ Better margins",
+                "✔ Reduced operating costs"
+            );
 
-            "✔ Faster cash inflow",
+            break;
 
-            "✔ Lower bad debt risk",
+        case "Improve Business Health":
 
-            "✔ Stronger working capital"
+            expectedBenefits.push(
+                "✔ Better financial stability",
+                "✔ Improved cash reserves",
+                "✔ Stronger business performance"
+            );
 
-        ];
+            break;
 
-    }
+        case "Scale Operations":
 
-    // ==========================
-    // LOW GROSS MARGIN
-    // ==========================
-    else if (
-        report.snapshot.grossMargin < 20
-    ) {
+            expectedBenefits.push(
+                "✔ Increased revenue",
+                "✔ Business expansion",
+                "✔ Better long-term growth"
+            );
 
-        priority =
-            "Review pricing strategy and negotiate better supplier pricing.";
+            break;
 
-        expectedBenefits = [
+        default:
 
-            "✔ Higher profitability",
-
-            "✔ Better margins",
-
-            "✔ Sustainable business growth"
-
-        ];
+            expectedBenefits.push(
+                "✔ Maintain business stability"
+            );
 
     }
 
     return `🎯 TODAY'S PRIORITY
 
-${priority}
+${decision.recommendation}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 AI CFO DECISION
+
+${decision.explanation}
+
+━━━━━━━━━━━━━━━━━━
+
+⚠️ PRIORITY LEVEL
+
+${decision.urgency}
 
 ━━━━━━━━━━━━━━━━━━
 

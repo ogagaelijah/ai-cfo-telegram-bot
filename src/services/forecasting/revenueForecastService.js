@@ -1,18 +1,387 @@
-const salesRepository = require("../../repositories/salesRepository");
+const historicalTrendEngine =
+    require("../trendEngines/historicalTrendEngine");
 
-// ==========================
-// REVENUE FORECAST ENGINE
-// ==========================
-function getRevenueForecast(userId) {
+// ======================================================
+// PROJECT NEXT VALUE
+// ======================================================
+
+function projectNext(
+    average,
+    trend,
+    activeSalesDays
+) {
+
+    const base =
+        Number(average) || 0;
+
+    // Never apply trend adjustment
+    // when there is not enough history.
+    if (
+        !activeSalesDays ||
+        activeSalesDays < 2
+    ) {
+        return base;
+    }
+
+    switch (trend) {
+
+        case "Growing":
+
+            return base * 1.10;
+
+        case "Declining":
+
+            return base * 0.90;
+
+        case "Stable":
+
+            return base;
+
+        case "Insufficient Data":
+
+            return base;
+
+        case "No Data":
+
+            return 0;
+
+        default:
+
+            return base;
+    }
+}
+
+
+// ======================================================
+// CONFIDENCE SCORE
+// ======================================================
+
+function getConfidence(
+    activeSalesDays
+) {
+
+    const days =
+        Number(activeSalesDays) || 0;
+
+    // No sales history
+    if (
+        days <= 0
+    ) {
+
+        return 0;
+    }
+
+    // Only one actual selling day
+    if (
+        days === 1
+    ) {
+
+        return 50;
+    }
+
+    // 2–6 selling days
+    if (
+        days < 7
+    ) {
+
+        return 65;
+    }
+
+    // 7–13 selling days
+    if (
+        days < 14
+    ) {
+
+        return 80;
+    }
+
+    // 14–29 selling days
+    if (
+        days < 30
+    ) {
+
+        return 90;
+    }
+
+    // 30+ selling days
+    return 95;
+}
+
+
+// ======================================================
+// CALCULATE GROWTH RATE
+// ======================================================
+//
+// History must be:
+//
+// oldest → newest
+//
+// Only ACTIVE selling days should be supplied.
+//
+// Example:
+//
+// [
+//   { date: "2026-08-01", sales: 100000 },
+//   { date: "2026-08-04", sales: 150000 }
+// ]
+//
+// Growth = 50%
+// ======================================================
+
+function calculateGrowthRate(
+    history
+) {
+
+    if (
+        !Array.isArray(history) ||
+        history.length < 2
+    ) {
+
+        return 0;
+    }
+
+    const oldest =
+        Number(
+            history[0]?.sales
+        ) || 0;
+
+    const newest =
+        Number(
+            history[
+                history.length - 1
+            ]?.sales
+        ) || 0;
+
+
+    // If the previous active
+    // value somehow equals zero.
+    if (
+        oldest === 0
+    ) {
+
+        return newest > 0
+            ? 100
+            : 0;
+    }
+
+
+    return (
+        (
+            (
+                newest -
+                oldest
+            ) /
+            Math.abs(oldest)
+        ) * 100
+    );
+}
+
+
+// ======================================================
+// CALCULATE ACTIVE-DAY AVERAGE
+// ======================================================
+//
+// This is the average revenue earned on days
+// where the business actually made sales.
+//
+// Example:
+//
+// Day 1 = ₦100,000
+// Day 2 = ₦200,000
+//
+// Average = ₦150,000
+// ======================================================
+
+function calculateActiveDayAverage(
+    history
+) {
+
+    if (
+        !Array.isArray(history) ||
+        history.length === 0
+    ) {
+
+        return 0;
+    }
+
 
     const sales =
-        salesRepository.getLast30DaysSales(userId);
+        history.map(
+            day =>
+                Number(
+                    day.sales
+                ) || 0
+        );
 
-    if (!sales.length) {
+
+    const total =
+        sales.reduce(
+            (
+                sum,
+                value
+            ) =>
+                sum + value,
+            0
+        );
+
+
+    return (
+        total /
+        history.length
+    );
+}
+
+
+// ======================================================
+// CALCULATE CALENDAR-DAY AVERAGE
+// ======================================================
+//
+// This is kept as a supporting statistic.
+//
+// IMPORTANT:
+//
+// It is NOT used as the main forecast base.
+//
+// This prevents a single legitimate sales day from
+// producing an artificially tiny forecast simply because
+// there are many zero-sales days in the history.
+// ======================================================
+
+function calculateCalendarDayAverage(
+    history
+) {
+
+    if (
+        !Array.isArray(history) ||
+        history.length === 0
+    ) {
+
+        return 0;
+    }
+
+
+    const total =
+        history.reduce(
+            (
+                sum,
+                day
+            ) =>
+                sum +
+                (
+                    Number(
+                        day.sales
+                    ) || 0
+                ),
+            0
+        );
+
+
+    return (
+        total /
+        history.length
+    );
+}
+
+
+// ======================================================
+// DETERMINE FORECAST BASE
+// ======================================================
+//
+// Strategy:
+//
+// 1 selling day
+//     → 100% active-day average
+//
+// 2–6 selling days
+//     → active-day average
+//
+// 7–13 selling days
+//     → active-day average
+//
+// 14–29 selling days
+//     → active-day average
+//
+// 30+ selling days
+//     → active-day average
+//
+// The reason is simple:
+//
+// We are forecasting the amount the business can make
+// on a future selling day. Zero-sales calendar days should
+// not automatically be interpreted as poor selling ability.
+// ======================================================
+
+function determineForecastBase(
+    activeDayAverage,
+    activeSalesDays
+) {
+
+    const average =
+        Number(
+            activeDayAverage
+        ) || 0;
+
+    const days =
+        Number(
+            activeSalesDays
+        ) || 0;
+
+
+    if (
+        days <= 0
+    ) {
+
+        return 0;
+    }
+
+
+    return average;
+}
+
+
+// ======================================================
+// REVENUE FORECAST ENGINE
+// ======================================================
+
+function getRevenueForecast(
+    userId
+) {
+
+    // ==================================================
+    // GET HISTORICAL SALES DATA
+    // ==================================================
+
+    const historical =
+        historicalTrendEngine
+            .getHistoricalSalesTrend(
+                userId
+            );
+
+
+    // ==================================================
+    // NO HISTORICAL DATA
+    // ==================================================
+
+    if (
+        !historical ||
+        !Array.isArray(
+            historical.history
+        ) ||
+        historical.history.length === 0
+    ) {
+
+        console.log(
+            "📈 REVENUE FORECAST: No Data"
+        );
+
 
         return {
 
             averageDailySales: 0,
+
+            activeDayAverage: 0,
+
+            calendarDayAverage: 0,
 
             growthRate: 0,
 
@@ -24,120 +393,283 @@ function getRevenueForecast(userId) {
 
             next7Days: 0,
 
-            next30Days: 0
+            next30Days: 0,
+
+            activeSalesDays: 0,
+
+            history: []
 
         };
-
     }
 
-    // ==========================
-    // TOTAL SALES
-    // ==========================
-    const totalRevenue =
-        sales.reduce((sum, sale) => {
 
-            return sum + Number(sale.total || 0);
+    // ==================================================
+    // HISTORICAL ACTIVE SALES HISTORY
+    // ==================================================
 
-        }, 0);
+    const history =
+        historical.history;
 
-    const averageDailySales =
-        totalRevenue / sales.length;
 
-    // ==========================
-    // FIRST HALF
-    // ==========================
-    const midpoint =
-        Math.floor(sales.length / 2);
+    // The historical trend engine already returns
+    // active selling days, but we normalize them here
+    // to guarantee clean numeric values.
 
-    const firstHalf =
-        sales.slice(0, midpoint);
+    const activeHistory =
+        history
+            .filter(
+                day =>
+                    Number(
+                        day.sales
+                    ) > 0
+            )
+            .map(
+                day => ({
 
-    const secondHalf =
-        sales.slice(midpoint);
+                    date:
+                        day.date,
 
-    const firstAverage =
-        firstHalf.length
-            ? firstHalf.reduce(
-                  (sum, sale) => sum + Number(sale.total || 0),
-                  0
-              ) / firstHalf.length
-            : averageDailySales;
+                    sales:
+                        Number(
+                            day.sales
+                        ) || 0
 
-    const secondAverage =
-        secondHalf.length
-            ? secondHalf.reduce(
-                  (sum, sale) => sum + Number(sale.total || 0),
-                  0
-              ) / secondHalf.length
-            : averageDailySales;
+                })
+            );
 
-    // ==========================
-    // GROWTH RATE
-    // ==========================
-    let growthRate = 0;
 
-    if (firstAverage > 0) {
+    const activeSalesDays =
+        activeHistory.length;
 
-        growthRate =
-            ((secondAverage - firstAverage) / firstAverage) * 100;
 
+    // ==================================================
+    // NO ACTIVE SALES
+    // ==================================================
+
+    if (
+        activeSalesDays === 0
+    ) {
+
+        console.log(
+            "📈 REVENUE FORECAST: No Active Sales"
+        );
+
+
+        return {
+
+            averageDailySales: 0,
+
+            activeDayAverage: 0,
+
+            calendarDayAverage:
+                calculateCalendarDayAverage(
+                    history
+                ),
+
+            growthRate: 0,
+
+            trend: "No Data",
+
+            confidence: 0,
+
+            tomorrow: 0,
+
+            next7Days: 0,
+
+            next30Days: 0,
+
+            activeSalesDays: 0,
+
+            history: []
+
+        };
     }
 
-    // ==========================
+
+    // ==================================================
+    // ACTIVE-DAY AVERAGE
+    // ==================================================
+
+    const activeDayAverage =
+        calculateActiveDayAverage(
+            activeHistory
+        );
+
+
+    // ==================================================
+    // CALENDAR-DAY AVERAGE
+    // ==================================================
+
+    const calendarDayAverage =
+        calculateCalendarDayAverage(
+            history
+        );
+
+
+    // ==================================================
+    // FORECAST BASE
+    // ==================================================
+
+    const forecastBase =
+        determineForecastBase(
+            activeDayAverage,
+            activeSalesDays
+        );
+
+
+    // ==================================================
     // TREND
-    // ==========================
-    let trend = "Stable";
+    // ==================================================
 
-    if (growthRate > 10) {
+    let trend =
+        historical.trend ||
+        "Insufficient Data";
 
-        trend = "Increasing";
 
+    // One selling day is never enough
+    // to establish a meaningful trend.
+
+    if (
+        activeSalesDays < 2
+    ) {
+
+        trend =
+            "Insufficient Data";
     }
 
-    else if (growthRate < -10) {
 
-        trend = "Declining";
+    // ==================================================
+    // GROWTH RATE
+    // ==================================================
 
-    }
+    const growthRate =
+        activeSalesDays >= 2
+            ? calculateGrowthRate(
+                activeHistory
+            )
+            : 0;
 
-    // ==========================
-    // CONFIDENCE
-    // ==========================
-    let confidence = 95;
 
-    if (sales.length < 30) {
+    // ==================================================
+    // PROJECT DAILY REVENUE
+    // ==================================================
 
-        confidence = 80;
+    const projectedDailyRevenue =
+        projectNext(
+            forecastBase,
+            trend,
+            activeSalesDays
+        );
 
-    }
 
-    if (sales.length < 14) {
+    // ==================================================
+    // REVENUE PROJECTIONS
+    // ==================================================
 
-        confidence = 65;
-
-    }
-
-    if (sales.length < 7) {
-
-        confidence = 50;
-
-    }
-
-    // ==========================
-    // FORECAST
-    // ==========================
     const tomorrow =
-        averageDailySales * (1 + growthRate / 100);
+        projectedDailyRevenue;
+
 
     const next7Days =
-        tomorrow * 7;
+        projectedDailyRevenue * 7;
+
 
     const next30Days =
-        tomorrow * 30;
+        projectedDailyRevenue * 30;
+
+
+    // ==================================================
+    // CONFIDENCE
+    // ==================================================
+
+    const confidence =
+        getConfidence(
+            activeSalesDays
+        );
+
+
+    // ==================================================
+    // DEBUG
+    // ==================================================
+
+    console.log(
+        "📈 REVENUE FORECAST"
+    );
+
+    console.log(
+        "Active Sales Days:",
+        activeSalesDays
+    );
+
+    console.log(
+        "Active Day Average:",
+        activeDayAverage
+    );
+
+    console.log(
+        "Calendar Day Average:",
+        calendarDayAverage
+    );
+
+    console.log(
+        "Forecast Base:",
+        forecastBase
+    );
+
+    console.log(
+        "Projected Daily Revenue:",
+        projectedDailyRevenue
+    );
+
+    console.log(
+        "Tomorrow:",
+        tomorrow
+    );
+
+    console.log(
+        "Next 7 Days:",
+        next7Days
+    );
+
+    console.log(
+        "Next 30 Days:",
+        next30Days
+    );
+
+    console.log(
+        "Growth Rate:",
+        growthRate
+    );
+
+    console.log(
+        "Trend:",
+        trend
+    );
+
+    console.log(
+        "Confidence:",
+        confidence
+    );
+
+
+    // ==================================================
+    // RETURN
+    // ==================================================
 
     return {
 
-        averageDailySales,
+        // Main forecast value
+        // used by the AI CFO.
+
+        averageDailySales:
+            projectedDailyRevenue,
+
+
+        // Supporting analytics.
+
+        activeDayAverage,
+
+        calendarDayAverage,
 
         growthRate,
 
@@ -149,11 +681,19 @@ function getRevenueForecast(userId) {
 
         next7Days,
 
-        next30Days
+        next30Days,
+
+        activeSalesDays,
+
+        history
 
     };
-
 }
+
+
+// ======================================================
+// EXPORT
+// ======================================================
 
 module.exports = {
 

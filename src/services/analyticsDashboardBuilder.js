@@ -1,7 +1,7 @@
 const analytics = require("./financialAnalyticsService");
 const trends = require("./businessTrendsService");
 const insights = require("./businessInsightsService");
-const recommendations = require("./businessRecommendationService");
+const aiIntelligence = require("./aiIntelligenceService");
 
 // ==========================
 // BUILD ANALYTICS DASHBOARD
@@ -23,8 +23,11 @@ function buildAnalyticsDashboard(telegramId) {
     const insight =
         insights.getBusinessInsights(telegramId);
 
-    const recommendation =
-        recommendations.getBusinessRecommendations(telegramId);
+    // ==========================
+    // AI CFO INTELLIGENCE
+    // ==========================
+    const intelligence =
+        aiIntelligence.buildIntelligence(telegramId);
 
     // ==========================
     // SAFE VALUES
@@ -44,34 +47,18 @@ function buildAnalyticsDashboard(telegramId) {
     // ==========================
     // AI INSIGHT
     // ==========================
-    let topInsight = "No major insights available.";
+    let topInsight =
+        "No major insights available.";
 
     if (Array.isArray(insight) && insight.length > 0) {
-        topInsight = insight[0];
+
+        topInsight =
+            insight[0];
+
     } else if (typeof insight === "string") {
-        topInsight = insight;
-    }
 
-    // ==========================
-    // AI RECOMMENDATION
-    // ==========================
-    let topRecommendation =
-        "Keep recording transactions consistently.";
-
-    if (Array.isArray(recommendation) && recommendation.length > 0) {
-
-        if (typeof recommendation[0] === "string") {
-
-            topRecommendation = recommendation[0];
-
-        } else if (
-            recommendation[0] &&
-            recommendation[0].message
-        ) {
-
-            topRecommendation = recommendation[0].message;
-
-        }
+        topInsight =
+            insight;
 
     }
 
@@ -137,9 +124,45 @@ ${topInsight}
 
 ━━━━━━━━━━━━━━━━━━
 
-🎯 AI Recommendation
+🎯 Management Priority
 
-${topRecommendation}
+${intelligence.priority}
+
+━━━━━━━━━━━━━━━━━━
+
+⚠️ Urgency
+
+${intelligence.urgency}
+
+━━━━━━━━━━━━━━━━━━
+
+🧠 AI Decision
+
+${intelligence.explanation}
+
+━━━━━━━━━━━━━━━━━━
+
+✅ Recommended Action
+
+${intelligence.recommendation}
+
+━━━━━━━━━━━━━━━━━━
+
+📈 Projected Revenue
+
+₦${Math.round(intelligence.forecast.projectedRevenue).toLocaleString()}
+
+━━━━━━━━━━━━━━━━━━
+
+🏆 Projected Profit
+
+₦${Math.round(intelligence.forecast.projectedProfit).toLocaleString()}
+
+━━━━━━━━━━━━━━━━━━
+
+🎯 Forecast Confidence
+
+${intelligence.forecast.confidence}%
 
 ━━━━━━━━━━━━━━━━━━
 
@@ -149,10 +172,12 @@ ${new Date().toLocaleString()}
 
 ━━━━━━━━━━━━━━━━━━
 
-📈 Analytics help you identify trends before they become problems.`;
+📈 AI CFO analyzed your business using historical trends, forecasting and decision intelligence.`;
 
 }
 
 module.exports = {
+
     buildAnalyticsDashboard
+
 };

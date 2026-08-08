@@ -11,8 +11,12 @@ function startMorningBriefScheduler() {
     const schedule =
         process.env.MORNING_BRIEF_CRON || "0 8 * * *";
 
+    console.log("");
+    console.log("======================================");
     console.log("🌅 Morning Brief Scheduler started.");
-    console.log(`⏰ Schedule: ${schedule}`);
+    console.log("📌 ENV VALUE:", process.env.MORNING_BRIEF_CRON);
+    console.log("⏰ ACTUAL SCHEDULE:", schedule);
+    console.log("======================================");
 
     cron.schedule(schedule, async () => {
 

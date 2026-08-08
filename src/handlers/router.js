@@ -25,6 +25,7 @@ const supplierHandler = require("./supplierHandler");
 const creditorHandler = require("./creditorHandler");
 const purchaseHandler = require("./purchaseHandler");
 const analyticsHandler = require("./analyticsHandler");
+const aiHandler = require("./aiHandler");
 
 module.exports = (bot) => {
 
@@ -69,6 +70,13 @@ module.exports = (bot) => {
         // BUSINESS MENU
         // ==========================
         if (await businessHandler(ctx)) {
+            return;
+        }
+
+        // ==========================
+        // AI CHAT
+        // ==========================
+        if (await aiHandler(ctx)) {
             return;
         }
 

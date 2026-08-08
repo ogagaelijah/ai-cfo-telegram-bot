@@ -1,70 +1,44 @@
 const {
-    getCashMetrics
-} = require("./financialAnalyticsService");
+    buildForecast
+} = require("./forecasting/forecastEngine");
 
-const {
-    getAverageDailySales,
-    getAverageDailyExpenses
-} = require("../repositories/businessTrendsRepository");
 
 // ==========================
 // BUSINESS FORECAST
 // ==========================
 function getBusinessForecast(telegramId) {
 
-    const cash =
-        getCashMetrics(telegramId);
+    const forecast =
+        buildForecast(
+            telegramId
+        );
 
-    const averageDailySales =
-        getAverageDailySales(telegramId);
-
-    const averageDailyExpenses =
-        getAverageDailyExpenses(telegramId);
-
-    const forecast7DaysRevenue =
-        averageDailySales * 7;
-
-    const forecast30DaysRevenue =
-        averageDailySales * 30;
-
-    const forecast7DaysExpenses =
-        averageDailyExpenses * 7;
-
-    const forecast30DaysExpenses =
-        averageDailyExpenses * 30;
-
-    const forecast7DaysCash =
-        cash.cashPosition +
-        forecast7DaysRevenue -
-        forecast7DaysExpenses;
-
-    const forecast30DaysCash =
-        cash.cashPosition +
-        forecast30DaysRevenue -
-        forecast30DaysExpenses;
 
     return {
 
-        averageDailySales,
+        revenue:
+            forecast.revenue,
 
-        averageDailyExpenses,
+        cash:
+            forecast.cash,
 
-        forecast7DaysRevenue,
+        inventory:
+            forecast.inventory,
 
-        forecast30DaysRevenue,
+        profit:
+            forecast.profit,
 
-        forecast7DaysExpenses,
-
-        forecast30DaysExpenses,
-
-        forecast7DaysCash,
-
-        forecast30DaysCash
+        risks:
+            forecast.risks
 
     };
 
 }
 
+
+// ==========================
+// EXPORT
+// ==========================
 module.exports = {
 
     getBusinessForecast

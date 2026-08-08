@@ -1,106 +1,379 @@
-const {
-    getRevenueForecast
-} = require("./revenueForecastService");
+// ============================================================
+// RISK FORECAST SERVICE
+// ============================================================
+//
+// This service ONLY analyzes forecast objects that have already
+// been calculated by forecastEngine.js.
+//
+// IMPORTANT:
+//
+// This file must NOT require:
+//
+// - forecastEngine
+// - revenueForecastService
+// - cashForecastService
+// - inventoryForecastService
+// - profitForecastService
+//
+// All required forecast data is passed into getRiskForecast().
+//
+// This keeps the forecasting architecture:
+//
+// forecastEngine
+//      |
+//      ├── revenueForecastService
+//      ├── cashForecastService
+//      ├── inventoryForecastService
+//      ├── profitForecastService
+//      └── riskForecastService
+//
+// ============================================================
 
-const {
-    getCashForecast
-} = require("./cashForecastService");
 
-const {
-    getInventoryForecast
-} = require("./inventoryForecastService");
+// ============================================================
+// BUILD RISK FORECAST
+// ============================================================
 
-// ==========================
-// RISK FORECAST ENGINE
-// ==========================
-function getRiskForecast(userId) {
+function getRiskForecast(
+    userId,
+    revenueForecast,
+    cashForecast,
+    inventoryForecast
+) {
+
+    // ========================================================
+    // NORMALIZE INPUTS
+    // ========================================================
 
     const revenue =
-        getRevenueForecast(userId);
+        revenueForecast || {};
 
     const cash =
-        getCashForecast(userId);
+        cashForecast || {};
 
     const inventory =
-        getInventoryForecast(userId);
+        inventoryForecast || {};
+
+
+    // ========================================================
+    // RISK COLLECTION
+    // ========================================================
 
     const risks = [];
 
-    // ==========================
-    // CASH RISK
-    // ==========================
-    if (cash.status === "Critical") {
+
+    // ========================================================
+    // CASH RISKS
+    // ========================================================
+
+    const currentCash =
+        Number(
+            cash.currentCash
+        ) || 0;
+
+
+    const next7DaysCash =
+        Number(
+            cash.next7Days
+        ) || 0;
+
+
+    const next30DaysCash =
+        Number(
+            cash.next30Days
+        ) || 0;
+
+
+    const estimatedDailyBurn =
+        Number(
+            cash.estimatedDailyBurn
+        ) || 0;
+
+
+    // --------------------------------------------------------
+    // CURRENT NEGATIVE CASH
+    // --------------------------------------------------------
+
+    if (
+        currentCash < 0
+    ) {
 
         risks.push({
 
-            severity: "Critical",
+            severity:
+                "Critical",
 
-            title: "Cash Flow Risk",
+            title:
+                "Cash Flow Risk",
 
             message:
-                "Business may experience cash shortages if spending continues."
+                `Cash is currently negative at ₦${Math.round(
+                    currentCash
+                ).toLocaleString()}. Immediate attention is required to improve liquidity.`
 
         });
 
     }
 
-    // ==========================
-    // SALES RISK
-    // ==========================
-    if (revenue.trend === "Declining") {
+
+    // --------------------------------------------------------
+    // PROJECTED 7-DAY CASH SHORTAGE
+    // --------------------------------------------------------
+
+    else if (
+        next7DaysCash < 0
+    ) {
 
         risks.push({
 
-            severity: "Warning",
+            severity:
+                "Critical",
 
-            title: "Sales Trend",
+            title:
+                "Projected Cash Shortage",
 
             message:
-                "Sales are trending downward."
+                `Cash is projected to become negative within seven days, reaching approximately ₦${Math.round(
+                    next7DaysCash
+                ).toLocaleString()}.`
 
         });
 
     }
 
-    // ==========================
-    // INVENTORY RISK
-    // ==========================
-    if (inventory.restockUrgency === "Critical") {
+
+    // --------------------------------------------------------
+    // PROJECTED 30-DAY CASH PRESSURE
+    // --------------------------------------------------------
+
+    else if (
+        next30DaysCash < 0
+    ) {
 
         risks.push({
 
-            severity: "Critical",
+            severity:
+                "Warning",
 
-            title: "Inventory",
+            title:
+                "Future Cash Pressure",
 
             message:
-                "One or more products are out of stock."
+                "Current cash levels may become insufficient within 30 days if the current cash-flow pattern continues."
 
         });
 
     }
 
-    // ==========================
-    // NO RISKS
-    // ==========================
-    if (!risks.length) {
+
+    // --------------------------------------------------------
+    // DECLINING CASH FLOW
+    // --------------------------------------------------------
+
+    if (
+        cash.cashTrend === "Declining" &&
+        currentCash >= 0
+    ) {
 
         risks.push({
 
-            severity: "Info",
+            severity:
+                "Warning",
 
-            title: "Business Outlook",
+            title:
+                "Declining Cash Flow",
 
             message:
-                "No significant financial risks predicted."
+                `Cash flow is currently negative, with an estimated daily cash burn of approximately ₦${Math.round(
+                    estimatedDailyBurn
+                ).toLocaleString()}.`
 
         });
 
     }
+
+
+    // ========================================================
+    // REVENUE RISKS
+    // ========================================================
+
+    const revenueTrend =
+        revenue.trend;
+
+
+    const revenueConfidence =
+        Number(
+            revenue.confidence
+        ) || 0;
+
+
+    // --------------------------------------------------------
+    // DECLINING SALES
+    // --------------------------------------------------------
+
+    if (
+        revenueTrend === "Declining"
+    ) {
+
+        risks.push({
+
+            severity:
+                "Warning",
+
+            title:
+                "Sales Trend",
+
+            message:
+                "Sales are trending downward compared with the earlier period."
+
+        });
+
+    }
+
+
+    // --------------------------------------------------------
+    // LOW FORECAST CONFIDENCE
+    // --------------------------------------------------------
+
+    if (
+        revenueConfidence < 65 &&
+        revenueTrend !== "No Data" &&
+        revenueTrend !== undefined &&
+        revenueTrend !== null
+    ) {
+
+        risks.push({
+
+            severity:
+                "Info",
+
+            title:
+                "Forecast Confidence",
+
+            message:
+                "Revenue forecasting confidence is currently limited because there is not yet enough historical transaction data."
+
+        });
+
+    }
+
+
+    // ========================================================
+    // INVENTORY RISKS
+    // ========================================================
+
+    const restockUrgency =
+        inventory.restockUrgency;
+
+
+    // --------------------------------------------------------
+    // CRITICAL INVENTORY
+    // --------------------------------------------------------
+
+    if (
+        restockUrgency === "Critical"
+    ) {
+
+        risks.push({
+
+            severity:
+                "Critical",
+
+            title:
+                "Inventory Risk",
+
+            message:
+                "One or more products are currently out of stock and may affect future sales."
+
+        });
+
+    }
+
+
+    // --------------------------------------------------------
+    // HIGH INVENTORY PRESSURE
+    // --------------------------------------------------------
+
+    else if (
+        restockUrgency === "High"
+    ) {
+
+        risks.push({
+
+            severity:
+                "Warning",
+
+            title:
+                "Inventory Pressure",
+
+            message:
+                "Several products are approaching low-stock levels and may require restocking soon."
+
+        });
+
+    }
+
+
+    // --------------------------------------------------------
+    // MEDIUM INVENTORY PRESSURE
+    // --------------------------------------------------------
+
+    else if (
+        restockUrgency === "Medium"
+    ) {
+
+        risks.push({
+
+            severity:
+                "Info",
+
+            title:
+                "Inventory Monitoring",
+
+            message:
+                "Some products are approaching low-stock levels and should be monitored for timely restocking."
+
+        });
+
+    }
+
+
+    // ========================================================
+    // NO SIGNIFICANT RISKS
+    // ========================================================
+
+    if (
+        risks.length === 0
+    ) {
+
+        risks.push({
+
+            severity:
+                "Info",
+
+            title:
+                "Business Outlook",
+
+            message:
+                "No significant financial risks are currently predicted."
+
+        });
+
+    }
+
+
+    // ========================================================
+    // RETURN
+    // ========================================================
 
     return risks;
 
 }
+
+
+// ============================================================
+// EXPORT
+// ============================================================
 
 module.exports = {
 

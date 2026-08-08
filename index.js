@@ -74,11 +74,12 @@ bot.catch((error, ctx) => {
 
         console.log("Step 3");
 
-        await bot.launch({
+        // ==========================
+        // LAUNCH BOT
+        // ==========================
+        await bot.launch();
 
-            dropPendingUpdates: true
-
-        });
+        console.log("✅ Telegram bot launched.");
 
         // ==========================
         // START ALL SCHEDULERS
