@@ -5,40 +5,25 @@
 // This service ONLY analyzes forecast objects that have already
 // been calculated by forecastEngine.js.
 //
-// IMPORTANT:
-//
-// This file must NOT require:
-//
-// - forecastEngine
-// - revenueForecastService
-// - cashForecastService
-// - inventoryForecastService
-// - profitForecastService
-//
-// All required forecast data is passed into getRiskForecast().
-//
-// This keeps the forecasting architecture:
-//
-// forecastEngine
-//      |
-//      ├── revenueForecastService
-//      ├── cashForecastService
-//      ├── inventoryForecastService
-//      ├── profitForecastService
-//      └── riskForecastService
+// It does NOT call any other forecast service.
 //
 // ============================================================
-
-
-// ============================================================
-// BUILD RISK FORECAST
+//
+// FORECAST DATA RECEIVED:
+//
+// revenueForecast
+// cashForecast
+// inventoryForecast
+// inventoryDemandForecast
+//
 // ============================================================
 
 function getRiskForecast(
     userId,
     revenueForecast,
     cashForecast,
-    inventoryForecast
+    inventoryForecast,
+    inventoryDemandForecast
 ) {
 
     // ========================================================
@@ -53,6 +38,9 @@ function getRiskForecast(
 
     const inventory =
         inventoryForecast || {};
+
+    const inventoryDemand =
+        inventoryDemandForecast || {};
 
 
     // ========================================================
@@ -184,7 +172,7 @@ function getRiskForecast(
                 "Declining Cash Flow",
 
             message:
-                `Cash flow is currently negative, with an estimated daily cash burn of approximately ₦${Math.round(
+                `Cash flow is declining, with an estimated daily cash burn of approximately ₦${Math.round(
                     estimatedDailyBurn
                 ).toLocaleString()}.`
 
@@ -259,7 +247,7 @@ function getRiskForecast(
 
 
     // ========================================================
-    // INVENTORY RISKS
+    // BASIC INVENTORY RISKS
     // ========================================================
 
     const restockUrgency =
@@ -339,6 +327,190 @@ function getRiskForecast(
 
 
     // ========================================================
+    // PRODUCT DEMAND RISKS
+    // ========================================================
+    //
+    // This is the new intelligence layer.
+    //
+    // It looks at predicted demand rather than simply
+    // checking whether current stock is below a fixed
+    // threshold.
+    //
+    // ========================================================
+
+    const demandProducts =
+        Array.isArray(
+            inventoryDemand.products
+        )
+            ? inventoryDemand.products
+            : [];
+
+
+    // --------------------------------------------------------
+    // PRODUCTS REQUIRING REORDER
+    // --------------------------------------------------------
+
+    const reorderProducts =
+        demandProducts.filter(
+            product => {
+
+                return (
+                    product.reorderRecommendation ===
+                        "Reorder Immediately"
+
+                    ||
+
+                    product.reorderRecommendation ===
+                        "Urgent"
+
+                    ||
+
+                    product.reorderRecommendation ===
+                        "Reorder Soon"
+                );
+
+            }
+        );
+
+
+    // --------------------------------------------------------
+    // URGENT PRODUCTS
+    // --------------------------------------------------------
+
+    const urgentProducts =
+        demandProducts.filter(
+            product =>
+                product.reorderRecommendation ===
+                "Urgent"
+        );
+
+
+    if (
+        urgentProducts.length > 0
+    ) {
+
+        urgentProducts.forEach(
+            product => {
+
+                const stockoutDays =
+                    Number(
+                        product.estimatedStockoutDays
+                    );
+
+
+                const stockoutText =
+                    Number.isFinite(
+                        stockoutDays
+                    )
+                        ? `${stockoutDays.toFixed(1)} days`
+                        : "an unknown number of days";
+
+
+                risks.push({
+
+                    severity:
+                        "Critical",
+
+                    title:
+                        `Urgent Product Reorder: ${product.productName}`,
+
+                    message:
+                        `${product.productName} is projected to run out of stock in approximately ${stockoutText} at the current demand rate. Immediate restocking is recommended.`
+
+                });
+
+            }
+        );
+
+    }
+
+
+    // --------------------------------------------------------
+    // PRODUCTS REQUIRING REORDER SOON
+    // --------------------------------------------------------
+
+    const reorderSoonProducts =
+        demandProducts.filter(
+            product =>
+                product.reorderRecommendation ===
+                "Reorder Soon"
+        );
+
+
+    if (
+        reorderSoonProducts.length > 0
+    ) {
+
+        reorderSoonProducts.forEach(
+            product => {
+
+                const stockoutDays =
+                    Number(
+                        product.estimatedStockoutDays
+                    );
+
+
+                const stockoutText =
+                    Number.isFinite(
+                        stockoutDays
+                    )
+                        ? `${stockoutDays.toFixed(1)} days`
+                        : "an unknown number of days";
+
+
+                risks.push({
+
+                    severity:
+                        "Warning",
+
+                    title:
+                        `Upcoming Product Stockout: ${product.productName}`,
+
+                    message:
+                        `${product.productName} is projected to run out of stock in approximately ${stockoutText} at the current demand rate. Consider restocking soon.`
+
+                });
+
+            }
+        );
+
+    }
+
+
+    // --------------------------------------------------------
+    // DEMAND FORECAST DATA QUALITY
+    // --------------------------------------------------------
+
+    const lowConfidenceDemandProducts =
+        demandProducts.filter(
+            product =>
+                Number(
+                    product.confidence
+                ) < 50
+        );
+
+
+    if (
+        lowConfidenceDemandProducts.length > 0
+    ) {
+
+        risks.push({
+
+            severity:
+                "Info",
+
+            title:
+                "Inventory Demand Confidence",
+
+            message:
+                `Product demand predictions are currently based on limited sales history for ${lowConfidenceDemandProducts.length} product(s). Forecast accuracy will improve as more sales data is recorded.`
+
+        });
+
+    }
+
+
+    // ========================================================
     // NO SIGNIFICANT RISKS
     // ========================================================
 
@@ -355,7 +527,7 @@ function getRiskForecast(
                 "Business Outlook",
 
             message:
-                "No significant financial risks are currently predicted."
+                "No significant financial or inventory risks are currently predicted."
 
         });
 

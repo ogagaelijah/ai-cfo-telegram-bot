@@ -66,7 +66,12 @@ function getThisWeekSales(userId) {
         FROM sales
         WHERE user_id = ?
         AND DATE(created_at, 'localtime')
-            >= DATE('now', 'localtime', 'weekday 0', '-6 days')
+            >= DATE(
+                'now',
+                'localtime',
+                'weekday 0',
+                '-6 days'
+            )
     `).get(userId);
 
     return Number(result.total) || 0;
@@ -84,10 +89,20 @@ function getLastWeekSales(userId) {
         FROM sales
         WHERE user_id = ?
         AND DATE(created_at, 'localtime')
-            BETWEEN
-                DATE('now', 'localtime', 'weekday 0', '-13 days')
-            AND
-                DATE('now', 'localtime', 'weekday 0', '-7 days')
+        BETWEEN
+            DATE(
+                'now',
+                'localtime',
+                'weekday 0',
+                '-13 days'
+            )
+        AND
+            DATE(
+                'now',
+                'localtime',
+                'weekday 0',
+                '-7 days'
+            )
     `).get(userId);
 
     return Number(result.total) || 0;
@@ -104,8 +119,17 @@ function getThisMonthSales(userId) {
             COALESCE(SUM(total), 0) AS total
         FROM sales
         WHERE user_id = ?
-        AND strftime('%Y-%m', created_at, 'localtime')
-            = strftime('%Y-%m', 'now', 'localtime')
+        AND strftime(
+            '%Y-%m',
+            created_at,
+            'localtime'
+        )
+        =
+        strftime(
+            '%Y-%m',
+            'now',
+            'localtime'
+        )
     `).get(userId);
 
     return Number(result.total) || 0;
@@ -122,8 +146,18 @@ function getLastMonthSales(userId) {
             COALESCE(SUM(total), 0) AS total
         FROM sales
         WHERE user_id = ?
-        AND strftime('%Y-%m', created_at, 'localtime')
-            = strftime('%Y-%m', 'now', 'localtime', '-1 month')
+        AND strftime(
+            '%Y-%m',
+            created_at,
+            'localtime'
+        )
+        =
+        strftime(
+            '%Y-%m',
+            'now',
+            'localtime',
+            '-1 month'
+        )
     `).get(userId);
 
     return Number(result.total) || 0;
@@ -140,14 +174,28 @@ function getAverageDailySales(telegramId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(AVG(daily_total), 0) AS average
+            COALESCE(
+                AVG(daily_total),
+                0
+            ) AS average
         FROM (
             SELECT
-                DATE(created_at, 'localtime') AS day,
+                DATE(
+                    created_at,
+                    'localtime'
+                ) AS day,
+
                 SUM(total) AS daily_total
+
             FROM sales
+
             WHERE user_id = ?
-            GROUP BY DATE(created_at, 'localtime')
+
+            GROUP BY
+                DATE(
+                    created_at,
+                    'localtime'
+                )
         )
     `).get(userId);
 
@@ -165,14 +213,28 @@ function getAverageDailyExpenses(telegramId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(AVG(daily_total), 0) AS average
+            COALESCE(
+                AVG(daily_total),
+                0
+            ) AS average
         FROM (
             SELECT
-                DATE(created_at, 'localtime') AS day,
+                DATE(
+                    created_at,
+                    'localtime'
+                ) AS day,
+
                 SUM(amount) AS daily_total
+
             FROM expenses
+
             WHERE user_id = ?
-            GROUP BY DATE(created_at, 'localtime')
+
+            GROUP BY
+                DATE(
+                    created_at,
+                    'localtime'
+                )
         )
     `).get(userId);
 
@@ -190,14 +252,28 @@ function getAverageDailyPurchases(telegramId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(AVG(daily_total), 0) AS average
+            COALESCE(
+                AVG(daily_total),
+                0
+            ) AS average
         FROM (
             SELECT
-                DATE(created_at, 'localtime') AS day,
+                DATE(
+                    created_at,
+                    'localtime'
+                ) AS day,
+
                 SUM(total_amount) AS daily_total
+
             FROM purchases
+
             WHERE user_id = ?
-            GROUP BY DATE(created_at, 'localtime')
+
+            GROUP BY
+                DATE(
+                    created_at,
+                    'localtime'
+                )
         )
     `).get(userId);
 
@@ -208,11 +284,18 @@ function getAverageDailyPurchases(telegramId) {
 // ==========================
 // DAILY PURCHASE HISTORY
 // ==========================
-function getDailyPurchases(userId, days = 30) {
+function getDailyPurchases(
+    userId,
+    days = 30
+) {
 
     const rows = db.prepare(`
         SELECT
-            DATE(created_at, 'localtime') AS date,
+
+            DATE(
+                created_at,
+                'localtime'
+            ) AS date,
 
             COALESCE(
                 SUM(total_amount),
@@ -223,36 +306,56 @@ function getDailyPurchases(userId, days = 30) {
 
         WHERE user_id = ?
 
-        GROUP BY DATE(created_at, 'localtime')
+        GROUP BY
+            DATE(
+                created_at,
+                'localtime'
+            )
 
-        ORDER BY DATE(created_at, 'localtime') DESC
+        ORDER BY
+            DATE(
+                created_at,
+                'localtime'
+            ) DESC
 
         LIMIT ?
+
     `).all(
         userId,
         days
     );
 
-    return rows.map(row => ({
+    return rows.map(
+        row => ({
 
-        date:
-            row.date,
+            date:
+                row.date,
 
-        purchases:
-            Number(row.purchases) || 0
+            purchases:
+                Number(
+                    row.purchases
+                ) || 0
 
-    }));
+        })
+    );
 }
 
 
 // ==========================
 // DAILY SALES HISTORY
 // ==========================
-function getDailySales(userId, days = 30) {
+function getDailySales(
+    userId,
+    days = 30
+) {
 
     const rows = db.prepare(`
         SELECT
-            DATE(created_at, 'localtime') AS date,
+
+            DATE(
+                created_at,
+                'localtime'
+            ) AS date,
 
             COALESCE(
                 SUM(total),
@@ -263,36 +366,56 @@ function getDailySales(userId, days = 30) {
 
         WHERE user_id = ?
 
-        GROUP BY DATE(created_at, 'localtime')
+        GROUP BY
+            DATE(
+                created_at,
+                'localtime'
+            )
 
-        ORDER BY DATE(created_at, 'localtime') DESC
+        ORDER BY
+            DATE(
+                created_at,
+                'localtime'
+            ) DESC
 
         LIMIT ?
+
     `).all(
         userId,
         days
     );
 
-    return rows.map(row => ({
+    return rows.map(
+        row => ({
 
-        date:
-            row.date,
+            date:
+                row.date,
 
-        sales:
-            Number(row.sales) || 0
+            sales:
+                Number(
+                    row.sales
+                ) || 0
 
-    }));
+        })
+    );
 }
 
 
 // ==========================
 // DAILY EXPENSE HISTORY
 // ==========================
-function getDailyExpenses(userId, days = 30) {
+function getDailyExpenses(
+    userId,
+    days = 30
+) {
 
     const rows = db.prepare(`
         SELECT
-            DATE(created_at, 'localtime') AS date,
+
+            DATE(
+                created_at,
+                'localtime'
+            ) AS date,
 
             COALESCE(
                 SUM(amount),
@@ -303,25 +426,150 @@ function getDailyExpenses(userId, days = 30) {
 
         WHERE user_id = ?
 
-        GROUP BY DATE(created_at, 'localtime')
+        GROUP BY
+            DATE(
+                created_at,
+                'localtime'
+            )
 
-        ORDER BY DATE(created_at, 'localtime') DESC
+        ORDER BY
+            DATE(
+                created_at,
+                'localtime'
+            ) DESC
 
         LIMIT ?
+
     `).all(
         userId,
         days
     );
 
-    return rows.map(row => ({
+    return rows.map(
+        row => ({
 
-        date:
-            row.date,
+            date:
+                row.date,
 
-        expenses:
-            Number(row.expenses) || 0
+            expenses:
+                Number(
+                    row.expenses
+                ) || 0
 
-    }));
+        })
+    );
+}
+
+
+// ==========================
+// PRODUCT DAILY DEMAND HISTORY
+// ==========================
+//
+// Returns product-level daily quantities sold.
+//
+// IMPORTANT:
+// A sale does NOT always have an inventory_id.
+//
+// Therefore:
+// 1. LEFT JOIN is used instead of INNER JOIN.
+// 2. inventory.product_name is preferred.
+// 3. sales.item is used as the fallback product name.
+//
+// This ensures sales without an inventory link
+// are still included in demand calculations.
+//
+// Used by the Inventory Demand Forecast service.
+// ==========================
+
+function getProductDailyDemand(
+    telegramId,
+    days = 30
+) {
+
+    const userId =
+        getUserId(telegramId);
+
+
+    const rows =
+        db.prepare(`
+            SELECT
+
+                COALESCE(
+                    inventory.product_name,
+                    sales.item
+                ) AS product_name,
+
+                DATE(
+                    sales.created_at,
+                    'localtime'
+                ) AS date,
+
+                COALESCE(
+                    SUM(sales.quantity),
+                    0
+                ) AS quantity
+
+            FROM sales
+
+            LEFT JOIN inventory
+                ON inventory.id =
+                   sales.inventory_id
+
+            WHERE sales.user_id = ?
+
+            AND DATE(
+                sales.created_at,
+                'localtime'
+            ) >= DATE(
+                'now',
+                'localtime',
+                '-29 days'
+            )
+
+            GROUP BY
+
+                COALESCE(
+                    inventory.product_name,
+                    sales.item
+                ),
+
+                DATE(
+                    sales.created_at,
+                    'localtime'
+                )
+
+            ORDER BY
+
+                date ASC,
+
+                product_name ASC
+
+            LIMIT ?
+
+        `).all(
+
+            userId,
+
+            days * 100
+        );
+
+
+    return rows.map(
+        row => ({
+
+            product_name:
+                row.product_name,
+
+            date:
+                row.date,
+
+            quantity:
+                Number(
+                    row.quantity
+                ) || 0
+
+        })
+    );
 }
 
 
@@ -354,6 +602,8 @@ module.exports = {
 
     getDailySales,
 
-    getDailyExpenses
+    getDailyExpenses,
+
+    getProductDailyDemand
 
 };

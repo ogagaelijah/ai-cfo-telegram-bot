@@ -9,6 +9,7 @@
 // Revenue is calculated ONCE.
 // Cash is calculated ONCE.
 // Inventory is calculated ONCE.
+// Inventory Demand is calculated ONCE.
 //
 // Profit and Risk receive the already-calculated
 // forecast objects.
@@ -30,13 +31,16 @@ const {
 } = require("./inventoryForecastService");
 
 const {
+    getInventoryDemandForecast
+} = require("./inventoryDemandForecastService");
+
+const {
     getProfitForecast
 } = require("./profitForecastService");
 
 const {
     getRiskForecast
 } = require("./riskForecastService");
-
 
 // ============================================================
 // BUILD FORECAST
@@ -75,6 +79,16 @@ function buildForecast(userId) {
 
 
     // ========================================================
+    // INVENTORY DEMAND
+    // ========================================================
+
+    const inventoryDemand =
+        getInventoryDemandForecast(
+            userId
+        );
+
+
+    // ========================================================
     // PROFIT
     // ========================================================
 
@@ -94,7 +108,8 @@ function buildForecast(userId) {
             userId,
             revenue,
             cash,
-            inventory
+            inventory,
+            inventoryDemand
         );
 
 
@@ -109,6 +124,8 @@ function buildForecast(userId) {
         cash,
 
         inventory,
+
+        inventoryDemand,
 
         profit,
 
