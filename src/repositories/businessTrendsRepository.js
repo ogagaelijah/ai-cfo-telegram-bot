@@ -178,14 +178,22 @@ function getAverageDailySales(telegramId) {
                 AVG(daily_total),
                 0
             ) AS average
+
         FROM (
             SELECT
+
                 DATE(
                     created_at,
                     'localtime'
                 ) AS day,
 
-                SUM(total) AS daily_total
+                SUM(
+                    CASE
+                        WHEN revenue > 0
+                            THEN revenue
+                        ELSE 0
+                    END
+                ) AS daily_total
 
             FROM sales
 
@@ -196,49 +204,119 @@ function getAverageDailySales(telegramId) {
                     created_at,
                     'localtime'
                 )
+
+            HAVING
+                daily_total > 0
         )
     `).get(userId);
 
-    return Number(result.average) || 0;
+    return Number(
+        result.average
+    ) || 0;
 }
 
 
 // ==========================
 // AVERAGE DAILY EXPENSES
 // ==========================
+//
+// Calculates average expenses across
+// all calendar days in the recorded
+// expense history.
+//
+// Zero-expense days are included.
+// ==========================
+
 function getAverageDailyExpenses(telegramId) {
 
     const userId =
         getUserId(telegramId);
 
-    const result = db.prepare(`
-        SELECT
-            COALESCE(
-                AVG(daily_total),
-                0
-            ) AS average
-        FROM (
+    const result =
+        db.prepare(`
+            WITH RECURSIVE calendar(date) AS (
+
+                SELECT
+                    MIN(
+                        DATE(
+                            created_at,
+                            'localtime'
+                        )
+                    )
+
+                FROM expenses
+
+                WHERE user_id = ?
+
+
+                UNION ALL
+
+
+                SELECT
+                    DATE(
+                        date,
+                        '+1 day'
+                    )
+
+                FROM calendar
+
+                WHERE date <
+                    DATE(
+                        'now',
+                        'localtime'
+                    )
+
+            )
+
+
             SELECT
-                DATE(
-                    created_at,
-                    'localtime'
-                ) AS day,
 
-                SUM(amount) AS daily_total
+                COALESCE(
+                    AVG(
+                        daily_total
+                    ),
+                    0
+                ) AS average
 
-            FROM expenses
+            FROM (
 
-            WHERE user_id = ?
+                SELECT
 
-            GROUP BY
-                DATE(
-                    created_at,
-                    'localtime'
-                )
-        )
-    `).get(userId);
+                    calendar.date,
 
-    return Number(result.average) || 0;
+                    COALESCE(
+                        SUM(
+                            expenses.amount
+                        ),
+                        0
+                    ) AS daily_total
+
+                FROM calendar
+
+                LEFT JOIN expenses
+
+                    ON DATE(
+                        expenses.created_at,
+                        'localtime'
+                    )
+                    =
+                    calendar.date
+
+                    AND expenses.user_id = ?
+
+                GROUP BY
+                    calendar.date
+
+            )
+
+        `).get(
+            userId,
+            userId
+        );
+
+    return Number(
+        result.average
+    ) || 0;
 }
 
 
@@ -253,17 +331,21 @@ function getAverageDailyPurchases(telegramId) {
     const result = db.prepare(`
         SELECT
             COALESCE(
-                AVG(daily_total),
+                AVG(daily_cash_paid),
                 0
             ) AS average
+
         FROM (
             SELECT
+
                 DATE(
                     created_at,
                     'localtime'
                 ) AS day,
 
-                SUM(total_amount) AS daily_total
+                SUM(
+                    amount_paid
+                ) AS daily_cash_paid
 
             FROM purchases
 
@@ -275,9 +357,14 @@ function getAverageDailyPurchases(telegramId) {
                     'localtime'
                 )
         )
-    `).get(userId);
 
-    return Number(result.average) || 0;
+    `).get(
+        userId
+    );
+
+    return Number(
+        result.average
+    ) || 0;
 }
 
 
@@ -467,18 +554,13 @@ function getDailyExpenses(
 //
 // Returns product-level daily quantities sold.
 //
-// IMPORTANT:
-// A sale does NOT always have an inventory_id.
+// A sale does not always have an inventory_id.
 //
 // Therefore:
-// 1. LEFT JOIN is used instead of INNER JOIN.
+// 1. LEFT JOIN is used.
 // 2. inventory.product_name is preferred.
-// 3. sales.item is used as the fallback product name.
+// 3. sales.item is used as fallback.
 //
-// This ensures sales without an inventory link
-// are still included in demand calculations.
-//
-// Used by the Inventory Demand Forecast service.
 // ==========================
 
 function getProductDailyDemand(
@@ -488,7 +570,6 @@ function getProductDailyDemand(
 
     const userId =
         getUserId(telegramId);
-
 
     const rows =
         db.prepare(`
@@ -553,7 +634,6 @@ function getProductDailyDemand(
             days * 100
         );
 
-
     return rows.map(
         row => ({
 
@@ -566,6 +646,106 @@ function getProductDailyDemand(
             quantity:
                 Number(
                     row.quantity
+                ) || 0
+
+        })
+    );
+}
+
+
+// ==========================
+// DAILY COGS HISTORY
+// ==========================
+//
+// IMPORTANT:
+//
+// This function receives the TELEGRAM ID,
+// just like the other higher-level repository
+// functions that use getUserId().
+//
+// It converts the Telegram ID into the
+// internal database user ID before querying
+// the sales table.
+//
+// COGS represents the cost of inventory
+// actually sold.
+//
+// It does NOT represent purchases.
+//
+// ==========================
+
+function getDailyCOGS(
+    telegramId,
+    days = 30
+) {
+
+    const userId =
+        getUserId(telegramId);
+
+    const rows = db.prepare(`
+        SELECT
+
+            DATE(
+                created_at,
+                'localtime'
+            ) AS date,
+
+            COALESCE(
+                SUM(revenue),
+                0
+            ) AS revenue,
+
+            COALESCE(
+                SUM(cost_of_goods),
+                0
+            ) AS costOfGoods
+
+        FROM sales
+
+        WHERE user_id = ?
+
+        AND DATE(
+            created_at,
+            'localtime'
+        ) >= DATE(
+            'now',
+            'localtime',
+            '-29 days'
+        )
+
+        GROUP BY
+            DATE(
+                created_at,
+                'localtime'
+            )
+
+        ORDER BY
+            DATE(
+                created_at,
+                'localtime'
+            ) ASC
+
+        LIMIT ?
+
+    `).all(
+        userId,
+        days
+    );
+
+    return rows.map(
+        row => ({
+
+            date:
+                row.date,
+
+            revenue:
+                Number(
+                    row.revenue
+                ) || 0,
+
+            costOfGoods:
+                Number(
+                    row.costOfGoods
                 ) || 0
 
         })
@@ -604,6 +784,8 @@ module.exports = {
 
     getDailyExpenses,
 
-    getProductDailyDemand
+    getProductDailyDemand,
+
+    getDailyCOGS
 
 };

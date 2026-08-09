@@ -22,6 +22,13 @@ const {
     getRiskForecast
 } = require("./riskForecastService");
 
+const expenseRepository =
+    require("../../repositories/expenseRepository");
+
+const {
+    getDailyCOGS
+} = require("../../repositories/businessTrendsRepository");
+
 
 // ============================================================
 // FORECAST ENGINE
@@ -29,20 +36,35 @@ const {
 //
 // Central orchestration layer.
 //
-// Production:
+// Responsibilities:
 //
-//     buildForecast(userId)
+// 1. Calculate each independent forecast.
+// 2. Collect the historical data required by downstream
+//    forecast services.
+// 3. Pass already-calculated results into dependent services.
 //
-// uses the real forecast services.
+// Important:
 //
-// Tests:
+// Forecast services should not unnecessarily calculate
+// other forecasts again.
 //
-//     buildForecast(userId, mockServices)
+// Example:
 //
-// can inject mocked services.
+// Revenue Forecast
+//      ↓
+// Profit Forecast
 //
-// This keeps the forecast engines independent while allowing
-// the orchestration layer to be tested safely.
+// Expense History
+//      ↓
+// Profit Forecast
+//
+// COGS History
+//      ↓
+// Profit Forecast
+//
+// Revenue + Cash + Inventory + Demand
+//      ↓
+// Risk Forecast
 //
 // ============================================================
 
@@ -121,19 +143,68 @@ function buildForecast(
 
 
     // ========================================================
+    // EXPENSE HISTORY
+    // ========================================================
+    //
+    // Profit Forecast needs historical operating
+    // expense data.
+    //
+    // getDailyHistory() intentionally includes
+    // zero-expense calendar days.
+    //
+    // ========================================================
+
+    const expenseHistory =
+        expenseRepository.getDailyHistory(
+            userId
+        );
+
+
+    // ========================================================
+    // COGS HISTORY
+    // ========================================================
+    //
+    // COGS comes from products actually sold.
+    //
+    // This is NOT the same as inventory purchases.
+    //
+    // getDailyCOGS() returns data such as:
+    //
+    // {
+    //     date: "2026-08-04",
+    //     revenue: 85600,
+    //     costOfGoods: 58800
+    // }
+    //
+    // ========================================================
+
+    const cogsHistory =
+        getDailyCOGS(
+            userId
+        );
+
+
+    // ========================================================
     // PROFIT
     // ========================================================
     //
-    // Profit receives the already-calculated revenue forecast.
+    // Profit receives:
+    //
+    // 1. Already-calculated revenue forecast.
+    // 2. Complete operating expense history.
+    // 3. Historical COGS history.
     //
     // Revenue is NOT calculated again.
+    //
+    // COGS is NOT calculated again.
     //
     // ========================================================
 
     const profit =
         profitService(
-            userId,
-            revenue
+            revenue,
+            expenseHistory,
+            cogsHistory
         );
 
 
@@ -174,6 +245,7 @@ function buildForecast(
         risks
 
     };
+
 }
 
 

@@ -18,8 +18,8 @@ function getUserId(telegramId) {
     }
 
     return user.id;
-
 }
+
 
 // ==========================
 // CREATE EXPENSE
@@ -60,9 +60,11 @@ function create(telegramId, expense) {
 
     );
 
-    return findById(result.lastInsertRowid);
-
+    return findById(
+        result.lastInsertRowid
+    );
 }
+
 
 // ==========================
 // FIND BY ID
@@ -77,6 +79,7 @@ function findById(id) {
 
 }
 
+
 // ==========================
 // TODAY TOTAL
 // ==========================
@@ -87,7 +90,7 @@ function getTodayTotal(telegramId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(SUM(amount),0) AS total
+            COALESCE(SUM(amount), 0) AS total
         FROM expenses
         WHERE user_id = ?
         AND DATE(created_at,'localtime')
@@ -95,8 +98,8 @@ function getTodayTotal(telegramId) {
     `).get(userId);
 
     return Number(result.total) || 0;
-
 }
+
 
 // ==========================
 // MONTHLY TOTAL
@@ -111,13 +114,22 @@ function getMonthlyTotal(telegramId) {
             COALESCE(SUM(amount),0) AS total
         FROM expenses
         WHERE user_id = ?
-        AND strftime('%Y-%m', created_at, 'localtime')
-            = strftime('%Y-%m', 'now', 'localtime')
+        AND strftime(
+            '%Y-%m',
+            created_at,
+            'localtime'
+        )
+        =
+        strftime(
+            '%Y-%m',
+            'now',
+            'localtime'
+        )
     `).get(userId);
 
     return Number(result.total) || 0;
-
 }
+
 
 // ==========================
 // BY CATEGORY
@@ -136,8 +148,8 @@ function getByCategory(telegramId) {
         GROUP BY category
         ORDER BY total DESC
     `).all(userId);
-
 }
+
 
 // ==========================
 // GET ALL EXPENSES
@@ -153,9 +165,120 @@ function findAll(telegramId) {
         WHERE user_id = ?
         ORDER BY created_at DESC
     `).all(userId);
+}
+
+
+// ==========================================================
+// GET DAILY EXPENSE HISTORY
+// ==========================================================
+//
+// Returns one row per calendar day from the first recorded
+// expense through today.
+//
+// Zero-expense days are intentionally included.
+//
+// ==========================================================
+function getDailyHistory(telegramId) {
+
+    const userId =
+        getUserId(telegramId);
+
+    const firstExpense =
+        db.prepare(`
+            SELECT
+                MIN(
+                    DATE(
+                        created_at,
+                        'localtime'
+                    )
+                ) AS first_date
+            FROM expenses
+            WHERE user_id = ?
+        `).get(userId);
+
+
+    // No expense history.
+    if (
+        !firstExpense ||
+        !firstExpense.first_date
+    ) {
+
+        return [];
+
+    }
+
+
+    return db.prepare(`
+        WITH RECURSIVE calendar(date) AS (
+
+            SELECT
+                ?
+
+            UNION ALL
+
+            SELECT
+                DATE(
+                    date,
+                    '+1 day'
+                )
+            FROM calendar
+            WHERE date <
+                DATE(
+                    'now',
+                    'localtime'
+                )
+
+        )
+
+        SELECT
+
+            calendar.date AS date,
+
+            COALESCE(
+                SUM(expenses.amount),
+                0
+            ) AS expenses
+
+        FROM calendar
+
+        LEFT JOIN expenses
+
+            ON DATE(
+                expenses.created_at,
+                'localtime'
+            )
+            =
+            calendar.date
+
+            AND expenses.user_id = ?
+
+        GROUP BY
+            calendar.date
+
+        ORDER BY
+            calendar.date ASC
+
+    `).all(
+        firstExpense.first_date,
+        userId
+    ).map(day => ({
+
+        date:
+            day.date,
+
+        expenses:
+            Number(
+                day.expenses
+            ) || 0
+
+    }));
 
 }
 
+
+// ==========================
+// EXPORT
+// ==========================
 module.exports = {
 
     create,
@@ -168,6 +291,8 @@ module.exports = {
 
     getMonthlyTotal,
 
-    getByCategory
+    getByCategory,
+
+    getDailyHistory
 
 };
