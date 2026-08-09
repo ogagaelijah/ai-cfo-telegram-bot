@@ -1,13 +1,9 @@
 const {
-    calculateGrossProfit,
     calculateProfit,
-    calculateGrossMargin,
     calculateProfitMargin,
     calculateAverageDailyExpenses,
-    calculateAverageDailyCOGS,
-    calculateCOGSRevenueRatio,
     getProfitForecast
-} = require("../src/services/forecasting/profitForecastService");
+} = require("../src/services/profitForecastService");
 
 // ======================================================
 // PROFIT FORECAST SERVICE
@@ -18,7 +14,7 @@ describe(
     () => {
 
         // ==================================================
-        // GROSS / NET PROFIT CALCULATION
+        // PROFIT CALCULATION
         // ==================================================
 
         describe(
@@ -26,14 +22,13 @@ describe(
             () => {
 
                 it(
-                    "should calculate net profit correctly",
+                    "should calculate profit correctly",
                     () => {
 
                         const result =
                             calculateProfit(
                                 100000,
-                                20000,
-                                40000
+                                60000
                             );
 
                         expect(
@@ -51,8 +46,7 @@ describe(
                         const result =
                             calculateProfit(
                                 50000,
-                                30000,
-                                40000
+                                70000
                             );
 
                         expect(
@@ -70,7 +64,6 @@ describe(
                         const result =
                             calculateProfit(
                                 0,
-                                0,
                                 20000
                             );
 
@@ -83,78 +76,11 @@ describe(
 
 
                 it(
-                    "should handle zero COGS and expenses",
+                    "should handle zero expenses",
                     () => {
 
                         const result =
                             calculateProfit(
-                                100000,
-                                0,
-                                0
-                            );
-
-                        expect(
-                            result
-                        ).toBe(100000);
-
-                    }
-                );
-
-
-                it(
-                    "should subtract both COGS and operating expenses",
-                    () => {
-
-                        const result =
-                            calculateProfit(
-                                100000,
-                                30000,
-                                20000
-                            );
-
-                        expect(
-                            result
-                        ).toBe(50000);
-
-                    }
-                );
-
-            }
-        );
-
-
-        // ==================================================
-        // GROSS PROFIT
-        // ==================================================
-
-        describe(
-            "calculateGrossProfit()",
-            () => {
-
-                it(
-                    "should calculate gross profit correctly",
-                    () => {
-
-                        const result =
-                            calculateGrossProfit(
-                                100000,
-                                40000
-                            );
-
-                        expect(
-                            result
-                        ).toBe(60000);
-
-                    }
-                );
-
-
-                it(
-                    "should handle zero COGS",
-                    () => {
-
-                        const result =
-                            calculateGrossProfit(
                                 100000,
                                 0
                             );
@@ -162,53 +88,6 @@ describe(
                         expect(
                             result
                         ).toBe(100000);
-
-                    }
-                );
-
-            }
-        );
-
-
-        // ==================================================
-        // GROSS MARGIN
-        // ==================================================
-
-        describe(
-            "calculateGrossMargin()",
-            () => {
-
-                it(
-                    "should calculate gross margin correctly",
-                    () => {
-
-                        const result =
-                            calculateGrossMargin(
-                                100000,
-                                60000
-                            );
-
-                        expect(
-                            result
-                        ).toBe(60);
-
-                    }
-                );
-
-
-                it(
-                    "should return zero when revenue is zero",
-                    () => {
-
-                        const result =
-                            calculateGrossMargin(
-                                0,
-                                0
-                            );
-
-                        expect(
-                            result
-                        ).toBe(0);
 
                     }
                 );
@@ -346,272 +225,9 @@ describe(
                                 []
                             );
 
-
                         expect(
                             result
                         ).toBe(0);
-
-                    }
-                );
-
-            }
-        );
-
-
-        // ==================================================
-        // AVERAGE DAILY COGS
-        // ==================================================
-
-        describe(
-            "calculateAverageDailyCOGS()",
-            () => {
-
-                it(
-                    "should calculate average daily COGS",
-                    () => {
-
-                        const history = [
-
-                            {
-                                date:
-                                    "2026-08-01",
-
-                                revenue:
-                                    100000,
-
-                                costOfGoods:
-                                    60000
-                            },
-
-                            {
-                                date:
-                                    "2026-08-02",
-
-                                revenue:
-                                    120000,
-
-                                costOfGoods:
-                                    72000
-                            },
-
-                            {
-                                date:
-                                    "2026-08-03",
-
-                                revenue:
-                                    80000,
-
-                                costOfGoods:
-                                    48000
-                            }
-
-                        ];
-
-
-                        const result =
-                            calculateAverageDailyCOGS(
-                                history
-                            );
-
-
-                        expect(
-                            result
-                        ).toBe(60000);
-
-                    }
-                );
-
-
-                it(
-                    "should return zero for empty COGS history",
-                    () => {
-
-                        const result =
-                            calculateAverageDailyCOGS(
-                                []
-                            );
-
-
-                        expect(
-                            result
-                        ).toBe(0);
-
-                    }
-                );
-
-
-                it(
-                    "should safely handle missing COGS values",
-                    () => {
-
-                        const history = [
-
-                            {
-                                date:
-                                    "2026-08-01",
-
-                                revenue:
-                                    100000,
-
-                                costOfGoods:
-                                    50000
-                            },
-
-                            {
-                                date:
-                                    "2026-08-02",
-
-                                revenue:
-                                    100000
-                            }
-
-                        ];
-
-
-                        const result =
-                            calculateAverageDailyCOGS(
-                                history
-                            );
-
-
-                        expect(
-                            result
-                        ).toBe(25000);
-
-                    }
-                );
-
-            }
-        );
-
-
-        // ==================================================
-        // COGS / REVENUE RATIO
-        // ==================================================
-
-        describe(
-            "calculateCOGSRevenueRatio()",
-            () => {
-
-                it(
-                    "should calculate COGS as a percentage of revenue",
-                    () => {
-
-                        const history = [
-
-                            {
-                                date:
-                                    "2026-08-01",
-
-                                revenue:
-                                    100000,
-
-                                costOfGoods:
-                                    40000
-                            },
-
-                            {
-                                date:
-                                    "2026-08-02",
-
-                                revenue:
-                                    200000,
-
-                                costOfGoods:
-                                    80000
-                            }
-
-                        ];
-
-
-                        const result =
-                            calculateCOGSRevenueRatio(
-                                history
-                            );
-
-
-                        expect(
-                            result
-                        ).toBe(0.4);
-
-                    }
-                );
-
-
-                it(
-                    "should return zero when historical revenue is zero",
-                    () => {
-
-                        const history = [
-
-                            {
-                                date:
-                                    "2026-08-01",
-
-                                revenue:
-                                    0,
-
-                                costOfGoods:
-                                    10000
-                            }
-
-                        ];
-
-
-                        const result =
-                            calculateCOGSRevenueRatio(
-                                history
-                            );
-
-
-                        expect(
-                            result
-                        ).toBe(0);
-
-                    }
-                );
-
-
-                it(
-                    "should safely ignore invalid revenue values",
-                    () => {
-
-                        const history = [
-
-                            {
-                                date:
-                                    "2026-08-01",
-
-                                revenue:
-                                    0,
-
-                                costOfGoods:
-                                    10000
-                            },
-
-                            {
-                                date:
-                                    "2026-08-02",
-
-                                revenue:
-                                    100000,
-
-                                costOfGoods:
-                                    40000
-                            }
-
-                        ];
-
-
-                        const result =
-                            calculateCOGSRevenueRatio(
-                                history
-                            );
-
-
-                        expect(
-                            result
-                        ).toBe(0.4);
 
                     }
                 );
@@ -628,12 +244,8 @@ describe(
             "getProfitForecast()",
             () => {
 
-                // ==================================================
-                // NO COGS HISTORY
-                // ==================================================
-
                 it(
-                    "should generate a complete profit forecast without COGS",
+                    "should generate a complete profit forecast",
                     () => {
 
                         const revenueForecast = {
@@ -684,8 +296,7 @@ describe(
                         const result =
                             getProfitForecast(
                                 revenueForecast,
-                                expenseHistory,
-                                []
+                                expenseHistory
                             );
 
 
@@ -695,23 +306,8 @@ describe(
 
 
                         expect(
-                            result.averageDailyCOGS
-                        ).toBe(0);
-
-
-                        expect(
-                            result.cogsRevenueRatio
-                        ).toBe(0);
-
-
-                        expect(
                             result.tomorrowRevenue
                         ).toBe(100000);
-
-
-                        expect(
-                            result.tomorrowCOGS
-                        ).toBe(0);
 
 
                         expect(
@@ -730,293 +326,12 @@ describe(
 
 
                         expect(
-                            result.status
-                        ).toBe(
-                            "Profitable"
-                        );
-
-                    }
-                );
-
-
-                // ==================================================
-                // SMART COGS FORECAST
-                // ==================================================
-
-                it(
-                    "should forecast COGS using historical COGS/revenue ratio",
-                    () => {
-
-                        const revenueForecast = {
-
-                            tomorrow:
-                                200000,
-
-                            next7Days:
-                                1400000,
-
-                            next30Days:
-                                6000000,
-
-                            confidence:
-                                90
-                        };
-
-
-                        const expenseHistory = [
-
-                            {
-                                date:
-                                    "2026-08-01",
-
-                                expenses:
-                                    20000
-                            },
-
-                            {
-                                date:
-                                    "2026-08-02",
-
-                                expenses:
-                                    20000
-                            }
-
-                        ];
-
-
-                        const cogsHistory = [
-
-                            {
-                                date:
-                                    "2026-08-01",
-
-                                revenue:
-                                    100000,
-
-                                costOfGoods:
-                                    40000
-                            },
-
-                            {
-                                date:
-                                    "2026-08-02",
-
-                                revenue:
-                                    100000,
-
-                                costOfGoods:
-                                    40000
-                            }
-
-                        ];
-
-
-                        const result =
-                            getProfitForecast(
-                                revenueForecast,
-                                expenseHistory,
-                                cogsHistory
-                            );
-
-
-                        // 40% COGS ratio.
-                        expect(
-                            result.cogsRevenueRatio
-                        ).toBe(0.4);
-
-
-                        // ₦200,000 × 40%.
-                        expect(
-                            result.tomorrowCOGS
-                        ).toBe(80000);
-
-
-                        // ₦1,400,000 × 40%.
-                        expect(
-                            result.next7DaysCOGS
-                        ).toBe(560000);
-
-
-                        // ₦6,000,000 × 40%.
-                        expect(
-                            result.next30DaysCOGS
-                        ).toBe(2400000);
-
-
-                        // Gross profit.
-
-                        expect(
-                            result.tomorrowGrossProfit
-                        ).toBe(120000);
-
-
-                        expect(
-                            result.next7DaysGrossProfit
-                        ).toBe(840000);
-
-
-                        expect(
-                            result.next30DaysGrossProfit
-                        ).toBe(3600000);
-
-
-                        // Net profit.
-
-                        expect(
-                            result.tomorrowProfit
-                        ).toBe(100000);
-
-
-                        expect(
-                            result.next7DaysProfit
+                            result.next7DaysRevenue
                         ).toBe(700000);
 
 
                         expect(
-                            result.next30DaysProfit
-                        ).toBe(3000000);
-
-                    }
-                );
-
-
-                // ==================================================
-                // COGS INTEGRATION
-                // ==================================================
-
-                it(
-                    "should integrate COGS into gross and net profit",
-                    () => {
-
-                        const revenueForecast = {
-
-                            tomorrow:
-                                100000,
-
-                            next7Days:
-                                700000,
-
-                            next30Days:
-                                3000000,
-
-                            confidence:
-                                90
-                        };
-
-
-                        const expenseHistory = [
-
-                            {
-                                date:
-                                    "2026-08-01",
-
-                                expenses:
-                                    20000
-                            },
-
-                            {
-                                date:
-                                    "2026-08-02",
-
-                                expenses:
-                                    20000
-                            }
-
-                        ];
-
-
-                        const cogsHistory = [
-
-                            {
-                                date:
-                                    "2026-08-01",
-
-                                revenue:
-                                    100000,
-
-                                costOfGoods:
-                                    40000
-                            },
-
-                            {
-                                date:
-                                    "2026-08-02",
-
-                                revenue:
-                                    100000,
-
-                                costOfGoods:
-                                    40000
-                            }
-
-                        ];
-
-
-                        const result =
-                            getProfitForecast(
-                                revenueForecast,
-                                expenseHistory,
-                                cogsHistory
-                            );
-
-
-                        expect(
-                            result.averageDailyCOGS
-                        ).toBe(40000);
-
-
-                        expect(
-                            result.cogsRevenueRatio
-                        ).toBe(0.4);
-
-
-                        expect(
-                            result.averageDailyExpenses
-                        ).toBe(20000);
-
-
-                        expect(
-                            result.tomorrowRevenue
-                        ).toBe(100000);
-
-
-                        expect(
-                            result.tomorrowCOGS
-                        ).toBe(40000);
-
-
-                        expect(
-                            result.tomorrowGrossProfit
-                        ).toBe(60000);
-
-
-                        expect(
-                            result.tomorrowGrossMargin
-                        ).toBe(60);
-
-
-                        expect(
-                            result.tomorrowExpenses
-                        ).toBe(20000);
-
-
-                        expect(
-                            result.tomorrowProfit
-                        ).toBe(40000);
-
-
-                        expect(
-                            result.tomorrowProfitMargin
-                        ).toBe(40);
-
-
-                        expect(
-                            result.next7DaysCOGS
-                        ).toBe(280000);
-
-
-                        expect(
-                            result.next7DaysGrossProfit
+                            result.next7DaysExpenses
                         ).toBe(420000);
 
 
@@ -1026,18 +341,28 @@ describe(
 
 
                         expect(
-                            result.next30DaysCOGS
-                        ).toBe(1200000);
+                            result.next7DaysProfitMargin
+                        ).toBe(40);
 
 
                         expect(
-                            result.next30DaysGrossProfit
+                            result.next30DaysRevenue
+                        ).toBe(3000000);
+
+
+                        expect(
+                            result.next30DaysExpenses
                         ).toBe(1800000);
 
 
                         expect(
                             result.next30DaysProfit
                         ).toBe(1200000);
+
+
+                        expect(
+                            result.next30DaysProfitMargin
+                        ).toBe(40);
 
 
                         expect(
@@ -1049,10 +374,6 @@ describe(
                     }
                 );
 
-
-                // ==================================================
-                // LOSS-MAKING FORECAST
-                // ==================================================
 
                 it(
                     "should identify a loss-making forecast",
@@ -1098,8 +419,7 @@ describe(
                         const result =
                             getProfitForecast(
                                 revenueForecast,
-                                expenseHistory,
-                                []
+                                expenseHistory
                             );
 
 
@@ -1122,10 +442,6 @@ describe(
                     }
                 );
 
-
-                // ==================================================
-                // ZERO REVENUE
-                // ==================================================
 
                 it(
                     "should handle zero revenue",
@@ -1163,8 +479,7 @@ describe(
                         const result =
                             getProfitForecast(
                                 revenueForecast,
-                                expenseHistory,
-                                []
+                                expenseHistory
                             );
 
 
@@ -1182,10 +497,6 @@ describe(
                     }
                 );
 
-
-                // ==================================================
-                // ZERO EXPENSES
-                // ==================================================
 
                 it(
                     "should handle zero expenses",
@@ -1213,18 +524,12 @@ describe(
                         const result =
                             getProfitForecast(
                                 revenueForecast,
-                                expenseHistory,
-                                []
+                                expenseHistory
                             );
 
 
                         expect(
                             result.tomorrowExpenses
-                        ).toBe(0);
-
-
-                        expect(
-                            result.tomorrowCOGS
                         ).toBe(0);
 
 
