@@ -18,11 +18,10 @@ const {
 
 
 // ============================================================
-// TEST DATA
+// TEST USER
 // ============================================================
 
-const USER_ID =
-    999999;
+const USER_ID = 999999;
 
 
 // ============================================================
@@ -49,7 +48,74 @@ const getRiskForecastMock =
 
 
 // ============================================================
-// MOCK RESULTS
+// MOCK DATA SERVICES
+// ============================================================
+
+const getExpenseHistoryMock =
+    vi.fn();
+
+const getDailyCOGSMock =
+    vi.fn();
+
+
+// ============================================================
+// HISTORICAL EXPENSE DATA
+// ============================================================
+
+const expenseHistory = [
+
+    {
+        date:
+            "2026-08-01",
+
+        expenses:
+            20000
+    },
+
+    {
+        date:
+            "2026-08-02",
+
+        expenses:
+            25000
+    }
+
+];
+
+
+// ============================================================
+// HISTORICAL COGS DATA
+// ============================================================
+
+const cogsHistory = [
+
+    {
+        date:
+            "2026-08-01",
+
+        revenue:
+            100000,
+
+        costOfGoods:
+            60000
+    },
+
+    {
+        date:
+            "2026-08-02",
+
+        revenue:
+            120000,
+
+        costOfGoods:
+            70000
+    }
+
+];
+
+
+// ============================================================
+// REVENUE FORECAST
 // ============================================================
 
 const revenueForecast = {
@@ -69,6 +135,10 @@ const revenueForecast = {
 };
 
 
+// ============================================================
+// CASH FORECAST
+// ============================================================
+
 const cashForecast = {
 
     tomorrow:
@@ -83,6 +153,10 @@ const cashForecast = {
 };
 
 
+// ============================================================
+// INVENTORY FORECAST
+// ============================================================
+
 const inventoryForecast = {
 
     totalProducts:
@@ -94,16 +168,24 @@ const inventoryForecast = {
 };
 
 
+// ============================================================
+// INVENTORY DEMAND FORECAST
+// ============================================================
+
 const inventoryDemandForecast = {
 
     products:
-        5,
+        [],
 
     productsRequiringReorder:
         2
 
 };
 
+
+// ============================================================
+// PROFIT FORECAST
+// ============================================================
 
 const profitForecast = {
 
@@ -122,6 +204,10 @@ const profitForecast = {
 };
 
 
+// ============================================================
+// RISK FORECAST
+// ============================================================
+
 const riskForecast = {
 
     overallRisk:
@@ -134,14 +220,14 @@ const riskForecast = {
 
 
 // ============================================================
-// SERVICES OBJECT
+// MOCK SERVICES
 // ============================================================
 //
-// Instead of relying on vi.mock() to intercept CommonJS
-// require() calls, we inject the mock services directly
-// into forecastEngine.
+// IMPORTANT:
 //
-// This keeps the test isolated from the database.
+// These names MUST match the dependency-injection names
+// used by forecastEngine.js.
+//
 // ============================================================
 
 const mockServices = {
@@ -162,16 +248,25 @@ const mockServices = {
         getProfitForecastMock,
 
     getRiskForecast:
-        getRiskForecastMock
+        getRiskForecastMock,
+
+    getExpenseHistory:
+        getExpenseHistoryMock,
+
+    getDailyCOGS:
+        getDailyCOGSMock
 
 };
 
 
 // ============================================================
-// HELPER
+// RESET MOCKS
 // ============================================================
 
 function setupMocks() {
+
+    vi.clearAllMocks();
+
 
     getRevenueForecastMock
         .mockReturnValue(
@@ -208,6 +303,18 @@ function setupMocks() {
             riskForecast
         );
 
+
+    getExpenseHistoryMock
+        .mockReturnValue(
+            expenseHistory
+        );
+
+
+    getDailyCOGSMock
+        .mockReturnValue(
+            cogsHistory
+        );
+
 }
 
 
@@ -219,16 +326,13 @@ describe(
     "Forecast Engine",
     () => {
 
-
         // ====================================================
-        // COMPLETE FORECAST
+        // TEST 1
         // ====================================================
 
         it(
             "should build the complete forecast",
             () => {
-
-                vi.clearAllMocks();
 
                 setupMocks();
 
@@ -247,100 +351,39 @@ describe(
 
                 expect(
                     result
-                ).toHaveProperty(
-                    "revenue"
-                );
+                ).toEqual({
 
+                    revenue:
+                        revenueForecast,
 
-                expect(
-                    result
-                ).toHaveProperty(
-                    "cash"
-                );
+                    cash:
+                        cashForecast,
 
+                    inventory:
+                        inventoryForecast,
 
-                expect(
-                    result
-                ).toHaveProperty(
-                    "inventory"
-                );
+                    inventoryDemand:
+                        inventoryDemandForecast,
 
+                    profit:
+                        profitForecast,
 
-                expect(
-                    result
-                ).toHaveProperty(
-                    "inventoryDemand"
-                );
+                    risks:
+                        riskForecast
 
-
-                expect(
-                    result
-                ).toHaveProperty(
-                    "profit"
-                );
-
-
-                expect(
-                    result
-                ).toHaveProperty(
-                    "risks"
-                );
-
-
-                expect(
-                    result.revenue
-                ).toBe(
-                    revenueForecast
-                );
-
-
-                expect(
-                    result.cash
-                ).toBe(
-                    cashForecast
-                );
-
-
-                expect(
-                    result.inventory
-                ).toBe(
-                    inventoryForecast
-                );
-
-
-                expect(
-                    result.inventoryDemand
-                ).toBe(
-                    inventoryDemandForecast
-                );
-
-
-                expect(
-                    result.profit
-                ).toBe(
-                    profitForecast
-                );
-
-
-                expect(
-                    result.risks
-                ).toBe(
-                    riskForecast
-                );
+                });
 
             }
         );
 
 
         // ====================================================
-        // SERVICE CALL COUNT
+        // TEST 2
         // ====================================================
 
         it(
             "should call every forecast service exactly once",
             () => {
-
-                vi.clearAllMocks();
 
                 setupMocks();
 
@@ -397,14 +440,12 @@ describe(
 
 
         // ====================================================
-        // USER ID PROPAGATION
+        // TEST 3
         // ====================================================
 
         it(
-            "should pass the user ID to independent forecast services",
+            "should pass user ID to independent forecast services",
             () => {
-
-                vi.clearAllMocks();
 
                 setupMocks();
 
@@ -447,14 +488,80 @@ describe(
 
 
         // ====================================================
-        // PROFIT INTEGRATION
+        // TEST 4
         // ====================================================
 
         it(
-            "should pass revenue forecast into profit forecast",
+            "should retrieve expense history exactly once",
             () => {
 
-                vi.clearAllMocks();
+                setupMocks();
+
+
+                buildForecast(
+                    USER_ID,
+                    mockServices
+                );
+
+
+                expect(
+                    getExpenseHistoryMock
+                ).toHaveBeenCalledTimes(
+                    1
+                );
+
+
+                expect(
+                    getExpenseHistoryMock
+                ).toHaveBeenCalledWith(
+                    USER_ID
+                );
+
+            }
+        );
+
+
+        // ====================================================
+        // TEST 5
+        // ====================================================
+
+        it(
+            "should retrieve COGS history exactly once",
+            () => {
+
+                setupMocks();
+
+
+                buildForecast(
+                    USER_ID,
+                    mockServices
+                );
+
+
+                expect(
+                    getDailyCOGSMock
+                ).toHaveBeenCalledTimes(
+                    1
+                );
+
+
+                expect(
+                    getDailyCOGSMock
+                ).toHaveBeenCalledWith(
+                    USER_ID
+                );
+
+            }
+        );
+
+
+        // ====================================================
+        // TEST 6
+        // ====================================================
+
+        it(
+            "should pass revenue, expenses and COGS into profit forecast",
+            () => {
 
                 setupMocks();
 
@@ -467,9 +574,21 @@ describe(
 
                 expect(
                     getProfitForecastMock
+                ).toHaveBeenCalledTimes(
+                    1
+                );
+
+
+                expect(
+                    getProfitForecastMock
                 ).toHaveBeenCalledWith(
-                    USER_ID,
-                    revenueForecast
+
+                    revenueForecast,
+
+                    expenseHistory,
+
+                    cogsHistory
+
                 );
 
             }
@@ -477,14 +596,12 @@ describe(
 
 
         // ====================================================
-        // RISK INTEGRATION
+        // TEST 7
         // ====================================================
 
         it(
-            "should pass all required forecasts into risk forecast",
+            "should pass all forecast objects into risk forecast",
             () => {
-
-                vi.clearAllMocks();
 
                 setupMocks();
 
@@ -492,6 +609,13 @@ describe(
                 buildForecast(
                     USER_ID,
                     mockServices
+                );
+
+
+                expect(
+                    getRiskForecastMock
+                ).toHaveBeenCalledTimes(
+                    1
                 );
 
 
@@ -507,7 +631,9 @@ describe(
 
                     inventoryForecast,
 
-                    inventoryDemandForecast
+                    inventoryDemandForecast,
+
+                    profitForecast
 
                 );
 
@@ -516,14 +642,12 @@ describe(
 
 
         // ====================================================
-        // OBJECT IDENTITY
+        // TEST 8
         // ====================================================
 
         it(
-            "should return the exact objects produced by the forecast services",
+            "should preserve forecast object identity",
             () => {
-
-                vi.clearAllMocks();
 
                 setupMocks();
 

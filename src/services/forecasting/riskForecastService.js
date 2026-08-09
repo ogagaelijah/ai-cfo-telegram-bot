@@ -2,20 +2,134 @@
 // RISK FORECAST SERVICE
 // ============================================================
 //
-// This service ONLY analyzes forecast objects that have already
-// been calculated by forecastEngine.js.
+// BUSINESS INTELLIGENCE RISK ENGINE
 //
-// It does NOT call any other forecast service.
+// Responsibilities:
+//
+// 1. Detect liquidity risks.
+// 2. Detect profitability risks.
+// 3. Detect revenue risks.
+// 4. Detect inventory risks.
+// 5. Detect inventory-demand risks.
+// 6. Detect forecast/data-quality risks.
+// 7. Rank risks by severity.
+//
+// IMPORTANT:
+//
+// This service does NOT calculate forecasts.
+//
+// It only interprets forecast objects produced by:
+//
+//     forecastEngine.js
 //
 // ============================================================
+
+
+// ============================================================
+// NUMBER SAFETY
+// ============================================================
+
+function toNumber(value) {
+
+    const number =
+        Number(value);
+
+    return Number.isFinite(number)
+        ? number
+        : 0;
+}
+
+
+// ============================================================
+// ROUND MONEY
+// ============================================================
+
+function formatMoney(value) {
+
+    return `₦${Math.round(
+        toNumber(value)
+    ).toLocaleString()}`;
+}
+
+
+// ============================================================
+// SAFE STOCKOUT DAYS
+// ============================================================
+
+function formatStockoutDays(value) {
+
+    const days =
+        Number(value);
+
+    if (
+        !Number.isFinite(days)
+    ) {
+
+        return "an unknown number of days";
+    }
+
+    return `${days.toFixed(1)} days`;
+}
+
+
+// ============================================================
+// SEVERITY PRIORITY
+// ============================================================
 //
-// FORECAST DATA RECEIVED:
+// Lower number = higher priority.
 //
-// revenueForecast
-// cashForecast
-// inventoryForecast
-// inventoryDemandForecast
+// Critical
+// Warning
+// Info
 //
+// ============================================================
+
+function getSeverityPriority(
+    severity
+) {
+
+    switch (severity) {
+
+        case "Critical":
+            return 1;
+
+        case "Warning":
+            return 2;
+
+        case "Info":
+            return 3;
+
+        default:
+            return 4;
+    }
+}
+
+
+// ============================================================
+// SORT RISKS
+// ============================================================
+
+function sortRisks(
+    risks
+) {
+
+    return risks.sort(
+        (
+            a,
+            b
+        ) =>
+            getSeverityPriority(
+                a.severity
+            ) -
+            getSeverityPriority(
+                b.severity
+            )
+    );
+}
+
+
+// ============================================================
+// MAIN RISK ENGINE
 // ============================================================
 
 function getRiskForecast(
@@ -23,7 +137,8 @@ function getRiskForecast(
     revenueForecast,
     cashForecast,
     inventoryForecast,
-    inventoryDemandForecast
+    inventoryDemandForecast,
+    profitForecast
 ) {
 
     // ========================================================
@@ -42,6 +157,9 @@ function getRiskForecast(
     const inventoryDemand =
         inventoryDemandForecast || {};
 
+    const profit =
+        profitForecast || {};
+
 
     // ========================================================
     // RISK COLLECTION
@@ -51,31 +169,36 @@ function getRiskForecast(
 
 
     // ========================================================
-    // CASH RISKS
+    // LIQUIDITY / CASH RISKS
     // ========================================================
 
     const currentCash =
-        Number(
+        toNumber(
             cash.currentCash
-        ) || 0;
-
+        );
 
     const next7DaysCash =
-        Number(
+        toNumber(
             cash.next7Days
-        ) || 0;
-
+        );
 
     const next30DaysCash =
-        Number(
+        toNumber(
             cash.next30Days
-        ) || 0;
-
+        );
 
     const estimatedDailyBurn =
-        Number(
+        toNumber(
             cash.estimatedDailyBurn
-        ) || 0;
+        );
+
+    const estimatedDailyNetCashFlow =
+        toNumber(
+            cash.estimatedDailyNetCashFlow
+        );
+
+    const cashTrend =
+        cash.cashTrend;
 
 
     // --------------------------------------------------------
@@ -91,13 +214,16 @@ function getRiskForecast(
             severity:
                 "Critical",
 
+            category:
+                "Liquidity",
+
             title:
                 "Cash Flow Risk",
 
             message:
-                `Cash is currently negative at ₦${Math.round(
+                `Cash is currently negative at ${formatMoney(
                     currentCash
-                ).toLocaleString()}. Immediate attention is required to improve liquidity.`
+                )}. Immediate attention is required to improve liquidity.`
 
         });
 
@@ -117,13 +243,16 @@ function getRiskForecast(
             severity:
                 "Critical",
 
+            category:
+                "Liquidity",
+
             title:
                 "Projected Cash Shortage",
 
             message:
-                `Cash is projected to become negative within seven days, reaching approximately ₦${Math.round(
+                `Cash is projected to become negative within seven days, reaching approximately ${formatMoney(
                     next7DaysCash
-                ).toLocaleString()}.`
+                )}.`
 
         });
 
@@ -143,6 +272,9 @@ function getRiskForecast(
             severity:
                 "Warning",
 
+            category:
+                "Liquidity",
+
             title:
                 "Future Cash Pressure",
 
@@ -155,26 +287,53 @@ function getRiskForecast(
 
 
     // --------------------------------------------------------
-    // DECLINING CASH FLOW
+    // DAILY CASH BURN / DECLINING CASH FLOW
     // --------------------------------------------------------
 
     if (
-        cash.cashTrend === "Declining" &&
-        currentCash >= 0
+        currentCash >= 0 &&
+        (
+            estimatedDailyNetCashFlow < 0 ||
+            cashTrend === "Declining"
+        )
     ) {
+
+        let dailyLoss =
+            Math.abs(
+                estimatedDailyNetCashFlow
+            );
+
+
+        if (
+            dailyLoss === 0 &&
+            estimatedDailyBurn > 0
+        ) {
+
+            dailyLoss =
+                estimatedDailyBurn;
+        }
+
+
+        const message =
+            dailyLoss > 0
+                ? `The business is currently experiencing declining cash flow, with an estimated cash outflow of approximately ${formatMoney(
+                    dailyLoss
+                )} per day.`
+                : "The business is currently experiencing declining cash flow. Cash generation should be monitored closely.";
+
 
         risks.push({
 
             severity:
                 "Warning",
 
+            category:
+                "Liquidity",
+
             title:
                 "Declining Cash Flow",
 
-            message:
-                `Cash flow is declining, with an estimated daily cash burn of approximately ₦${Math.round(
-                    estimatedDailyBurn
-                ).toLocaleString()}.`
+            message
 
         });
 
@@ -188,19 +347,37 @@ function getRiskForecast(
     const revenueTrend =
         revenue.trend;
 
-
     const revenueConfidence =
-        Number(
+        toNumber(
             revenue.confidence
-        ) || 0;
+        );
+
+    const activeSalesDays =
+        toNumber(
+            revenue.activeSalesDays
+        );
+
+    const growthRate =
+        toNumber(
+            revenue.growthRate
+        );
 
 
     // --------------------------------------------------------
-    // DECLINING SALES
+    // DECLINING REVENUE
     // --------------------------------------------------------
+
+    const revenueIsDeclining =
+        revenueTrend === "Declining" ||
+        (
+            growthRate < 0 &&
+            revenueTrend !== "No Data" &&
+            revenueTrend !== "Insufficient Data"
+        );
+
 
     if (
-        revenueTrend === "Declining"
+        revenueIsDeclining
     ) {
 
         risks.push({
@@ -208,11 +385,41 @@ function getRiskForecast(
             severity:
                 "Warning",
 
+            category:
+                "Revenue",
+
             title:
                 "Sales Trend",
 
             message:
                 "Sales are trending downward compared with the earlier period."
+
+        });
+
+    }
+
+
+    // --------------------------------------------------------
+    // INSUFFICIENT REVENUE HISTORY
+    // --------------------------------------------------------
+
+    if (
+        revenueTrend === "Insufficient Data"
+    ) {
+
+        risks.push({
+
+            severity:
+                "Info",
+
+            category:
+                "Revenue",
+
+            title:
+                "Limited Revenue History",
+
+            message:
+                `Revenue forecasting is currently based on only ${activeSalesDays} active selling day(s). Forecast reliability will improve as more sales are recorded.`
 
         });
 
@@ -235,11 +442,157 @@ function getRiskForecast(
             severity:
                 "Info",
 
+            category:
+                "Data Quality",
+
             title:
-                "Forecast Confidence",
+                "Revenue Forecast Confidence",
 
             message:
-                "Revenue forecasting confidence is currently limited because there is not yet enough historical transaction data."
+                `Revenue forecast confidence is currently ${revenueConfidence}%. More historical sales data is required for stronger forecasting reliability.`
+
+        });
+
+    }
+
+
+    // ========================================================
+    // PROFITABILITY RISKS
+    // ========================================================
+
+    const tomorrowProfit =
+        toNumber(
+            profit.tomorrowProfit
+        );
+
+    const tomorrowGrossMargin =
+        toNumber(
+            profit.tomorrowGrossMargin
+        );
+
+    const tomorrowProfitMargin =
+        toNumber(
+            profit.tomorrowProfitMargin
+        );
+
+    const profitStatus =
+        profit.status;
+
+
+    // --------------------------------------------------------
+    // FORECASTED LOSS
+    // --------------------------------------------------------
+
+    if (
+        tomorrowProfit < 0 ||
+        profitStatus === "Loss"
+    ) {
+
+        risks.push({
+
+            severity:
+                "Critical",
+
+            category:
+                "Profitability",
+
+            title:
+                "Projected Loss",
+
+            message:
+                `The business is projected to lose approximately ${formatMoney(
+                    Math.abs(
+                        tomorrowProfit
+                    )
+                )} on the next forecast day.`
+
+        });
+
+    }
+
+
+    // --------------------------------------------------------
+    // BREAK-EVEN
+    // --------------------------------------------------------
+
+    else if (
+        tomorrowProfit === 0 ||
+        profitStatus === "Break-even"
+    ) {
+
+        risks.push({
+
+            severity:
+                "Warning",
+
+            category:
+                "Profitability",
+
+            title:
+                "Break-even Forecast",
+
+            message:
+                "The business is currently forecast to break even. There is little margin for unexpected costs or revenue weakness."
+
+        });
+
+    }
+
+
+    // --------------------------------------------------------
+    // LOW GROSS MARGIN
+    // --------------------------------------------------------
+
+    if (
+        tomorrowGrossMargin > 0 &&
+        tomorrowGrossMargin < 20
+    ) {
+
+        risks.push({
+
+            severity:
+                "Warning",
+
+            category:
+                "Profitability",
+
+            title:
+                "Low Gross Margin",
+
+            message:
+                `Forecast gross margin is approximately ${tomorrowGrossMargin.toFixed(
+                    1
+                )}%. Product costs may be putting pressure on profitability.`
+
+        });
+
+    }
+
+
+    // --------------------------------------------------------
+    // LOW NET PROFIT MARGIN
+    // --------------------------------------------------------
+
+    if (
+        tomorrowProfitMargin > 0 &&
+        tomorrowProfitMargin < 10
+    ) {
+
+        risks.push({
+
+            severity:
+                "Warning",
+
+            category:
+                "Profitability",
+
+            title:
+                "Low Net Profit Margin",
+
+            message:
+                `Forecast net profit margin is approximately ${tomorrowProfitMargin.toFixed(
+                    1
+                )}%. Operating costs or product costs may be leaving the business with limited profit protection.`
 
         });
 
@@ -267,6 +620,9 @@ function getRiskForecast(
             severity:
                 "Critical",
 
+            category:
+                "Inventory",
+
             title:
                 "Inventory Risk",
 
@@ -290,6 +646,9 @@ function getRiskForecast(
 
             severity:
                 "Warning",
+
+            category:
+                "Inventory",
 
             title:
                 "Inventory Pressure",
@@ -315,6 +674,9 @@ function getRiskForecast(
             severity:
                 "Info",
 
+            category:
+                "Inventory",
+
             title:
                 "Inventory Monitoring",
 
@@ -327,15 +689,7 @@ function getRiskForecast(
 
 
     // ========================================================
-    // PRODUCT DEMAND RISKS
-    // ========================================================
-    //
-    // This is the new intelligence layer.
-    //
-    // It looks at predicted demand rather than simply
-    // checking whether current stock is below a fixed
-    // threshold.
-    //
+    // INVENTORY DEMAND RISKS
     // ========================================================
 
     const demandProducts =
@@ -347,145 +701,126 @@ function getRiskForecast(
 
 
     // --------------------------------------------------------
-    // PRODUCTS REQUIRING REORDER
-    // --------------------------------------------------------
-
-    const reorderProducts =
-        demandProducts.filter(
-            product => {
-
-                return (
-                    product.reorderRecommendation ===
-                        "Reorder Immediately"
-
-                    ||
-
-                    product.reorderRecommendation ===
-                        "Urgent"
-
-                    ||
-
-                    product.reorderRecommendation ===
-                        "Reorder Soon"
-                );
-
-            }
-        );
-
-
-    // --------------------------------------------------------
-    // URGENT PRODUCTS
+    // URGENT REORDERS
     // --------------------------------------------------------
 
     const urgentProducts =
         demandProducts.filter(
             product =>
+                product &&
                 product.reorderRecommendation ===
-                "Urgent"
+                    "Urgent"
         );
 
 
-    if (
-        urgentProducts.length > 0
-    ) {
+    urgentProducts.forEach(
+        product => {
 
-        urgentProducts.forEach(
-            product => {
+            risks.push({
 
-                const stockoutDays =
-                    Number(
+                severity:
+                    "Critical",
+
+                category:
+                    "Inventory Demand",
+
+                title:
+                    `Urgent Product Reorder: ${product.productName}`,
+
+                message:
+                    `${product.productName} is projected to run out of stock in approximately ${formatStockoutDays(
                         product.estimatedStockoutDays
-                    );
+                    )} at the current demand rate. Immediate restocking is recommended.`
 
+            });
 
-                const stockoutText =
-                    Number.isFinite(
-                        stockoutDays
-                    )
-                        ? `${stockoutDays.toFixed(1)} days`
-                        : "an unknown number of days";
-
-
-                risks.push({
-
-                    severity:
-                        "Critical",
-
-                    title:
-                        `Urgent Product Reorder: ${product.productName}`,
-
-                    message:
-                        `${product.productName} is projected to run out of stock in approximately ${stockoutText} at the current demand rate. Immediate restocking is recommended.`
-
-                });
-
-            }
-        );
-
-    }
+        }
+    );
 
 
     // --------------------------------------------------------
-    // PRODUCTS REQUIRING REORDER SOON
+    // REORDER IMMEDIATELY
+    // --------------------------------------------------------
+
+    const immediateProducts =
+        demandProducts.filter(
+            product =>
+                product &&
+                product.reorderRecommendation ===
+                    "Reorder Immediately"
+        );
+
+
+    immediateProducts.forEach(
+        product => {
+
+            risks.push({
+
+                severity:
+                    "Critical",
+
+                category:
+                    "Inventory Demand",
+
+                title:
+                    `Immediate Product Reorder: ${product.productName}`,
+
+                message:
+                    `${product.productName} is expected to require immediate restocking. Current demand indicates that existing inventory may not be sufficient.`
+
+            });
+
+        }
+    );
+
+
+    // --------------------------------------------------------
+    // REORDER SOON
     // --------------------------------------------------------
 
     const reorderSoonProducts =
         demandProducts.filter(
             product =>
+                product &&
                 product.reorderRecommendation ===
-                "Reorder Soon"
+                    "Reorder Soon"
         );
 
 
-    if (
-        reorderSoonProducts.length > 0
-    ) {
+    reorderSoonProducts.forEach(
+        product => {
 
-        reorderSoonProducts.forEach(
-            product => {
+            risks.push({
 
-                const stockoutDays =
-                    Number(
+                severity:
+                    "Warning",
+
+                category:
+                    "Inventory Demand",
+
+                title:
+                    `Upcoming Product Stockout: ${product.productName}`,
+
+                message:
+                    `${product.productName} is projected to run out of stock in approximately ${formatStockoutDays(
                         product.estimatedStockoutDays
-                    );
+                    )}. Consider restocking soon.`
+
+            });
+
+        }
+    );
 
 
-                const stockoutText =
-                    Number.isFinite(
-                        stockoutDays
-                    )
-                        ? `${stockoutDays.toFixed(1)} days`
-                        : "an unknown number of days";
-
-
-                risks.push({
-
-                    severity:
-                        "Warning",
-
-                    title:
-                        `Upcoming Product Stockout: ${product.productName}`,
-
-                    message:
-                        `${product.productName} is projected to run out of stock in approximately ${stockoutText} at the current demand rate. Consider restocking soon.`
-
-                });
-
-            }
-        );
-
-    }
-
-
-    // --------------------------------------------------------
-    // DEMAND FORECAST DATA QUALITY
-    // --------------------------------------------------------
+    // ========================================================
+    // INVENTORY DEMAND DATA QUALITY
+    // ========================================================
 
     const lowConfidenceDemandProducts =
         demandProducts.filter(
             product =>
-                Number(
-                    product.confidence
+                toNumber(
+                    product?.confidence
                 ) < 50
         );
 
@@ -499,6 +834,9 @@ function getRiskForecast(
             severity:
                 "Info",
 
+            category:
+                "Data Quality",
+
             title:
                 "Inventory Demand Confidence",
 
@@ -508,6 +846,15 @@ function getRiskForecast(
         });
 
     }
+
+
+    // ========================================================
+    // SORT RISKS
+    // ========================================================
+
+    sortRisks(
+        risks
+    );
 
 
     // ========================================================
@@ -523,11 +870,14 @@ function getRiskForecast(
             severity:
                 "Info",
 
+            category:
+                "Business Outlook",
+
             title:
                 "Business Outlook",
 
             message:
-                "No significant financial or inventory risks are currently predicted."
+                "No significant financial, operational, or inventory risks are currently predicted."
 
         });
 
@@ -535,11 +885,51 @@ function getRiskForecast(
 
 
     // ========================================================
+    // DEBUG
+    // ========================================================
+
+    console.log(
+        "⚠️ RISK FORECAST"
+    );
+
+    console.log(
+        "Total Risks:",
+        risks.length
+    );
+
+    console.log(
+        "Critical Risks:",
+        risks.filter(
+            risk =>
+                risk.severity ===
+                "Critical"
+        ).length
+    );
+
+    console.log(
+        "Warning Risks:",
+        risks.filter(
+            risk =>
+                risk.severity ===
+                "Warning"
+        ).length
+    );
+
+    console.log(
+        "Info Risks:",
+        risks.filter(
+            risk =>
+                risk.severity ===
+                "Info"
+        ).length
+    );
+
+
+    // ========================================================
     // RETURN
     // ========================================================
 
     return risks;
-
 }
 
 

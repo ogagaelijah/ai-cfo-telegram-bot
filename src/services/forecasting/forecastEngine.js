@@ -39,34 +39,40 @@ const {
 // Responsibilities:
 //
 // 1. Calculate each independent forecast.
-// 2. Collect the historical data required by downstream
+// 2. Collect historical data required by dependent
 //    forecast services.
-// 3. Pass already-calculated results into dependent services.
+// 3. Pass already-calculated forecast objects into
+//    downstream services.
 //
-// Important:
+// Dependency injection is supported for:
+//     - Forecast services
+//     - Expense history
+//     - COGS history
 //
-// Forecast services should not unnecessarily calculate
-// other forecasts again.
+// This keeps the engine easy to test without requiring
+// real database users or SQLite data.
 //
-// Example:
+// FLOW:
 //
 // Revenue Forecast
-//      ↓
-// Profit Forecast
+//      │
+//      ├───────────────┐
+//      │               │
+//      ▼               ▼
+// Profit Forecast   Risk Forecast
 //
-// Expense History
-//      ↓
-// Profit Forecast
+// Cash Forecast ────────────┐
+//                            │
+// Inventory Forecast ────────┤
+//                            ▼
+// Inventory Demand ───────► Risk Forecast
 //
-// COGS History
-//      ↓
-// Profit Forecast
+// Expense History ───────► Profit Forecast
 //
-// Revenue + Cash + Inventory + Demand
-//      ↓
-// Risk Forecast
+// COGS History ──────────► Profit Forecast
 //
 // ============================================================
+
 
 function buildForecast(
     userId,
@@ -81,21 +87,26 @@ function buildForecast(
         services.getRevenueForecast ||
         getRevenueForecast;
 
+
     const cashService =
         services.getCashForecast ||
         getCashForecast;
+
 
     const inventoryService =
         services.getInventoryForecast ||
         getInventoryForecast;
 
+
     const inventoryDemandService =
         services.getInventoryDemandForecast ||
         getInventoryDemandForecast;
 
+
     const profitService =
         services.getProfitForecast ||
         getProfitForecast;
+
 
     const riskService =
         services.getRiskForecast ||
@@ -103,7 +114,37 @@ function buildForecast(
 
 
     // ========================================================
-    // REVENUE
+    // DATA SERVICES
+    // ========================================================
+    //
+    // These are injectable for testing.
+    //
+    // In production:
+    //
+    //     expenseRepository.getDailyHistory()
+    //
+    //     getDailyCOGS()
+    //
+    // In tests:
+    //
+    //     services.getExpenseHistory()
+    //
+    //     services.getDailyCOGS()
+    //
+    // ========================================================
+
+    const getExpenseHistory =
+        services.getExpenseHistory ||
+        expenseRepository.getDailyHistory;
+
+
+    const getCOGSHistory =
+        services.getDailyCOGS ||
+        getDailyCOGS;
+
+
+    // ========================================================
+    // REVENUE FORECAST
     // ========================================================
 
     const revenue =
@@ -113,7 +154,7 @@ function buildForecast(
 
 
     // ========================================================
-    // CASH
+    // CASH FORECAST
     // ========================================================
 
     const cash =
@@ -123,7 +164,7 @@ function buildForecast(
 
 
     // ========================================================
-    // INVENTORY
+    // INVENTORY FORECAST
     // ========================================================
 
     const inventory =
@@ -133,7 +174,7 @@ function buildForecast(
 
 
     // ========================================================
-    // INVENTORY DEMAND
+    // INVENTORY DEMAND FORECAST
     // ========================================================
 
     const inventoryDemand =
@@ -155,7 +196,7 @@ function buildForecast(
     // ========================================================
 
     const expenseHistory =
-        expenseRepository.getDailyHistory(
+        getExpenseHistory(
             userId
         );
 
@@ -168,24 +209,16 @@ function buildForecast(
     //
     // This is NOT the same as inventory purchases.
     //
-    // getDailyCOGS() returns data such as:
-    //
-    // {
-    //     date: "2026-08-04",
-    //     revenue: 85600,
-    //     costOfGoods: 58800
-    // }
-    //
     // ========================================================
 
     const cogsHistory =
-        getDailyCOGS(
+        getCOGSHistory(
             userId
         );
 
 
     // ========================================================
-    // PROFIT
+    // PROFIT FORECAST
     // ========================================================
     //
     // Profit receives:
@@ -209,10 +242,11 @@ function buildForecast(
 
 
     // ========================================================
-    // RISK
+    // RISK FORECAST
     // ========================================================
     //
-    // Risk receives the already-calculated forecast objects.
+    // Risk receives ALL already-calculated forecast
+    // objects, including PROFIT.
     //
     // ========================================================
 
@@ -222,7 +256,8 @@ function buildForecast(
             revenue,
             cash,
             inventory,
-            inventoryDemand
+            inventoryDemand,
+            profit
         );
 
 
@@ -245,7 +280,6 @@ function buildForecast(
         risks
 
     };
-
 }
 
 
