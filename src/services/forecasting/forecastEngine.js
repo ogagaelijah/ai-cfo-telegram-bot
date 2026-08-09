@@ -1,51 +1,49 @@
+const {
+    getRevenueForecast
+} = require("./revenueForecastService");
+
+const {
+    getCashForecast
+} = require("./cashForecastService");
+
+const {
+    getInventoryForecast
+} = require("./inventoryForecastService");
+
+const {
+    getInventoryDemandForecast
+} = require("./inventoryDemandForecastService");
+
+const {
+    getProfitForecast
+} = require("./profitForecastService");
+
+const {
+    getRiskForecast
+} = require("./riskForecastService");
+
+
 // ============================================================
 // FORECAST ENGINE
 // ============================================================
 //
 // Central orchestration layer.
 //
-// Each forecast is calculated here.
+// Production:
 //
-// Revenue is calculated ONCE.
-// Cash is calculated ONCE.
-// Inventory is calculated ONCE.
-// Inventory Demand is calculated ONCE.
+//     buildForecast(userId)
 //
-// Profit and Risk receive the already-calculated
-// forecast objects.
+// uses the real forecast services.
 //
-// No child forecast service should call forecastEngine.
+// Tests:
 //
-// The forecast services can be injected for testing.
-// Production uses the real services automatically.
-// ============================================================
-
-const {
-    getRevenueForecast: defaultGetRevenueForecast
-} = require("./revenueForecastService");
-
-const {
-    getCashForecast: defaultGetCashForecast
-} = require("./cashForecastService");
-
-const {
-    getInventoryForecast: defaultGetInventoryForecast
-} = require("./inventoryForecastService");
-
-const {
-    getInventoryDemandForecast: defaultGetInventoryDemandForecast
-} = require("./inventoryDemandForecastService");
-
-const {
-    getProfitForecast: defaultGetProfitForecast
-} = require("./profitForecastService");
-
-const {
-    getRiskForecast: defaultGetRiskForecast
-} = require("./riskForecastService");
-
-// ============================================================
-// BUILD FORECAST
+//     buildForecast(userId, mockServices)
+//
+// can inject mocked services.
+//
+// This keeps the forecast engines independent while allowing
+// the orchestration layer to be tested safely.
+//
 // ============================================================
 
 function buildForecast(
@@ -57,29 +55,29 @@ function buildForecast(
     // FORECAST SERVICES
     // ========================================================
 
-    const getRevenueForecast =
+    const revenueService =
         services.getRevenueForecast ||
-        defaultGetRevenueForecast;
+        getRevenueForecast;
 
-    const getCashForecast =
+    const cashService =
         services.getCashForecast ||
-        defaultGetCashForecast;
+        getCashForecast;
 
-    const getInventoryForecast =
+    const inventoryService =
         services.getInventoryForecast ||
-        defaultGetInventoryForecast;
+        getInventoryForecast;
 
-    const getInventoryDemandForecast =
+    const inventoryDemandService =
         services.getInventoryDemandForecast ||
-        defaultGetInventoryDemandForecast;
+        getInventoryDemandForecast;
 
-    const getProfitForecast =
+    const profitService =
         services.getProfitForecast ||
-        defaultGetProfitForecast;
+        getProfitForecast;
 
-    const getRiskForecast =
+    const riskService =
         services.getRiskForecast ||
-        defaultGetRiskForecast;
+        getRiskForecast;
 
 
     // ========================================================
@@ -87,7 +85,7 @@ function buildForecast(
     // ========================================================
 
     const revenue =
-        getRevenueForecast(
+        revenueService(
             userId
         );
 
@@ -97,7 +95,7 @@ function buildForecast(
     // ========================================================
 
     const cash =
-        getCashForecast(
+        cashService(
             userId
         );
 
@@ -107,7 +105,7 @@ function buildForecast(
     // ========================================================
 
     const inventory =
-        getInventoryForecast(
+        inventoryService(
             userId
         );
 
@@ -117,7 +115,7 @@ function buildForecast(
     // ========================================================
 
     const inventoryDemand =
-        getInventoryDemandForecast(
+        inventoryDemandService(
             userId
         );
 
@@ -125,9 +123,15 @@ function buildForecast(
     // ========================================================
     // PROFIT
     // ========================================================
+    //
+    // Profit receives the already-calculated revenue forecast.
+    //
+    // Revenue is NOT calculated again.
+    //
+    // ========================================================
 
     const profit =
-        getProfitForecast(
+        profitService(
             userId,
             revenue
         );
@@ -136,9 +140,13 @@ function buildForecast(
     // ========================================================
     // RISK
     // ========================================================
+    //
+    // Risk receives the already-calculated forecast objects.
+    //
+    // ========================================================
 
     const risks =
-        getRiskForecast(
+        riskService(
             userId,
             revenue,
             cash,
