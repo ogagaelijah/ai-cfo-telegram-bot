@@ -1,17 +1,17 @@
 const {
-    calculateActiveDayAverage,
-    calculateCalendarDayAverage,
-    calculateGrowthRate,
-    determineForecastBase,
-    projectNext,
-    getConfidence,
-    getRevenueForecast
+calculateActiveDayAverage,
+calculateCalendarDayAverage,
+calculateGrowthRate,
+determineForecastBase,
+projectNext,
+getConfidence,
+getRevenueForecast
 } = require("../src/services/forecasting/revenueForecastService");
 
 const {
-    describe,
-    it,
-    expect
+describe,
+it,
+expect
 } = await import("vitest");
 
 describe("Revenue Forecast Service", () => {
@@ -179,6 +179,64 @@ describe("Revenue Forecast Service", () => {
             }
         );
 
+
+        it(
+            "should return 100% growth when oldest sales value is zero and newest is positive",
+            () => {
+
+                const history = [
+
+                    {
+                        date: "2026-08-01",
+                        sales: 0
+                    },
+
+                    {
+                        date: "2026-08-02",
+                        sales: 50000
+                    }
+
+                ];
+
+                const result =
+                    calculateGrowthRate(
+                        history
+                    );
+
+                expect(result).toBe(100);
+
+            }
+        );
+
+
+        it(
+            "should return 0 when both oldest and newest sales are zero",
+            () => {
+
+                const history = [
+
+                    {
+                        date: "2026-08-01",
+                        sales: 0
+                    },
+
+                    {
+                        date: "2026-08-02",
+                        sales: 0
+                    }
+
+                ];
+
+                const result =
+                    calculateGrowthRate(
+                        history
+                    );
+
+                expect(result).toBe(0);
+
+            }
+        );
+
     });
 
 
@@ -215,6 +273,45 @@ describe("Revenue Forecast Service", () => {
                     );
 
                 expect(result).toBe(0);
+
+            }
+        );
+
+
+        it(
+            "should use the active-day average regardless of history size",
+            () => {
+
+                expect(
+                    determineForecastBase(
+                        100000,
+                        1
+                    )
+                ).toBe(100000);
+
+
+                expect(
+                    determineForecastBase(
+                        100000,
+                        6
+                    )
+                ).toBe(100000);
+
+
+                expect(
+                    determineForecastBase(
+                        100000,
+                        7
+                    )
+                ).toBe(100000);
+
+
+                expect(
+                    determineForecastBase(
+                        100000,
+                        30
+                    )
+                ).toBe(100000);
 
             }
         );
@@ -363,6 +460,40 @@ describe("Revenue Forecast Service", () => {
             }
         );
 
+
+        it(
+            "should apply the growth adjustment at exactly 7 active sales days",
+            () => {
+
+                const result =
+                    projectNext(
+                        100000,
+                        "Growing",
+                        7
+                    );
+
+                expect(result).toBe(110000);
+
+            }
+        );
+
+
+        it(
+            "should apply the declining adjustment at exactly 7 active sales days",
+            () => {
+
+                const result =
+                    projectNext(
+                        100000,
+                        "Declining",
+                        7
+                    );
+
+                expect(result).toBe(90000);
+
+            }
+        );
+
     });
 
 
@@ -397,12 +528,20 @@ describe("Revenue Forecast Service", () => {
 
 
         it(
-            "should return 65 for 2 to 6 active sales days",
+            "should return 65 for 2 active sales days",
             () => {
 
                 expect(
                     getConfidence(2)
                 ).toBe(65);
+
+            }
+        );
+
+
+        it(
+            "should return 65 for 6 active sales days",
+            () => {
 
                 expect(
                     getConfidence(6)
@@ -413,7 +552,7 @@ describe("Revenue Forecast Service", () => {
 
 
         it(
-            "should return 80 for 7 to 13 active sales days",
+            "should return 80 for 7 active sales days",
             () => {
 
                 expect(
@@ -425,7 +564,19 @@ describe("Revenue Forecast Service", () => {
 
 
         it(
-            "should return 90 for 14 to 29 active sales days",
+            "should return 80 for 13 active sales days",
+            () => {
+
+                expect(
+                    getConfidence(13)
+                ).toBe(80);
+
+            }
+        );
+
+
+        it(
+            "should return 90 for 14 active sales days",
             () => {
 
                 expect(
@@ -437,12 +588,149 @@ describe("Revenue Forecast Service", () => {
 
 
         it(
-            "should return 95 for 30 or more active sales days",
+            "should return 90 for 29 active sales days",
+            () => {
+
+                expect(
+                    getConfidence(29)
+                ).toBe(90);
+
+            }
+        );
+
+
+        it(
+            "should return 95 for 30 active sales days",
             () => {
 
                 expect(
                     getConfidence(30)
                 ).toBe(95);
+
+            }
+        );
+
+
+        it(
+            "should return 95 for 60 active sales days",
+            () => {
+
+                expect(
+                    getConfidence(60)
+                ).toBe(95);
+
+            }
+        );
+
+
+        it(
+            "should never exceed 95% confidence",
+            () => {
+
+                expect(
+                    getConfidence(100)
+                ).toBe(95);
+
+
+                expect(
+                    getConfidence(365)
+                ).toBe(95);
+
+
+                expect(
+                    getConfidence(1000)
+                ).toBe(95);
+
+            }
+        );
+
+
+        it(
+            "should produce a monotonically increasing confidence level",
+            () => {
+
+                const confidenceLevels = [
+
+                    getConfidence(1),
+
+                    getConfidence(2),
+
+                    getConfidence(6),
+
+                    getConfidence(7),
+
+                    getConfidence(13),
+
+                    getConfidence(14),
+
+                    getConfidence(29),
+
+                    getConfidence(30),
+
+                    getConfidence(60)
+
+                ];
+
+
+                for (
+                    let index = 1;
+                    index < confidenceLevels.length;
+                    index++
+                ) {
+
+                    expect(
+                        confidenceLevels[index]
+                    ).toBeGreaterThanOrEqual(
+                        confidenceLevels[
+                            index - 1
+                        ]
+                    );
+
+                }
+
+            }
+        );
+
+
+        it(
+            "should match the complete confidence progression",
+            () => {
+
+                const expected = {
+
+                    1: 50,
+
+                    6: 65,
+
+                    7: 80,
+
+                    14: 90,
+
+                    30: 95
+
+                };
+
+
+                Object.entries(
+                    expected
+                ).forEach(
+                    (
+                        [
+                            days,
+                            confidence
+                        ]
+                    ) => {
+
+                        expect(
+                            getConfidence(
+                                Number(days)
+                            )
+                        ).toBe(
+                            confidence
+                        );
+
+                    }
+                );
 
             }
         );

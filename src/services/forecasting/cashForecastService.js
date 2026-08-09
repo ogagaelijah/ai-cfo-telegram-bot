@@ -8,67 +8,125 @@ const {
 } = require("../../repositories/businessTrendsRepository");
 
 
-// ==========================
+// ======================================================
+// SAFE NUMBER
+// ======================================================
+//
+// Converts invalid financial values into 0.
+//
+// Handles:
+//
+// undefined
+// null
+// NaN
+// Infinity
+// -Infinity
+// numeric strings
+//
+// This prevents invalid values from contaminating
+// the entire forecast.
+// ======================================================
+
+function safeNumber(value) {
+
+    const number =
+        Number(value);
+
+    return Number.isFinite(number)
+        ? number
+        : 0;
+}
+
+
+// ======================================================
 // CASH FLOW FORECAST ENGINE
-// ==========================
+// ======================================================
+
 function getCashForecast(telegramId) {
 
-    // ==========================
+    // ==================================================
     // CURRENT CASH
-    // ==========================
+    // ==================================================
+
     const cash =
-        analytics.getCashMetrics(telegramId);
+        analytics.getCashMetrics(
+            telegramId
+        ) || {};
+
 
     const currentCash =
-        Number(cash.cashPosition) || 0;
+        safeNumber(
+            cash.cashPosition
+        );
 
 
-    // ==========================
+    // ==================================================
     // DAILY CASH INFLOW
-    // ==========================
+    // ==================================================
+
     const averageDailySales =
-        Number(
-            getAverageDailySales(telegramId)
-        ) || 0;
+        Math.max(
+            0,
+            safeNumber(
+                getAverageDailySales(
+                    telegramId
+                )
+            )
+        );
 
 
-    // ==========================
+    // ==================================================
     // DAILY PURCHASE OUTFLOW
-    // ==========================
+    // ==================================================
+
     const averageDailyPurchases =
-        Number(
-            getAverageDailyPurchases(telegramId)
-        ) || 0;
+        Math.max(
+            0,
+            safeNumber(
+                getAverageDailyPurchases(
+                    telegramId
+                )
+            )
+        );
 
 
-    // ==========================
+    // ==================================================
     // DAILY OPERATING EXPENSES
-    // ==========================
+    // ==================================================
+
     const averageDailyExpenses =
-        Number(
-            getAverageDailyExpenses(telegramId)
-        ) || 0;
+        Math.max(
+            0,
+            safeNumber(
+                getAverageDailyExpenses(
+                    telegramId
+                )
+            )
+        );
 
 
-    // ==========================
+    // ==================================================
     // TOTAL DAILY OUTFLOW
-    // ==========================
+    // ==================================================
+
     const averageDailyOutflow =
         averageDailyPurchases +
         averageDailyExpenses;
 
 
-    // ==========================
+    // ==================================================
     // NET DAILY CASH FLOW
-    // ==========================
+    // ==================================================
+
     const estimatedDailyNetCashFlow =
         averageDailySales -
         averageDailyOutflow;
 
 
-    // ==========================
+    // ==================================================
     // CASH BURN
-    // ==========================
+    // ==================================================
+
     const estimatedDailyBurn =
         estimatedDailyNetCashFlow < 0
             ? Math.abs(
@@ -77,9 +135,15 @@ function getCashForecast(telegramId) {
             : 0;
 
 
-    // ==========================
-    // PROJECTED CASH
-    // ==========================
+    // ==================================================
+    // PROJECTED CASH BALANCES
+    // ==================================================
+    //
+    // These are projected ENDING CASH BALANCES.
+    //
+    // They are NOT revenue generated during the period.
+    // ==================================================
+
     const next7Days =
         currentCash +
         (
@@ -96,120 +160,146 @@ function getCashForecast(telegramId) {
         );
 
 
-    // ==========================
+    // ==================================================
     // DAYS OF CASH REMAINING
-    // ==========================
+    // ==================================================
+
     let daysRemaining =
         Infinity;
 
 
-    if (currentCash <= 0) {
+    // No available cash.
+    if (
+        currentCash <= 0
+    ) {
 
         daysRemaining = 0;
 
     }
 
-    else if (estimatedDailyBurn > 0) {
+    // Cash is currently being consumed.
+    else if (
+        estimatedDailyBurn > 0
+    ) {
 
         daysRemaining =
             Math.floor(
                 currentCash /
                 estimatedDailyBurn
             );
-
     }
 
 
-    // ==========================
+    // ==================================================
     // CASH STATUS
-    // ==========================
+    // ==================================================
+
     let status =
         "Healthy";
 
 
-    if (currentCash < 0) {
+    // Current negative cash always takes priority.
+    if (
+        currentCash < 0
+    ) {
 
         status =
             "Critical";
-
     }
 
-    else if (next7Days < 0) {
+    // Cash becomes negative within 7 days.
+    else if (
+        next7Days < 0
+    ) {
 
         status =
             "High Risk";
-
     }
 
-    else if (next30Days < 0) {
+    // Cash becomes negative within 30 days.
+    else if (
+        next30Days < 0
+    ) {
 
         status =
             "Monitor Closely";
-
     }
 
 
-    // ==========================
+    // ==================================================
     // CASH TREND
-    // ==========================
+    // ==================================================
+
     let cashTrend =
         "Stable";
 
 
-    if (estimatedDailyNetCashFlow > 0) {
+    if (
+        estimatedDailyNetCashFlow > 0
+    ) {
 
         cashTrend =
             "Improving";
 
     }
 
-    else if (estimatedDailyNetCashFlow < 0) {
+    else if (
+        estimatedDailyNetCashFlow < 0
+    ) {
 
         cashTrend =
             "Declining";
-
     }
 
 
-    // ==========================
+    // ==================================================
     // RECOMMENDATION
-    // ==========================
+    // ==================================================
+
     let recommendation =
         "Cash flow is healthy. Continue monitoring collections and expenses.";
 
 
-    if (status === "Critical") {
+    if (
+        status === "Critical"
+    ) {
 
         recommendation =
             "Cash liquidity is currently negative. Prioritize collections, control purchases and reduce non-essential spending.";
 
     }
 
-    else if (status === "High Risk") {
+    else if (
+        status === "High Risk"
+    ) {
 
         recommendation =
             "Projected cash may become negative within seven days. Accelerate collections and control purchases and operating expenses.";
 
     }
 
-    else if (status === "Monitor Closely") {
+    else if (
+        status === "Monitor Closely"
+    ) {
 
         recommendation =
             "Cash reserves may become insufficient within 30 days. Monitor purchases, expenses and customer collections.";
 
     }
 
-    else if (cashTrend === "Improving") {
+    else if (
+        cashTrend === "Improving"
+    ) {
 
         recommendation =
             "Cash flow is improving. Maintain disciplined purchasing and spending while building cash reserves.";
-
     }
 
 
-    // ==========================
+    // ==================================================
     // CFO EXPLANATION
-    // ==========================
+    // ==================================================
+
     let explanation =
         "Cash inflows are currently sufficient to cover estimated purchases and operating expenses.";
 
@@ -245,13 +335,13 @@ function getCashForecast(telegramId) {
             ).toLocaleString()}. This produces an estimated positive daily cash flow of ₦${Math.round(
                 estimatedDailyNetCashFlow
             ).toLocaleString()}.`;
-
     }
 
 
-    // ==========================
+    // ==================================================
     // RETURN
-    // ==========================
+    // ==================================================
+
     return {
 
         currentCash,
@@ -271,6 +361,8 @@ function getCashForecast(telegramId) {
         estimatedDaysRemaining:
             daysRemaining,
 
+        // Projected ENDING cash balances.
+
         next7Days,
 
         next30Days,
@@ -282,11 +374,13 @@ function getCashForecast(telegramId) {
         explanation,
 
         recommendation
-
     };
-
 }
 
+
+// ======================================================
+// EXPORT
+// ======================================================
 
 module.exports = {
 

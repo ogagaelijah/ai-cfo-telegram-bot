@@ -9,12 +9,16 @@
 // 3. Calculate gross margin.
 // 4. Calculate net profit margin.
 // 5. Calculate average daily COGS.
-// 6. Calculate average daily operating expenses.
-// 7. Forecast future profit from:
+// 6. Calculate COGS / revenue ratio.
+// 7. Calculate average daily operating expenses.
+// 8. Forecast future COGS based on historical COGS ratio.
+// 9. Forecast future profit from:
 //
 //      Revenue
 //          ↓
 //      COGS
+//          ↓
+//      Gross Profit
 //          ↓
 //      Operating Expenses
 //          ↓
@@ -34,7 +38,9 @@
 // NUMBER SAFETY
 // ============================================================
 
-function toNumber(value) {
+function toNumber(
+    value
+) {
 
     const number =
         Number(value);
@@ -61,10 +67,14 @@ function calculateGrossProfit(
 ) {
 
     const totalRevenue =
-        toNumber(revenue);
+        toNumber(
+            revenue
+        );
 
     const totalCOGS =
-        toNumber(costOfGoods);
+        toNumber(
+            costOfGoods
+        );
 
     return (
         totalRevenue -
@@ -92,13 +102,19 @@ function calculateProfit(
 ) {
 
     const totalRevenue =
-        toNumber(revenue);
+        toNumber(
+            revenue
+        );
 
     const totalCOGS =
-        toNumber(costOfGoods);
+        toNumber(
+            costOfGoods
+        );
 
     const totalExpenses =
-        toNumber(expenses);
+        toNumber(
+            expenses
+        );
 
     return (
         totalRevenue -
@@ -118,11 +134,14 @@ function calculateGrossMargin(
 ) {
 
     const totalRevenue =
-        toNumber(revenue);
+        toNumber(
+            revenue
+        );
 
     const totalGrossProfit =
-        toNumber(grossProfit);
-
+        toNumber(
+            grossProfit
+        );
 
     if (
         totalRevenue <= 0
@@ -130,7 +149,6 @@ function calculateGrossMargin(
 
         return 0;
     }
-
 
     return (
         totalGrossProfit /
@@ -149,11 +167,14 @@ function calculateProfitMargin(
 ) {
 
     const totalRevenue =
-        toNumber(revenue);
+        toNumber(
+            revenue
+        );
 
     const totalProfit =
-        toNumber(profit);
-
+        toNumber(
+            profit
+        );
 
     if (
         totalRevenue <= 0
@@ -161,7 +182,6 @@ function calculateProfitMargin(
 
         return 0;
     }
-
 
     return (
         totalProfit /
@@ -177,14 +197,6 @@ function calculateProfitMargin(
 // The expense history should contain calendar days,
 // including zero-expense days.
 //
-// Example:
-//
-// Aug 4 → ₦12,000
-// Aug 5 → ₦0
-// Aug 6 → ₦0
-//
-// This produces a calendar-day operating expense average.
-//
 // ============================================================
 
 function calculateAverageDailyExpenses(
@@ -199,7 +211,6 @@ function calculateAverageDailyExpenses(
         return 0;
     }
 
-
     const expenses =
         history.map(
             day =>
@@ -207,7 +218,6 @@ function calculateAverageDailyExpenses(
                     day?.expenses
                 )
         );
-
 
     const total =
         expenses.reduce(
@@ -218,7 +228,6 @@ function calculateAverageDailyExpenses(
                 sum + value,
             0
         );
-
 
     return (
         total /
@@ -231,21 +240,11 @@ function calculateAverageDailyExpenses(
 // CALCULATE DAILY COGS
 // ============================================================
 //
-// COGS must come from products actually sold.
+// COGS comes from products actually sold.
 //
-// We use the sales table's:
+// Expected field:
 //
-//     cost_of_goods
-//
-// field.
-//
-// This is different from purchases.
-//
-// PURCHASES:
-//     Inventory acquired.
-//
-// COGS:
-//     Inventory actually sold.
+//     costOfGoods
 //
 // ============================================================
 
@@ -261,7 +260,6 @@ function calculateDailyCOGS(
         return 0;
     }
 
-
     const cogs =
         history.map(
             day =>
@@ -269,7 +267,6 @@ function calculateDailyCOGS(
                     day?.costOfGoods
                 )
         );
-
 
     const total =
         cogs.reduce(
@@ -281,7 +278,6 @@ function calculateDailyCOGS(
             0
         );
 
-
     return (
         total /
         history.length
@@ -290,21 +286,7 @@ function calculateDailyCOGS(
 
 
 // ============================================================
-// GET COGS HISTORY FROM SALES
-// ============================================================
-//
-// The Forecast Engine will provide daily sales/COGS history.
-//
-// Expected format:
-//
-// [
-//     {
-//         date: "2026-08-04",
-//         revenue: 85600,
-//         costOfGoods: 58800
-//     }
-// ]
-//
+// CALCULATE AVERAGE DAILY COGS
 // ============================================================
 
 function calculateAverageDailyCOGS(
@@ -313,6 +295,103 @@ function calculateAverageDailyCOGS(
 
     return calculateDailyCOGS(
         history
+    );
+}
+
+
+// ============================================================
+// CALCULATE COGS / REVENUE RATIO
+// ============================================================
+//
+// This is the important intelligence upgrade.
+//
+// Example:
+//
+// Revenue = ₦300,000
+// COGS    = ₦120,000
+//
+// COGS Ratio:
+//
+// 120,000 / 300,000
+// = 0.40
+// = 40%
+//
+// We calculate the ratio from TOTAL historical revenue
+// and TOTAL historical COGS rather than averaging daily
+// percentages.
+//
+// This prevents small days from disproportionately
+// affecting the ratio.
+//
+// Only days with positive revenue are included.
+//
+// ============================================================
+
+function calculateCOGSRevenueRatio(
+    history
+) {
+
+    if (
+        !Array.isArray(history) ||
+        history.length === 0
+    ) {
+
+        return 0;
+    }
+
+
+    let totalRevenue = 0;
+
+    let totalCOGS = 0;
+
+
+    history.forEach(
+        day => {
+
+            const revenue =
+                toNumber(
+                    day?.revenue
+                );
+
+            const costOfGoods =
+                toNumber(
+                    day?.costOfGoods
+                );
+
+
+            // Ignore days with no revenue because
+            // they cannot provide a meaningful
+            // COGS/revenue ratio.
+
+            if (
+                revenue <= 0
+            ) {
+
+                return;
+            }
+
+
+            totalRevenue +=
+                revenue;
+
+            totalCOGS +=
+                costOfGoods;
+
+        }
+    );
+
+
+    if (
+        totalRevenue <= 0
+    ) {
+
+        return 0;
+    }
+
+
+    return (
+        totalCOGS /
+        totalRevenue
     );
 }
 
@@ -372,6 +451,16 @@ function getProfitForecast(
 
 
     // ========================================================
+    // COGS / REVENUE RATIO
+    // ========================================================
+
+    const cogsRevenueRatio =
+        calculateCOGSRevenueRatio(
+            cogs
+        );
+
+
+    // ========================================================
     // FORECAST REVENUE
     // ========================================================
 
@@ -396,19 +485,41 @@ function getProfitForecast(
     // ========================================================
     // FORECAST COGS
     // ========================================================
+    //
+    // PRIMARY METHOD:
+    //
+    // Forecast Revenue × Historical COGS Ratio
+    //
+    // FALLBACK:
+    //
+    // If there is no usable revenue history,
+    // use the historical average daily COGS.
+    //
+    // This prevents the forecast from producing
+    // zero COGS simply because historical revenue
+    // data is unavailable.
+    //
+    // ========================================================
 
     const tomorrowCOGS =
-        averageDailyCOGS;
+        cogsRevenueRatio > 0
+            ? tomorrowRevenue *
+                cogsRevenueRatio
+            : averageDailyCOGS;
 
 
     const next7DaysCOGS =
-        averageDailyCOGS *
-        7;
+        cogsRevenueRatio > 0
+            ? next7DaysRevenue *
+                cogsRevenueRatio
+            : averageDailyCOGS * 7;
 
 
     const next30DaysCOGS =
-        averageDailyCOGS *
-        30;
+        cogsRevenueRatio > 0
+            ? next30DaysRevenue *
+                cogsRevenueRatio
+            : averageDailyCOGS * 30;
 
 
     // ========================================================
@@ -574,6 +685,12 @@ function getProfitForecast(
 
 
     console.log(
+        "COGS / Revenue Ratio:",
+        cogsRevenueRatio
+    );
+
+
+    console.log(
         "Average Daily Expenses:",
         averageDailyExpenses
     );
@@ -646,10 +763,12 @@ function getProfitForecast(
     return {
 
         // ----------------------------------------------------
-        // DAILY COGS
+        // COGS INTELLIGENCE
         // ----------------------------------------------------
 
         averageDailyCOGS,
+
+        cogsRevenueRatio,
 
 
         // ----------------------------------------------------
@@ -753,6 +872,8 @@ module.exports = {
     calculateAverageDailyExpenses,
 
     calculateAverageDailyCOGS,
+
+    calculateCOGSRevenueRatio,
 
     getProfitForecast
 

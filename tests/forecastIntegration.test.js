@@ -5,7 +5,6 @@ const {
     vi
 } = await import("vitest");
 
-
 // ============================================================
 // FORECAST ENGINE
 // ============================================================
@@ -16,7 +15,6 @@ const {
     "../src/services/forecasting/forecastEngine"
 );
 
-
 // ============================================================
 // TEST DATA
 // ============================================================
@@ -24,73 +22,163 @@ const {
 const USER_ID =
     999999;
 
-
 // ============================================================
 // MOCK FORECAST RESULTS
 // ============================================================
 
 const revenueForecast = {
 
-    tomorrow: 100000,
+    tomorrow:
+        100000,
 
-    next7Days: 700000,
+    next7Days:
+        700000,
 
-    next30Days: 3000000,
+    next30Days:
+        3000000,
 
-    confidence: 65
-
+    confidence:
+        65
 };
 
 
 const cashForecast = {
 
-    tomorrow: 80000,
+    tomorrow:
+        80000,
 
-    next7Days: 560000,
+    next7Days:
+        560000,
 
-    next30Days: 2400000
-
+    next30Days:
+        2400000
 };
 
 
 const inventoryForecast = {
 
-    totalProducts: 5,
+    totalProducts:
+        5,
 
-    productsRequiringReorder: 2
-
+    productsRequiringReorder:
+        2
 };
 
 
 const inventoryDemandForecast = {
 
-    products: 5,
+    products:
+        5,
 
-    productsRequiringReorder: 2
-
+    productsRequiringReorder:
+        2
 };
 
 
 const profitForecast = {
 
-    tomorrowProfit: 40000,
+    tomorrowProfit:
+        40000,
 
-    next7DaysProfit: 280000,
+    next7DaysProfit:
+        280000,
 
-    next30DaysProfit: 1200000,
+    next30DaysProfit:
+        1200000,
 
-    status: "Profitable"
-
+    status:
+        "Profitable"
 };
 
 
 const riskForecast = {
 
-    overallRisk: "Low",
+    overallRisk:
+        "Low",
 
-    risks: []
-
+    risks:
+        []
 };
+
+
+// ============================================================
+// MOCK HISTORICAL DATA
+// ============================================================
+//
+// These are now required because forecastEngine retrieves:
+//
+// 1. Expense history
+// 2. COGS history
+//
+// before calling getProfitForecast().
+//
+// ============================================================
+
+const expenseHistory = [
+
+    {
+        date:
+            "2026-08-01",
+
+        expenses:
+            50000
+    },
+
+    {
+        date:
+            "2026-08-02",
+
+        expenses:
+            60000
+    },
+
+    {
+        date:
+            "2026-08-03",
+
+        expenses:
+            70000
+    }
+
+];
+
+
+const cogsHistory = [
+
+    {
+        date:
+            "2026-08-01",
+
+        revenue:
+            100000,
+
+        costOfGoods:
+            40000
+    },
+
+    {
+        date:
+            "2026-08-02",
+
+        revenue:
+            120000,
+
+        costOfGoods:
+            48000
+    },
+
+    {
+        date:
+            "2026-08-03",
+
+        revenue:
+            80000,
+
+        costOfGoods:
+            32000
+    }
+
+];
 
 
 // ============================================================
@@ -101,11 +189,20 @@ function createMockServices() {
 
     return {
 
+        // ----------------------------------------------------
+        // REVENUE
+        // ----------------------------------------------------
+
         getRevenueForecast:
             vi.fn(
                 () =>
                     revenueForecast
             ),
+
+
+        // ----------------------------------------------------
+        // CASH
+        // ----------------------------------------------------
 
         getCashForecast:
             vi.fn(
@@ -113,11 +210,21 @@ function createMockServices() {
                     cashForecast
             ),
 
+
+        // ----------------------------------------------------
+        // INVENTORY
+        // ----------------------------------------------------
+
         getInventoryForecast:
             vi.fn(
                 () =>
                     inventoryForecast
             ),
+
+
+        // ----------------------------------------------------
+        // INVENTORY DEMAND
+        // ----------------------------------------------------
 
         getInventoryDemandForecast:
             vi.fn(
@@ -125,17 +232,75 @@ function createMockServices() {
                     inventoryDemandForecast
             ),
 
+
+        // ----------------------------------------------------
+        // EXPENSE HISTORY
+        // ----------------------------------------------------
+
+        getExpenseHistory:
+            vi.fn(
+                () =>
+                    expenseHistory
+            ),
+
+
+        // ----------------------------------------------------
+        // COGS HISTORY
+        // ----------------------------------------------------
+
+        getDailyCOGS:
+            vi.fn(
+                () =>
+                    cogsHistory
+            ),
+
+
+        // ----------------------------------------------------
+        // PROFIT
+        // ----------------------------------------------------
+        //
+        // IMPORTANT:
+        //
+        // Current forecastEngine calls:
+        //
+        // getProfitForecast(
+        //     revenue,
+        //     expenseHistory,
+        //     cogsHistory
+        // )
+        //
+        // ----------------------------------------------------
+
         getProfitForecast:
             vi.fn(
                 (
-                    userId,
-                    revenue
+                    revenue,
+                    expenses,
+                    cogs
                 ) => {
 
                     return profitForecast;
 
                 }
             ),
+
+
+        // ----------------------------------------------------
+        // RISK
+        // ----------------------------------------------------
+        //
+        // Current forecastEngine calls:
+        //
+        // getRiskForecast(
+        //     userId,
+        //     revenue,
+        //     cash,
+        //     inventory,
+        //     inventoryDemand,
+        //     profit
+        // )
+        //
+        // ----------------------------------------------------
 
         getRiskForecast:
             vi.fn(
@@ -144,7 +309,8 @@ function createMockServices() {
                     revenue,
                     cash,
                     inventory,
-                    inventoryDemand
+                    inventoryDemand,
+                    profit
                 ) => {
 
                     return riskForecast;
@@ -164,6 +330,7 @@ function createMockServices() {
 describe(
     "Forecast Integration",
     () => {
+
 
         // ====================================================
         // COMPLETE FORECAST
@@ -239,7 +406,7 @@ describe(
         // ====================================================
 
         it(
-            "should pass revenue forecast into profit forecast",
+            "should pass revenue, expense history and COGS history into profit forecast",
             () => {
 
                 const services =
@@ -263,9 +430,128 @@ describe(
                     services.getProfitForecast
                 ).toHaveBeenCalledWith(
 
+                    revenueForecast,
+
+                    expenseHistory,
+
+                    cogsHistory
+
+                );
+
+            }
+        );
+
+
+        // ====================================================
+        // EXPENSE HISTORY INJECTION
+        // ====================================================
+
+        it(
+            "should retrieve expense history through the injected service",
+            () => {
+
+                const services =
+                    createMockServices();
+
+
+                buildForecast(
+                    USER_ID,
+                    services
+                );
+
+
+                expect(
+                    services.getExpenseHistory
+                ).toHaveBeenCalledTimes(
+                    1
+                );
+
+
+                expect(
+                    services.getExpenseHistory
+                ).toHaveBeenCalledWith(
+                    USER_ID
+                );
+
+            }
+        );
+
+
+        // ====================================================
+        // COGS HISTORY INJECTION
+        // ====================================================
+
+        it(
+            "should retrieve COGS history through the injected service",
+            () => {
+
+                const services =
+                    createMockServices();
+
+
+                buildForecast(
+                    USER_ID,
+                    services
+                );
+
+
+                expect(
+                    services.getDailyCOGS
+                ).toHaveBeenCalledTimes(
+                    1
+                );
+
+
+                expect(
+                    services.getDailyCOGS
+                ).toHaveBeenCalledWith(
+                    USER_ID
+                );
+
+            }
+        );
+
+
+        // ====================================================
+        // RISK RECEIVES PROFIT FORECAST
+        // ====================================================
+
+        it(
+            "should pass profit forecast into risk forecast",
+            () => {
+
+                const services =
+                    createMockServices();
+
+
+                buildForecast(
+                    USER_ID,
+                    services
+                );
+
+
+                expect(
+                    services.getRiskForecast
+                ).toHaveBeenCalledTimes(
+                    1
+                );
+
+
+                expect(
+                    services.getRiskForecast
+                ).toHaveBeenCalledWith(
+
                     USER_ID,
 
-                    revenueForecast
+                    revenueForecast,
+
+                    cashForecast,
+
+                    inventoryForecast,
+
+                    inventoryDemandForecast,
+
+                    profitForecast
 
                 );
 
@@ -349,14 +635,26 @@ describe(
                     createMockServices();
 
 
+                const zeroRevenue = {
+
+                    tomorrow:
+                        0,
+
+                    next7Days:
+                        0,
+
+                    next30Days:
+                        0,
+
+                    confidence:
+                        0
+
+                };
+
+
                 services.getRevenueForecast
                     .mockReturnValue(
-                        {
-                            tomorrow: 0,
-                            next7Days: 0,
-                            next30Days: 0,
-                            confidence: 0
-                        }
+                        zeroRevenue
                     );
 
 
@@ -394,6 +692,19 @@ describe(
                     "profit"
                 );
 
+
+                expect(
+                    services.getProfitForecast
+                ).toHaveBeenCalledWith(
+
+                    zeroRevenue,
+
+                    expenseHistory,
+
+                    cogsHistory
+
+                );
+
             }
         );
 
@@ -410,21 +721,37 @@ describe(
                     createMockServices();
 
 
+                const zeroInventory = {
+
+                    totalProducts:
+                        0,
+
+                    productsRequiringReorder:
+                        0
+
+                };
+
+
+                const zeroInventoryDemand = {
+
+                    products:
+                        0,
+
+                    productsRequiringReorder:
+                        0
+
+                };
+
+
                 services.getInventoryForecast
                     .mockReturnValue(
-                        {
-                            totalProducts: 0,
-                            productsRequiringReorder: 0
-                        }
+                        zeroInventory
                     );
 
 
                 services.getInventoryDemandForecast
                     .mockReturnValue(
-                        {
-                            products: 0,
-                            productsRequiringReorder: 0
-                        }
+                        zeroInventoryDemand
                     );
 
 
@@ -480,37 +807,48 @@ describe(
 
                 const conflictingRevenue = {
 
-                    tomorrow: 50000,
+                    tomorrow:
+                        50000,
 
-                    next7Days: 350000,
+                    next7Days:
+                        350000,
 
-                    next30Days: 1500000,
+                    next30Days:
+                        1500000,
 
-                    confidence: 80,
+                    confidence:
+                        80,
 
-                    trend: "Growing"
+                    trend:
+                        "Growing"
 
                 };
 
 
                 const conflictingInventory = {
 
-                    totalProducts: 10,
+                    totalProducts:
+                        10,
 
-                    productsRequiringReorder: 8
+                    productsRequiringReorder:
+                        8
 
                 };
 
 
                 const conflictingProfit = {
 
-                    tomorrowProfit: -20000,
+                    tomorrowProfit:
+                        -20000,
 
-                    next7DaysProfit: -140000,
+                    next7DaysProfit:
+                        -140000,
 
-                    next30DaysProfit: -600000,
+                    next30DaysProfit:
+                        -600000,
 
-                    status: "Loss"
+                    status:
+                        "Loss"
 
                 };
 
