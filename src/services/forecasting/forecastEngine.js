@@ -16,37 +16,71 @@
 //
 // No child forecast service should call forecastEngine.
 //
+// The forecast services can be injected for testing.
+// Production uses the real services automatically.
 // ============================================================
 
 const {
-    getRevenueForecast
+    getRevenueForecast: defaultGetRevenueForecast
 } = require("./revenueForecastService");
 
 const {
-    getCashForecast
+    getCashForecast: defaultGetCashForecast
 } = require("./cashForecastService");
 
 const {
-    getInventoryForecast
+    getInventoryForecast: defaultGetInventoryForecast
 } = require("./inventoryForecastService");
 
 const {
-    getInventoryDemandForecast
+    getInventoryDemandForecast: defaultGetInventoryDemandForecast
 } = require("./inventoryDemandForecastService");
 
 const {
-    getProfitForecast
+    getProfitForecast: defaultGetProfitForecast
 } = require("./profitForecastService");
 
 const {
-    getRiskForecast
+    getRiskForecast: defaultGetRiskForecast
 } = require("./riskForecastService");
 
 // ============================================================
 // BUILD FORECAST
 // ============================================================
 
-function buildForecast(userId) {
+function buildForecast(
+    userId,
+    services = {}
+) {
+
+    // ========================================================
+    // FORECAST SERVICES
+    // ========================================================
+
+    const getRevenueForecast =
+        services.getRevenueForecast ||
+        defaultGetRevenueForecast;
+
+    const getCashForecast =
+        services.getCashForecast ||
+        defaultGetCashForecast;
+
+    const getInventoryForecast =
+        services.getInventoryForecast ||
+        defaultGetInventoryForecast;
+
+    const getInventoryDemandForecast =
+        services.getInventoryDemandForecast ||
+        defaultGetInventoryDemandForecast;
+
+    const getProfitForecast =
+        services.getProfitForecast ||
+        defaultGetProfitForecast;
+
+    const getRiskForecast =
+        services.getRiskForecast ||
+        defaultGetRiskForecast;
+
 
     // ========================================================
     // REVENUE
@@ -132,7 +166,6 @@ function buildForecast(userId) {
         risks
 
     };
-
 }
 
 

@@ -22,8 +22,9 @@ function projectNext(
         return 0;
     }
 
-    // Do not apply trend adjustment with fewer than
-    // 7 active selling days.
+    // 1–6 active selling days:
+    // There is not enough evidence to apply
+    // a trend adjustment.
     if (
         activeSalesDays < 7
     ) {
@@ -33,10 +34,14 @@ function projectNext(
     switch (trend) {
 
         case "Growing":
-            return base * 1.10;
+            return Math.round(
+                base * 1.10
+            );
 
         case "Declining":
-            return base * 0.90;
+            return Math.round(
+                base * 0.90
+            );
 
         case "Stable":
             return base;
@@ -64,36 +69,42 @@ function getConfidence(
     const days =
         Number(activeSalesDays) || 0;
 
+    // No sales history.
     if (
         days <= 0
     ) {
         return 0;
     }
 
+    // One actual selling day.
     if (
         days === 1
     ) {
         return 50;
     }
 
+    // 2–6 selling days.
     if (
         days < 7
     ) {
         return 65;
     }
 
+    // 7–13 selling days.
     if (
         days < 14
     ) {
         return 80;
     }
 
+    // 14–29 selling days.
     if (
         days < 30
     ) {
         return 90;
     }
 
+    // 30+ selling days.
     return 95;
 }
 
@@ -101,6 +112,13 @@ function getConfidence(
 // ======================================================
 // CALCULATE GROWTH RATE
 // ======================================================
+//
+// History must be:
+//
+// oldest → newest
+//
+// Only ACTIVE selling days should be supplied.
+//
 
 function calculateGrowthRate(
     history
@@ -125,6 +143,7 @@ function calculateGrowthRate(
             ]?.sales
         ) || 0;
 
+    // If the previous active value equals zero.
     if (
         oldest === 0
     ) {
@@ -160,27 +179,40 @@ function calculateActiveDayAverage(
         return 0;
     }
 
-    const sales =
-        history.map(
+    const activeSales =
+        history.filter(
             day =>
-                Number(
-                    day.sales
-                ) || 0
+                (
+                    Number(
+                        day?.sales
+                    ) || 0
+                ) > 0
         );
 
+    if (
+        activeSales.length === 0
+    ) {
+        return 0;
+    }
+
     const total =
-        sales.reduce(
+        activeSales.reduce(
             (
                 sum,
-                value
+                day
             ) =>
-                sum + value,
+                sum +
+                (
+                    Number(
+                        day?.sales
+                    ) || 0
+                ),
             0
         );
 
     return (
         total /
-        history.length
+        activeSales.length
     );
 }
 
@@ -209,7 +241,7 @@ function calculateCalendarDayAverage(
                 sum +
                 (
                     Number(
-                        day.sales
+                        day?.sales
                     ) || 0
                 ),
             0
@@ -254,9 +286,22 @@ function determineForecastBase(
 // ======================================================
 // REVENUE FORECAST ENGINE
 // ======================================================
+//
+// trendEngine is optional.
+//
+// Production:
+//     getRevenueForecast(userId)
+//
+// Testing:
+//     getRevenueForecast(userId, mockTrendEngine)
+//
+// This allows the forecasting logic to be tested without
+// connecting to SQLite or requiring a real user record.
+// ======================================================
 
 function getRevenueForecast(
-    userId
+    userId,
+    trendEngine = historicalTrendEngine
 ) {
 
     // ==================================================
@@ -264,11 +309,10 @@ function getRevenueForecast(
     // ==================================================
 
     const historical =
-        historicalTrendEngine
+        trendEngine
             .getHistoricalSalesTrend(
                 userId
             );
-
 
     // ==================================================
     // NO HISTORICAL DATA
@@ -313,7 +357,6 @@ function getRevenueForecast(
         };
     }
 
-
     // ==================================================
     // ACTIVE SALES HISTORY
     // ==================================================
@@ -323,27 +366,25 @@ function getRevenueForecast(
             .filter(
                 day =>
                     Number(
-                        day.sales
+                        day?.sales
                     ) > 0
             )
             .map(
                 day => ({
 
                     date:
-                        day.date,
+                        day?.date,
 
                     sales:
                         Number(
-                            day.sales
+                            day?.sales
                         ) || 0
 
                 })
             );
 
-
     const activeSalesDays =
         activeHistory.length;
-
 
     // ==================================================
     // CALENDAR HISTORY
@@ -355,7 +396,6 @@ function getRevenueForecast(
         )
             ? historical.calendarHistory
             : historical.history;
-
 
     // ==================================================
     // NO ACTIVE SALES
@@ -399,7 +439,6 @@ function getRevenueForecast(
         };
     }
 
-
     // ==================================================
     // ACTIVE-DAY AVERAGE
     // ==================================================
@@ -409,7 +448,6 @@ function getRevenueForecast(
             activeHistory
         );
 
-
     // ==================================================
     // CALENDAR-DAY AVERAGE
     // ==================================================
@@ -418,7 +456,6 @@ function getRevenueForecast(
         calculateCalendarDayAverage(
             calendarHistory
         );
-
 
     // ==================================================
     // FORECAST BASE
@@ -430,7 +467,6 @@ function getRevenueForecast(
             activeSalesDays
         );
 
-
     // ==================================================
     // TREND
     // ==================================================
@@ -439,17 +475,16 @@ function getRevenueForecast(
         historical.trend ||
         "Insufficient Data";
 
-    // One active selling day is not enough
-    // to establish a meaningful trend.
+    // Fewer than 7 active selling days are not
+    // sufficient to establish a reliable trend.
 
     if (
-        activeSalesDays < 2
+        activeSalesDays < 7
     ) {
 
         trend =
             "Insufficient Data";
     }
-
 
     // ==================================================
     // GROWTH RATE
@@ -462,7 +497,6 @@ function getRevenueForecast(
             )
             : 0;
 
-
     // ==================================================
     // PROJECT DAILY REVENUE
     // ==================================================
@@ -473,7 +507,6 @@ function getRevenueForecast(
             trend,
             activeSalesDays
         );
-
 
     // ==================================================
     // REVENUE PROJECTIONS
@@ -488,7 +521,6 @@ function getRevenueForecast(
     const next30Days =
         projectedDailyRevenue * 30;
 
-
     // ==================================================
     // CONFIDENCE
     // ==================================================
@@ -497,7 +529,6 @@ function getRevenueForecast(
         getConfidence(
             activeSalesDays
         );
-
 
     // ==================================================
     // DEBUG
@@ -562,7 +593,6 @@ function getRevenueForecast(
         confidence
     );
 
-
     // ==================================================
     // RETURN
     // ==================================================
@@ -602,6 +632,18 @@ function getRevenueForecast(
 // ======================================================
 
 module.exports = {
+
+    calculateActiveDayAverage,
+
+    calculateCalendarDayAverage,
+
+    calculateGrowthRate,
+
+    determineForecastBase,
+
+    projectNext,
+
+    getConfidence,
 
     getRevenueForecast
 

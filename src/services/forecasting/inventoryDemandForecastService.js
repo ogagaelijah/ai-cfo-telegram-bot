@@ -1,8 +1,8 @@
 const inventoryRepository =
-    require("../../repositories/inventoryRepository");
+require("../../repositories/inventoryRepository");
 
 const trendsRepository =
-    require("../../repositories/businessTrendsRepository");
+require("../../repositories/businessTrendsRepository");
 
 // ============================================================
 // INVENTORY DEMAND FORECAST SERVICE
@@ -21,7 +21,6 @@ const trendsRepository =
 //
 // ============================================================
 
-
 // ============================================================
 // CONSTANTS
 // ============================================================
@@ -31,7 +30,6 @@ const HISTORY_DAYS = 30;
 const FORECAST_DAYS_7 = 7;
 
 const FORECAST_DAYS_30 = 30;
-
 
 // ============================================================
 // NUMBER SAFETY
@@ -47,7 +45,6 @@ function toNumber(value) {
         : 0;
 
 }
-
 
 // ============================================================
 // ROUND NUMBER
@@ -68,7 +65,6 @@ function round(value, decimals = 2) {
 
 }
 
-
 // ============================================================
 // CALCULATE AVERAGE
 // ============================================================
@@ -84,12 +80,10 @@ function calculateAverage(values) {
 
     }
 
-
     const numbers =
         values.map(
             toNumber
         );
-
 
     const total =
         numbers.reduce(
@@ -101,14 +95,12 @@ function calculateAverage(values) {
             0
         );
 
-
     return (
         total /
         numbers.length
     );
 
 }
-
 
 // ============================================================
 // NORMALIZE DEMAND HISTORY
@@ -124,7 +116,6 @@ function normalizeDemandHistory(history) {
 
     }
 
-
     return history
         .map(row => {
 
@@ -135,20 +126,17 @@ function normalizeDemandHistory(history) {
                 row.product ??
                 null;
 
-
             const date =
                 row.date ??
                 row.sale_date ??
                 row.saleDate ??
                 null;
 
-
             const quantity =
                 row.quantity ??
                 row.units ??
                 row.qty ??
                 0;
-
 
             return {
 
@@ -176,7 +164,6 @@ function normalizeDemandHistory(history) {
 
 }
 
-
 // ============================================================
 // GROUP HISTORY BY PRODUCT
 // ============================================================
@@ -185,7 +172,6 @@ function groupDemandByProduct(history) {
 
     const grouped =
         new Map();
-
 
     history.forEach(row => {
 
@@ -202,7 +188,6 @@ function groupDemandByProduct(history) {
 
         }
 
-
         grouped
             .get(
                 row.productName
@@ -211,11 +196,9 @@ function groupDemandByProduct(history) {
 
     });
 
-
     return grouped;
 
 }
-
 
 // ============================================================
 // CALCULATE DEMAND TREND
@@ -232,12 +215,10 @@ function calculateDemandTrend(history) {
 
     }
 
-
     const midpoint =
         Math.floor(
             history.length / 2
         );
-
 
     const firstHalf =
         history.slice(
@@ -245,12 +226,10 @@ function calculateDemandTrend(history) {
             midpoint
         );
 
-
     const secondHalf =
         history.slice(
             midpoint
         );
-
 
     const firstAverage =
         calculateAverage(
@@ -260,7 +239,6 @@ function calculateDemandTrend(history) {
             )
         );
 
-
     const secondAverage =
         calculateAverage(
             secondHalf.map(
@@ -268,7 +246,6 @@ function calculateDemandTrend(history) {
                     row.quantity
             )
         );
-
 
     if (
         firstAverage <= 0
@@ -280,7 +257,6 @@ function calculateDemandTrend(history) {
 
     }
 
-
     const percentageChange =
         (
             (
@@ -291,29 +267,43 @@ function calculateDemandTrend(history) {
         ) *
         100;
 
+    // --------------------------------------------------
+    // SMALL SAMPLE
+    // --------------------------------------------------
+    //
+    // With fewer than 7 observations, require stronger
+    // evidence before declaring a trend.
+    //
+    // This prevents small fluctuations from being
+    // interpreted as a genuine business trend.
+    // --------------------------------------------------
+
+    const trendThreshold =
+        history.length < 7
+            ? 20
+            : 10;
 
     if (
-        percentageChange >= 10
+        percentageChange >=
+        trendThreshold
     ) {
 
         return "Growing";
 
     }
 
-
     if (
-        percentageChange <= -10
+        percentageChange <=
+        -trendThreshold
     ) {
 
         return "Declining";
 
     }
 
-
     return "Stable";
 
 }
-
 
 // ============================================================
 // CALCULATE CONFIDENCE
@@ -326,7 +316,6 @@ function calculateConfidence(observationCount) {
             observationCount
         );
 
-
     if (
         count <= 0
     ) {
@@ -334,7 +323,6 @@ function calculateConfidence(observationCount) {
         return 0;
 
     }
-
 
     if (
         count < 3
@@ -344,7 +332,6 @@ function calculateConfidence(observationCount) {
 
     }
 
-
     if (
         count < 7
     ) {
@@ -352,7 +339,6 @@ function calculateConfidence(observationCount) {
         return 50;
 
     }
-
 
     if (
         count < 14
@@ -362,7 +348,6 @@ function calculateConfidence(observationCount) {
 
     }
 
-
     if (
         count < 21
     ) {
@@ -371,11 +356,9 @@ function calculateConfidence(observationCount) {
 
     }
 
-
     return 95;
 
 }
-
 
 // ============================================================
 // AVERAGE DAILY DEMAND
@@ -392,7 +375,6 @@ function calculateAverageDailyDemand(history) {
 
     }
 
-
     return calculateAverage(
         history.map(
             row =>
@@ -401,7 +383,6 @@ function calculateAverageDailyDemand(history) {
     );
 
 }
-
 
 // ============================================================
 // REORDER RECOMMENDATION
@@ -417,14 +398,12 @@ function getReorderRecommendation(
             currentStock
         );
 
-
     const days =
         stockoutDays === Infinity
             ? Infinity
             : toNumber(
                 stockoutDays
             );
-
 
     if (
         stock <= 0
@@ -434,15 +413,25 @@ function getReorderRecommendation(
 
     }
 
+    // --------------------------------------------------
+    // URGENT
+    // --------------------------------------------------
+    //
+    // Ten days or less of stock remaining means the
+    // business should act quickly.
+    // --------------------------------------------------
 
     if (
-        days <= 7
+        days <= 10
     ) {
 
         return "Urgent";
 
     }
 
+    // --------------------------------------------------
+    // REORDER SOON
+    // --------------------------------------------------
 
     if (
         days <= 14
@@ -452,6 +441,9 @@ function getReorderRecommendation(
 
     }
 
+    // --------------------------------------------------
+    // MONITOR
+    // --------------------------------------------------
 
     if (
         days <= 30
@@ -461,11 +453,9 @@ function getReorderRecommendation(
 
     }
 
-
     return "No Immediate Reorder";
 
 }
-
 
 // ============================================================
 // FORECAST ONE PRODUCT
@@ -481,28 +471,23 @@ function forecastProduct(
             inventoryItem.quantity
         );
 
-
     const averageDailyDemand =
         calculateAverageDailyDemand(
             demandHistory
         );
 
-
     const observationCount =
         demandHistory.length;
-
 
     const demandTrend =
         calculateDemandTrend(
             demandHistory
         );
 
-
     const confidence =
         calculateConfidence(
             observationCount
         );
-
 
     // --------------------------------------------------------
     // PROJECTED DEMAND
@@ -512,11 +497,9 @@ function forecastProduct(
         averageDailyDemand *
         FORECAST_DAYS_7;
 
-
     const next30DaysDemand =
         averageDailyDemand *
         FORECAST_DAYS_30;
-
 
     // --------------------------------------------------------
     // STOCKOUT ESTIMATE
@@ -524,7 +507,6 @@ function forecastProduct(
 
     let estimatedStockoutDays =
         Infinity;
-
 
     if (
         currentStock <= 0
@@ -545,7 +527,6 @@ function forecastProduct(
 
     }
 
-
     // --------------------------------------------------------
     // REORDER
     // --------------------------------------------------------
@@ -556,14 +537,12 @@ function forecastProduct(
             estimatedStockoutDays
         );
 
-
     // --------------------------------------------------------
     // DEMAND STATUS
     // --------------------------------------------------------
 
     let demandStatus =
         "Normal";
-
 
     if (
         averageDailyDemand <= 0
@@ -591,7 +570,6 @@ function forecastProduct(
             "Declining";
 
     }
-
 
     return {
 
@@ -640,7 +618,6 @@ function forecastProduct(
 
 }
 
-
 // ============================================================
 // INVENTORY DEMAND FORECAST
 // ============================================================
@@ -656,7 +633,6 @@ function getInventoryDemandForecast(telegramId) {
             telegramId
         );
 
-
     // ========================================================
     // INVENTORY
     // ========================================================
@@ -665,7 +641,6 @@ function getInventoryDemandForecast(telegramId) {
         inventoryRepository.findAll(
             userId
         );
-
 
     // ========================================================
     // NO INVENTORY
@@ -679,7 +654,6 @@ function getInventoryDemandForecast(telegramId) {
         console.log(
             "📦 INVENTORY DEMAND FORECAST: No Inventory"
         );
-
 
         return {
 
@@ -702,7 +676,6 @@ function getInventoryDemandForecast(telegramId) {
 
     }
 
-
     // ========================================================
     // PRODUCT DEMAND HISTORY
     // ========================================================
@@ -713,12 +686,10 @@ function getInventoryDemandForecast(telegramId) {
             HISTORY_DAYS
         );
 
-
     const demandHistory =
         normalizeDemandHistory(
             rawDemandHistory
         );
-
 
     // ========================================================
     // GROUP DEMAND
@@ -728,7 +699,6 @@ function getInventoryDemandForecast(telegramId) {
         groupDemandByProduct(
             demandHistory
         );
-
 
     // ========================================================
     // FORECAST PRODUCTS
@@ -743,12 +713,10 @@ function getInventoryDemandForecast(telegramId) {
                         inventoryItem.product_name
                     ).trim();
 
-
                 const productHistory =
                     groupedDemand.get(
                         productName
                     ) || [];
-
 
                 return forecastProduct(
                     inventoryItem,
@@ -757,7 +725,6 @@ function getInventoryDemandForecast(telegramId) {
 
             }
         );
-
 
     // ========================================================
     // REORDER COUNT
@@ -782,14 +749,12 @@ function getInventoryDemandForecast(telegramId) {
 
         ).length;
 
-
     // ========================================================
     // OVERALL STATUS
     // ========================================================
 
     let status =
         "Healthy";
-
 
     if (
         productsRequiringReorder > 0
@@ -799,7 +764,6 @@ function getInventoryDemandForecast(telegramId) {
             "Reorder Required";
 
     }
-
 
     // ========================================================
     // DEBUG
@@ -818,7 +782,6 @@ function getInventoryDemandForecast(telegramId) {
         "Products Requiring Reorder:",
         productsRequiringReorder
     );
-
 
     // ========================================================
     // RETURN
@@ -841,7 +804,6 @@ function getInventoryDemandForecast(telegramId) {
     };
 
 }
-
 
 // ============================================================
 // EXPORT
