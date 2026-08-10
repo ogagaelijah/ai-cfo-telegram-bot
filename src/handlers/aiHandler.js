@@ -17,13 +17,17 @@ module.exports = async function aiHandler(ctx) {
             .toLowerCase()
             .trim();
 
+
     // ==========================
     // OPEN AI MODE
     // ==========================
-    if (text === "🤖 Ask AI") {
+
+    if (
+        text === "🤖 Ask AI"
+    ) {
 
         await ctx.reply(
-`🤖 AI CFO
+            `🤖 AI CFO
 
 Ask me anything about your business.
 
@@ -46,23 +50,31 @@ You can also ask follow-up questions such as:
         return true;
     }
 
+
     // ==========================
     // FOLLOW-UP QUESTIONS
     // ==========================
+
     const followUp =
-        aiChat.isFollowUp(text);
+        aiChat.isFollowUp(
+            text
+        );
+
 
     // ==========================
     // ACTIVE AI CONVERSATION
     // ==========================
+
     const activeConversation =
         aiChat.hasActiveConversation(
             telegramId
         );
 
+
     // ==========================
     // BUSINESS KEYWORDS
     // ==========================
+
     const businessQuestion =
         text.endsWith("?") ||
 
@@ -90,44 +102,55 @@ You can also ask follow-up questions such as:
 
         lowerText.includes("what should i");
 
+
     // ==========================
     // FOLLOW-UP WITH ACTIVE TOPIC
     // ==========================
+
     if (
         followUp &&
         activeConversation
     ) {
 
         const answer =
-            aiChat.processQuestion(
+            await aiChat.processQuestion(
                 telegramId,
                 text
             );
 
-        await ctx.reply(answer);
+        await ctx.reply(
+            answer
+        );
 
         return true;
     }
+
 
     // ==========================
     // NEW BUSINESS QUESTION
     // ==========================
-    if (businessQuestion) {
+
+    if (
+        businessQuestion
+    ) {
 
         const answer =
-            aiChat.processQuestion(
+            await aiChat.processQuestion(
                 telegramId,
                 text
             );
 
-        await ctx.reply(answer);
+        await ctx.reply(
+            answer
+        );
 
         return true;
     }
 
+
     // ==========================
     // NOT AN AI MESSAGE
     // ==========================
-    return false;
 
+    return false;
 };

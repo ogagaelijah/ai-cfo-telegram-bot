@@ -1,66 +1,246 @@
-const analytics = require("./financialAnalyticsService");
+const analytics =
+    require("./financialAnalyticsService");
 
-const trends = require("./businessTrendsService");
+const trends =
+    require("./businessTrendsService");
 
-const insights = require("./businessInsightsService");
+const insights =
+    require("./businessInsightsService");
 
-const recommendations = require("./businessRecommendationService");
+const recommendations =
+    require("./businessRecommendationService");
 
-const alerts = require("./businessAlertService");
+const alerts =
+    require("./businessAlertService");
 
-const priority = require("./businessAlertPriorityService");
+const priority =
+    require("./businessAlertPriorityService");
 
-const summary = require("./businessAlertSummaryService");
+const summary =
+    require("./businessAlertSummaryService");
 
-const decisionEngine = require("./decisionEngine");
+const businessForecast =
+    require("./businessForecastService");
 
 // ==========================
 // BUILD BUSINESS REPORT
 // ==========================
-function buildBusinessReport(telegramId) {
+//
+// This service builds the complete business report.
+//
+// IMPORTANT:
+//
+// The centralized Forecast Engine is now the source
+// of forecast-based decisions.
+//
+// We DO NOT call the legacy:
+//
+//     decisionEngine.generateDecision()
+//
+// here anymore.
+//
+// Forecast flow:
+//
+// Business Data
+//      ↓
+// Forecast Engine
+//      ↓
+// Revenue / Cash / Inventory / Profit
+//      ↓
+// Risk Engine
+//      ↓
+// Central Decision Engine
+//      ↓
+// Business Report
+//
+// This prevents two different decision engines from
+// producing conflicting intelligence.
+// ==========================
+
+function buildBusinessReport(
+    telegramId
+) {
+
+    // ==========================
+    // FINANCIAL SNAPSHOT
+    // ==========================
 
     const snapshot =
-        analytics.getBusinessSnapshot(telegramId);
+        analytics.getBusinessSnapshot(
+            telegramId
+        );
+
+
+    // ==========================
+    // CASH
+    // ==========================
 
     const cash =
-        analytics.getCashMetrics(telegramId);
+        analytics.getCashMetrics(
+            telegramId
+        );
+
+
+    // ==========================
+    // DEBT
+    // ==========================
 
     const debt =
-        analytics.getDebtMetrics(telegramId);
+        analytics.getDebtMetrics(
+            telegramId
+        );
+
+
+    // ==========================
+    // BUSINESS HEALTH
+    // ==========================
 
     const health =
-        analytics.getBusinessHealth(telegramId);
+        analytics.getBusinessHealth(
+            telegramId
+        );
+
+
+    // ==========================
+    // HISTORICAL TRENDS
+    // ==========================
 
     const trend =
-        trends.getBusinessTrends(telegramId);
+        trends.getBusinessTrends(
+            telegramId
+        );
+
+
+    // ==========================
+    // BUSINESS INSIGHTS
+    // ==========================
 
     const insight =
-        insights.getBusinessInsights(telegramId);
+        insights.getBusinessInsights(
+            telegramId
+        );
+
+
+    // ==========================
+    // RECOMMENDATIONS
+    // ==========================
 
     const recommendation =
-        recommendations.getBusinessRecommendations(telegramId);
+        recommendations.getBusinessRecommendations(
+            telegramId
+        );
+
+
+    // ==========================
+    // BUSINESS ALERTS
+    // ==========================
 
     const businessAlerts =
-        alerts.getBusinessAlerts(telegramId);
+        alerts.getBusinessAlerts(
+            telegramId
+        );
+
+
+    // ==========================
+    // PRIORITIZE ALERTS
+    // ==========================
 
     const prioritizedAlerts =
-        priority.prioritizeAlerts(businessAlerts);
+        priority.prioritizeAlerts(
+            businessAlerts
+        );
+
+
+    // ==========================
+    // ALERT SUMMARY
+    // ==========================
 
     const alertSummary =
-        summary.getAlertSummary(prioritizedAlerts);
+        summary.getAlertSummary(
+            prioritizedAlerts
+        );
+
 
     // ==========================
-    // AI DECISION ENGINE
+    // CENTRAL BUSINESS FORECAST
     // ==========================
-    const decision =
-        decisionEngine.generateDecision(telegramId);
+    //
+    // This calls:
+    //
+    // businessForecastService
+    //        ↓
+    // forecastEngine
+    //        ↓
+    // revenue forecast
+    // cash forecast
+    // inventory forecast
+    // inventory demand forecast
+    // profit forecast
+    // risk forecast
+    // decision engine
+    //
+    // The decision object returned here is therefore
+    // produced by the centralized intelligence pipeline.
+    // ==========================
+
+    const forecast =
+        businessForecast.getBusinessForecast(
+            telegramId
+        );
+
+
+    // ==========================
+    // CENTRAL DECISION INTELLIGENCE
+    // ==========================
+    //
+    // forecast.decisions contains the decisions created
+    // by:
+    //
+    // riskForecastService
+    //        ↓
+    // intelligence/decisionEngine
+    //
+    // forecast.executiveSummary contains the overall
+    // management-level summary.
+    // ==========================
+
+    const decision = {
+
+        executiveSummary:
+            forecast.executiveSummary,
+
+        totalDecisions:
+            Array.isArray(
+                forecast.decisions
+            )
+                ? forecast.decisions.length
+                : 0,
+
+        decisions:
+            Array.isArray(
+                forecast.decisions
+            )
+                ? forecast.decisions
+                : []
+
+    };
+
+
+    // ==========================
+    // RETURN COMPLETE REPORT
+    // ==========================
 
     return {
 
-        // NEW
         telegramId,
 
-        generatedAt: new Date(),
+        generatedAt:
+            new Date(),
+
+
+        // ======================
+        // FINANCIAL DATA
+        // ======================
 
         snapshot,
 
@@ -70,22 +250,51 @@ function buildBusinessReport(telegramId) {
 
         health,
 
-        trends: trend,
 
-        insights: insight,
+        // ======================
+        // HISTORICAL INTELLIGENCE
+        // ======================
 
-        recommendations: recommendation,
+        trends:
+            trend,
 
-        alerts: prioritizedAlerts,
+        insights:
+            insight,
+
+        recommendations:
+            recommendation,
+
+
+        // ======================
+        // ALERT INTELLIGENCE
+        // ======================
+
+        alerts:
+            prioritizedAlerts,
 
         alertSummary,
 
-        // NEW
+
+        // ======================
+        // CENTRAL FORECAST
+        // ======================
+
+        forecast,
+
+
+        // ======================
+        // CENTRAL DECISIONS
+        // ======================
+
         decision
 
     };
-
 }
+
+
+// ==========================
+// EXPORT
+// ==========================
 
 module.exports = {
 

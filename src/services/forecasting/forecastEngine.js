@@ -22,6 +22,10 @@ const {
     getRiskForecast
 } = require("./riskForecastService");
 
+const {
+    getDecisionForecast
+} = require("../intelligence/decisionEngine");
+
 const expenseRepository =
     require("../../repositories/expenseRepository");
 
@@ -29,50 +33,58 @@ const {
     getDailyCOGS
 } = require("../../repositories/businessTrendsRepository");
 
-
 // ============================================================
 // FORECAST ENGINE
 // ============================================================
 //
-// Central orchestration layer.
+// CENTRAL CFO INTELLIGENCE ORCHESTRATION LAYER
 //
 // Responsibilities:
 //
-// 1. Calculate each independent forecast.
-// 2. Collect historical data required by dependent
-//    forecast services.
-// 3. Pass already-calculated forecast objects into
-//    downstream services.
+// 1. Calculate independent forecasts.
+// 2. Collect historical financial data.
+// 3. Pass calculated intelligence to dependent engines.
+// 4. Return one structured business intelligence object.
 //
-// Dependency injection is supported for:
-//     - Forecast services
-//     - Expense history
-//     - COGS history
+// This engine is interface-independent.
 //
-// This keeps the engine easy to test without requiring
-// real database users or SQLite data.
+// It is NOT tied to:
+//
+// - Telegram
+// - Website
+// - Mobile App
+// - OpenAI
+// - Any future AI provider
+//
+// Future interfaces can consume this same structure.
+//
+// ============================================================
 //
 // FLOW:
 //
-// Revenue Forecast
-//      │
-//      ├───────────────┐
-//      │               │
-//      ▼               ▼
-// Profit Forecast   Risk Forecast
-//
-// Cash Forecast ────────────┐
-//                            │
-// Inventory Forecast ────────┤
-//                            ▼
-// Inventory Demand ───────► Risk Forecast
-//
-// Expense History ───────► Profit Forecast
-//
-// COGS History ──────────► Profit Forecast
+//                    BUSINESS DATA
+//                         │
+//          ┌──────────────┼──────────────┐
+//          ▼              ▼              ▼
+//       Revenue          Cash         Inventory
+//          │              │              │
+//          └──────────────┼──────────────┘
+//                         ▼
+//                    Profit Engine
+//                         │
+//          ┌──────────────┼──────────────┐
+//          ▼              ▼              ▼
+//        Risks        Decisions      Scenarios
+//          │              │              │
+//          └──────────────┼──────────────┘
+//                         ▼
+//                    Advisor Core
+//                         │
+//          ┌──────────────┼──────────────┐
+//          ▼              ▼              ▼
+//       Telegram       Website        Mobile
 //
 // ============================================================
-
 
 function buildForecast(
     userId,
@@ -119,13 +131,13 @@ function buildForecast(
     //
     // These are injectable for testing.
     //
-    // In production:
+    // Production:
     //
     //     expenseRepository.getDailyHistory()
     //
     //     getDailyCOGS()
     //
-    // In tests:
+    // Tests:
     //
     //     services.getExpenseHistory()
     //
@@ -187,11 +199,21 @@ function buildForecast(
     // EXPENSE HISTORY
     // ========================================================
     //
-    // Profit Forecast needs historical operating
-    // expense data.
+    // This history serves two purposes:
     //
-    // getDailyHistory() intentionally includes
-    // zero-expense calendar days.
+    // 1. Profit forecasting.
+    // 2. Future scenario analysis.
+    //
+    // Daily history intentionally contains zero-expense
+    // calendar days.
+    //
+    // Example:
+    //
+    // [
+    //     { date: "2026-08-01", expenses: 50000 },
+    //     { date: "2026-08-02", expenses: 0 },
+    //     { date: "2026-08-03", expenses: 30000 }
+    // ]
     //
     // ========================================================
 
@@ -205,9 +227,9 @@ function buildForecast(
     // COGS HISTORY
     // ========================================================
     //
-    // COGS comes from products actually sold.
+    // COGS represents the cost of products actually sold.
     //
-    // This is NOT the same as inventory purchases.
+    // It is NOT the same as inventory purchases.
     //
     // ========================================================
 
@@ -223,13 +245,11 @@ function buildForecast(
     //
     // Profit receives:
     //
-    // 1. Already-calculated revenue forecast.
-    // 2. Complete operating expense history.
-    // 3. Historical COGS history.
+    // 1. Revenue forecast.
+    // 2. Operating expense history.
+    // 3. COGS history.
     //
-    // Revenue is NOT calculated again.
-    //
-    // COGS is NOT calculated again.
+    // Revenue is not recalculated here.
     //
     // ========================================================
 
@@ -245,8 +265,7 @@ function buildForecast(
     // RISK FORECAST
     // ========================================================
     //
-    // Risk receives ALL already-calculated forecast
-    // objects, including PROFIT.
+    // Risk receives already-calculated intelligence.
     //
     // ========================================================
 
@@ -262,10 +281,36 @@ function buildForecast(
 
 
     // ========================================================
+    // DECISION FORECAST
+    // ========================================================
+    //
+    // Decisions interpret the risks.
+    //
+    // ========================================================
+
+    const decisionForecast =
+        getDecisionForecast({
+            risks
+        });
+
+
+    // ========================================================
     // COMPLETE FORECAST
+    // ========================================================
+    //
+    // This is the central structured CFO intelligence
+    // payload.
+    //
+    // Future interfaces should consume this object rather
+    // than directly accessing individual repositories.
+    //
     // ========================================================
 
     return {
+
+        // ----------------------------------------------------
+        // CORE FORECASTS
+        // ----------------------------------------------------
 
         revenue,
 
@@ -277,7 +322,33 @@ function buildForecast(
 
         profit,
 
-        risks
+
+        // ----------------------------------------------------
+        // HISTORICAL SUPPORTING DATA
+        // ----------------------------------------------------
+        //
+        // Exposing expense history here allows the Scenario
+        // Engine and future intelligence services to work
+        // from the same structured financial context.
+        //
+        // ----------------------------------------------------
+
+        expenseHistory,
+
+        cogsHistory,
+
+
+        // ----------------------------------------------------
+        // INTELLIGENCE
+        // ----------------------------------------------------
+
+        risks,
+
+        decisions:
+            decisionForecast.decisions,
+
+        executiveSummary:
+            decisionForecast.executiveSummary
 
     };
 }

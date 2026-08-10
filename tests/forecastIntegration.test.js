@@ -5,7 +5,6 @@ const {
     vi
 } = await import("vitest");
 
-
 // ============================================================
 // FORECAST ENGINE
 // ============================================================
@@ -16,14 +15,11 @@ const {
     "../src/services/forecasting/forecastEngine"
 );
 
-
 // ============================================================
 // TEST DATA
 // ============================================================
 
-const USER_ID =
-    999999;
-
+const USER_ID = 999999;
 
 // ============================================================
 // MOCK FORECAST RESULTS
@@ -41,7 +37,6 @@ const revenueForecast = {
 
 };
 
-
 const cashForecast = {
 
     tomorrow: 80000,
@@ -52,7 +47,6 @@ const cashForecast = {
 
 };
 
-
 const inventoryForecast = {
 
     totalProducts: 5,
@@ -61,7 +55,6 @@ const inventoryForecast = {
 
 };
 
-
 const inventoryDemandForecast = {
 
     products: 5,
@@ -69,7 +62,6 @@ const inventoryDemandForecast = {
     productsRequiringReorder: 2
 
 };
-
 
 const profitForecast = {
 
@@ -83,7 +75,6 @@ const profitForecast = {
 
 };
 
-
 const riskForecast = {
 
     overallRisk: "Low",
@@ -91,7 +82,6 @@ const riskForecast = {
     risks: []
 
 };
-
 
 // ============================================================
 // MOCK SERVICES
@@ -101,11 +91,20 @@ function createMockServices() {
 
     return {
 
+        // ====================================================
+        // REVENUE FORECAST
+        // ====================================================
+
         getRevenueForecast:
             vi.fn(
                 () =>
                     revenueForecast
             ),
+
+
+        // ====================================================
+        // CASH FORECAST
+        // ====================================================
 
         getCashForecast:
             vi.fn(
@@ -113,11 +112,21 @@ function createMockServices() {
                     cashForecast
             ),
 
+
+        // ====================================================
+        // INVENTORY FORECAST
+        // ====================================================
+
         getInventoryForecast:
             vi.fn(
                 () =>
                     inventoryForecast
             ),
+
+
+        // ====================================================
+        // INVENTORY DEMAND FORECAST
+        // ====================================================
 
         getInventoryDemandForecast:
             vi.fn(
@@ -125,17 +134,77 @@ function createMockServices() {
                     inventoryDemandForecast
             ),
 
+
+        // ====================================================
+        // EXPENSE HISTORY
+        // ====================================================
+        //
+        // Injected so the integration test does not
+        // access the real SQLite database.
+        //
+
+        getExpenseHistory:
+            vi.fn(
+                () => []
+            ),
+
+
+        // ====================================================
+        // COGS HISTORY
+        // ====================================================
+        //
+        // Injected so the integration test does not
+        // access the real SQLite database.
+        //
+
+        getDailyCOGS:
+            vi.fn(
+                () => []
+            ),
+
+
+        // ====================================================
+        // PROFIT FORECAST
+        // ====================================================
+        //
+        // Current forecastEngine contract:
+        //
+        // profitService(
+        //     revenue,
+        //     expenseHistory,
+        //     cogsHistory
+        // )
+        //
+
         getProfitForecast:
             vi.fn(
                 (
-                    userId,
-                    revenue
+                    revenue,
+                    expenseHistory,
+                    cogsHistory
                 ) => {
 
                     return profitForecast;
 
                 }
             ),
+
+
+        // ====================================================
+        // RISK FORECAST
+        // ====================================================
+        //
+        // Current forecastEngine contract:
+        //
+        // riskService(
+        //     userId,
+        //     revenue,
+        //     cash,
+        //     inventory,
+        //     inventoryDemand,
+        //     profit
+        // )
+        //
 
         getRiskForecast:
             vi.fn(
@@ -144,7 +213,8 @@ function createMockServices() {
                     revenue,
                     cash,
                     inventory,
-                    inventoryDemand
+                    inventoryDemand,
+                    profit
                 ) => {
 
                     return riskForecast;
@@ -164,6 +234,7 @@ function createMockServices() {
 describe(
     "Forecast Integration",
     () => {
+
 
         // ====================================================
         // COMPLETE FORECAST
@@ -263,9 +334,11 @@ describe(
                     services.getProfitForecast
                 ).toHaveBeenCalledWith(
 
-                    USER_ID,
+                    revenueForecast,
 
-                    revenueForecast
+                    [],
+
+                    []
 
                 );
 
@@ -353,8 +426,11 @@ describe(
                     .mockReturnValue(
                         {
                             tomorrow: 0,
+
                             next7Days: 0,
+
                             next30Days: 0,
+
                             confidence: 0
                         }
                     );
@@ -414,6 +490,7 @@ describe(
                     .mockReturnValue(
                         {
                             totalProducts: 0,
+
                             productsRequiringReorder: 0
                         }
                     );
@@ -423,6 +500,7 @@ describe(
                     .mockReturnValue(
                         {
                             products: 0,
+
                             productsRequiringReorder: 0
                         }
                     );

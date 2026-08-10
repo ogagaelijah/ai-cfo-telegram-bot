@@ -10,30 +10,47 @@ const trendsRepository =
 // ==========================
 function movingAverage(values) {
 
-    if (!values || values.length === 0) {
+    if (
+        !values ||
+        values.length === 0
+    ) {
+
         return 0;
     }
 
+
     const numbers =
-        values.map(value =>
-            Number(value) || 0
+        values.map(
+            value =>
+                Number(value) || 0
         );
+
 
     const total =
         numbers.reduce(
-            (sum, value) =>
+            (
+                sum,
+                value
+            ) =>
                 sum + value,
             0
         );
 
-    return total / numbers.length;
+
+    return (
+        total /
+        numbers.length
+    );
 }
 
 
 // ==========================
 // DETERMINE TREND
 // ==========================
-function determineTrend(first, last) {
+function determineTrend(
+    first,
+    last
+) {
 
     const firstValue =
         Number(first) || 0;
@@ -60,7 +77,9 @@ function determineTrend(first, last) {
     // NEW BUSINESS
     // ==========================
 
-    if (firstValue === 0) {
+    if (
+        firstValue === 0
+    ) {
 
         return lastValue > 0
             ? "Growing"
@@ -75,7 +94,10 @@ function determineTrend(first, last) {
 
     const percentageChange =
         (
-            (lastValue - firstValue) /
+            (
+                lastValue -
+                firstValue
+            ) /
             Math.abs(firstValue)
         ) * 100;
 
@@ -84,14 +106,18 @@ function determineTrend(first, last) {
     // TREND THRESHOLD
     // ==========================
 
-    if (percentageChange >= 10) {
+    if (
+        percentageChange >= 10
+    ) {
 
         return "Growing";
 
     }
 
 
-    if (percentageChange <= -10) {
+    if (
+        percentageChange <= -10
+    ) {
 
         return "Declining";
 
@@ -105,7 +131,9 @@ function determineTrend(first, last) {
 // ==========================
 // BUILD ACTIVE DAILY HISTORY
 // ==========================
-function buildActiveHistory(history) {
+function buildActiveHistory(
+    history
+) {
 
     if (
         !history ||
@@ -118,33 +146,46 @@ function buildActiveHistory(history) {
 
 
     // Keep only days where
-    // actual sales occurred.
+    // recognized revenue actually occurred.
+    //
+    // historyRepository already uses
+    // recognized revenue rather than raw
+    // transaction totals.
+
     const active =
-        history.filter(day =>
-            Number(day.sales) > 0
+        history.filter(
+            day =>
+                Number(day.sales) > 0
         );
 
 
     // Repository returns newest first.
     // Reverse to oldest → newest.
+
     return [...active]
         .reverse()
-        .map(day => ({
+        .map(
+            day => ({
 
-            date:
-                day.date,
+                date:
+                    day.date,
 
-            sales:
-                Number(day.sales) || 0
+                sales:
+                    Number(
+                        day.sales
+                    ) || 0
 
-        }));
+            })
+        );
 }
 
 
 // ==========================
 // BUILD CALENDAR HISTORY
 // ==========================
-function buildCalendarHistory(history) {
+function buildCalendarHistory(
+    history
+) {
 
     if (
         !history ||
@@ -158,17 +199,22 @@ function buildCalendarHistory(history) {
 
     // Repository returns newest first.
     // Reverse to oldest → newest.
+
     return [...history]
         .reverse()
-        .map(day => ({
+        .map(
+            day => ({
 
-            date:
-                day.date,
+                date:
+                    day.date,
 
-            sales:
-                Number(day.sales) || 0
+                sales:
+                    Number(
+                        day.sales
+                    ) || 0
 
-        }));
+            })
+        );
 }
 
 
@@ -243,6 +289,7 @@ function getHistoricalSalesTrend(
             "📈 SALES TREND: No Data"
         );
 
+
         return {
 
             trend:
@@ -260,8 +307,7 @@ function getHistoricalSalesTrend(
             history:
                 [],
 
-            calendarHistory:
-                calendarHistory
+            calendarHistory
 
         };
 
@@ -269,12 +315,15 @@ function getHistoricalSalesTrend(
 
 
     // ==========================
-    // ACTIVE SALES DAY AVERAGE
+    // ACTIVE-DAY AVERAGE
     // ==========================
 
     const activeSalesValues =
-        activeHistory.map(day =>
-            Number(day.sales) || 0
+        activeHistory.map(
+            day =>
+                Number(
+                    day.sales
+                ) || 0
         );
 
 
@@ -285,12 +334,15 @@ function getHistoricalSalesTrend(
 
 
     // ==========================
-    // CALENDAR DAY AVERAGE
+    // CALENDAR-DAY AVERAGE
     // ==========================
 
     const calendarSalesValues =
-        calendarHistory.map(day =>
-            Number(day.sales) || 0
+        calendarHistory.map(
+            day =>
+                Number(
+                    day.sales
+                ) || 0
         );
 
 
@@ -301,11 +353,34 @@ function getHistoricalSalesTrend(
 
 
     // ==========================
-    // ONLY ONE ACTIVE SALES DAY
+    // INSUFFICIENT ACTIVE SALES DAYS
+    // ==========================
+    //
+    // 1–6 active selling days are
+    // not enough to confidently classify
+    // the business as Growing, Declining
+    // or Stable.
+    //
+    // The active-day average remains
+    // available for forecasting.
+    //
+    // Trend classification begins only
+    // when there are at least 7 active
+    // selling days.
+    //
+    // This prevents situations such as:
+    //
+    // ₦85,600 → ₦6,800
+    //
+    // being classified as a genuine
+    // -92% business decline when the
+    // business only has two selling days
+    // in the available history.
+    //
     // ==========================
 
     if (
-        activeHistory.length === 1
+        activeHistory.length < 7
     ) {
 
         console.log(
@@ -320,6 +395,11 @@ function getHistoricalSalesTrend(
         console.log(
             "📅 CALENDAR DAY AVERAGE:",
             calendarAverage
+        );
+
+        console.log(
+            "📊 ACTIVE SALES DAYS:",
+            activeHistory.length
         );
 
 
@@ -351,8 +431,11 @@ function getHistoricalSalesTrend(
     // ==========================
 
     const sales =
-        activeHistory.map(day =>
-            Number(day.sales) || 0
+        activeHistory.map(
+            day =>
+                Number(
+                    day.sales
+                ) || 0
         );
 
 
@@ -363,7 +446,9 @@ function getHistoricalSalesTrend(
     const trend =
         determineTrend(
             sales[0],
-            sales[sales.length - 1]
+            sales[
+                sales.length - 1
+            ]
         );
 
 
@@ -386,6 +471,11 @@ function getHistoricalSalesTrend(
         calendarAverage
     );
 
+    console.log(
+        "📊 ACTIVE SALES DAYS:",
+        activeHistory.length
+    );
+
 
     // ==========================
     // RETURN
@@ -398,6 +488,7 @@ function getHistoricalSalesTrend(
         // Existing property.
         // Other services can continue
         // using this without breaking.
+
         average:
             activeDayAverage,
 
@@ -454,19 +545,26 @@ function getHistoricalProfitTrend(
 
     const history =
         (rawHistory || [])
-            .filter(day =>
-                Number(day.profit) !== 0
+            .filter(
+                day =>
+                    Number(
+                        day.profit
+                    ) !== 0
             )
             .reverse()
-            .map(day => ({
+            .map(
+                day => ({
 
-                date:
-                    day.date,
+                    date:
+                        day.date,
 
-                profit:
-                    Number(day.profit) || 0
+                    profit:
+                        Number(
+                            day.profit
+                        ) || 0
 
-            }));
+                })
+            );
 
 
     console.log(
@@ -500,12 +598,32 @@ function getHistoricalProfitTrend(
 
 
     // ==========================
-    // ONLY ONE PROFIT DAY
+    // INSUFFICIENT PROFIT DAYS
+    // ==========================
+    //
+    // Require at least 7 active
+    // profit days before classifying
+    // profit as Growing, Declining
+    // or Stable.
+    //
+    // This keeps profit intelligence
+    // consistent with revenue intelligence.
     // ==========================
 
     if (
-        history.length === 1
+        history.length < 7
     ) {
+
+        const insufficientAverage =
+            movingAverage(
+                history.map(
+                    day =>
+                        Number(
+                            day.profit
+                        ) || 0
+                )
+            );
+
 
         return {
 
@@ -513,9 +631,7 @@ function getHistoricalProfitTrend(
                 "Insufficient Data",
 
             average:
-                Number(
-                    history[0].profit
-                ) || 0,
+                insufficientAverage,
 
             history
 
@@ -529,8 +645,11 @@ function getHistoricalProfitTrend(
     // ==========================
 
     const profits =
-        history.map(day =>
-            Number(day.profit) || 0
+        history.map(
+            day =>
+                Number(
+                    day.profit
+                ) || 0
         );
 
 
@@ -551,7 +670,9 @@ function getHistoricalProfitTrend(
     const trend =
         determineTrend(
             profits[0],
-            profits[profits.length - 1]
+            profits[
+                profits.length - 1
+            ]
         );
 
 

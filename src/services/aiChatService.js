@@ -4,103 +4,76 @@ const aiIntelligence =
 const conversation =
     require("./aiConversationService");
 
+const advisorIntent =
+    require("./intelligence/advisorIntentService");
 
-// ==========================
-// DETECT TOPIC
-// ==========================
-function detectTopic(text) {
+// ============================================================
+// MAP ADVISOR INTENT TO INTELLIGENCE TOPIC
+// ============================================================
 
-    const question =
-        text
-            .toLowerCase()
-            .trim();
+function mapIntentToTopic(intent) {
 
-    // ==========================
-    // CASH
-    // ==========================
-    if (
-        question.includes("cash") ||
-        question.includes("cash flow") ||
-        question.includes("money")
-    ) {
+    switch (intent) {
 
-        return "cash";
+        case advisorIntent.INTENTS.CASH:
+            return "cash";
 
+        case advisorIntent.INTENTS.REVENUE:
+            return "revenue";
+
+        case advisorIntent.INTENTS.PROFIT:
+            return "profit";
+
+        case advisorIntent.INTENTS.INVENTORY:
+            return "inventory";
+
+        case advisorIntent.INTENTS.RISKS:
+            return "risk";
+
+        case advisorIntent.INTENTS.DECISIONS:
+            return "priority";
+
+        case advisorIntent.INTENTS.OVERVIEW:
+            return "overview";
+
+        case advisorIntent.INTENTS.SCENARIO:
+            return "scenario";
+
+        case advisorIntent.INTENTS.HELP:
+            return "help";
+
+        default:
+            return null;
     }
-
-
-    // ==========================
-    // PROFIT
-    // ==========================
-    if (
-        question.includes("profit") ||
-        question.includes("profitable") ||
-        question.includes("margin")
-    ) {
-
-        return "profit";
-
-    }
-
-
-    // ==========================
-    // REVENUE
-    // ==========================
-    if (
-        question.includes("sales") ||
-        question.includes("revenue") ||
-        question.includes("selling")
-    ) {
-
-        return "revenue";
-
-    }
-
-
-    // ==========================
-    // RISK
-    // ==========================
-    if (
-        question.includes("risk") ||
-        question.includes("danger") ||
-        question.includes("problem")
-    ) {
-
-        return "risk";
-
-    }
-
-
-    // ==========================
-    // PRIORITY
-    // ==========================
-    if (
-        question.includes("focus") ||
-        question.includes("priority") ||
-        question.includes("should i")
-    ) {
-
-        return "priority";
-
-    }
-
-
-    return null;
-
 }
 
+// ============================================================
+// DETECT TOPIC
+// ============================================================
 
-// ==========================
+function detectTopic(text) {
+
+    const result =
+        advisorIntent.getAdvisorIntent(
+            text
+        );
+
+    return mapIntentToTopic(
+        result.intent
+    );
+}
+
+// ============================================================
 // FOLLOW-UP DETECTION
-// ==========================
+// ============================================================
+
 function isFollowUp(text) {
 
     const question =
-        text
+        String(text || "")
             .toLowerCase()
             .trim()
             .replace(/\s+/g, " ");
-
 
     const followUps = [
 
@@ -135,18 +108,17 @@ function isFollowUp(text) {
 
         "can you explain",
         "can you explain more"
-
     ];
 
-
-    return followUps.includes(question);
-
+    return followUps.includes(
+        question
+    );
 }
 
+// ============================================================
+// ACTIVE CONVERSATION
+// ============================================================
 
-// ==========================
-// CHECK ACTIVE CONVERSATION
-// ==========================
 function hasActiveConversation(
     telegramId
 ) {
@@ -156,384 +128,323 @@ function hasActiveConversation(
             telegramId
         )
     );
-
 }
 
+// ============================================================
+// FORECAST HELPERS
+// ============================================================
 
-// ==========================
-// CASH RESPONSE
-// ==========================
-function buildCashResponse(
+function getProjectedRevenue(
     intelligence
 ) {
 
-    return `💵 CASH FLOW
+    const forecast =
+        intelligence?.forecast || {};
 
-${intelligence.explanation}
+    const values = [
 
-━━━━━━━━━━━━━━━━━━
+        forecast.projectedRevenue,
 
-🎯 RECOMMENDED ACTION
+        forecast.tomorrowRevenue,
 
-${intelligence.recommendation}
+        forecast.tomorrow,
 
-━━━━━━━━━━━━━━━━━━
+        forecast.averageDailySales
+    ];
 
-⚠️ PRIORITY
+    for (
+        const value of values
+    ) {
 
-${intelligence.priority}
+        const number =
+            Number(value);
 
-━━━━━━━━━━━━━━━━━━
+        if (
+            Number.isFinite(number) &&
+            number > 0
+        ) {
 
-🚦 URGENCY
+            return number;
+        }
+    }
 
-${intelligence.urgency}`;
-
+    return 0;
 }
 
-
-// ==========================
-// PROFIT RESPONSE
-// ==========================
-function buildProfitResponse(
+function getProjectedProfit(
     intelligence
 ) {
 
-    return `🏆 PROFIT
+    const forecast =
+        intelligence?.forecast || {};
 
-Projected Profit
+    const values = [
 
-₦${Math.round(
-        intelligence.forecast.projectedProfit
-    ).toLocaleString()}
+        forecast.projectedProfit,
 
-━━━━━━━━━━━━━━━━━━
+        forecast.tomorrowNetProfit,
 
-🧠 AI CFO ANALYSIS
+        forecast.tomorrowProfit
+    ];
 
-${intelligence.explanation}
+    for (
+        const value of values
+    ) {
 
-━━━━━━━━━━━━━━━━━━
+        const number =
+            Number(value);
 
-🎯 RECOMMENDATION
+        if (
+            Number.isFinite(number)
+        ) {
 
-${intelligence.recommendation}
+            return number;
+        }
+    }
 
-━━━━━━━━━━━━━━━━━━
-
-⚠️ PRIORITY
-
-${intelligence.priority}
-
-━━━━━━━━━━━━━━━━━━
-
-🚦 URGENCY
-
-${intelligence.urgency}`;
-
+    return 0;
 }
 
+// ============================================================
+// RESPONSE BUILDER
+// ============================================================
 
-// ==========================
-// REVENUE RESPONSE
-// ==========================
-function buildRevenueResponse(
+function buildResponse(
+    topic,
     intelligence
 ) {
 
-    return `📈 REVENUE
+    const headers = {
 
-Projected Revenue
+        cash:
+            "💵 CASH FLOW",
 
-₦${Math.round(
-        intelligence.forecast.projectedRevenue
-    ).toLocaleString()}
+        profit:
+            "🏆 PROFIT",
 
-━━━━━━━━━━━━━━━━━━
+        revenue:
+            "📈 REVENUE",
 
-🧠 AI CFO ANALYSIS
+        inventory:
+            "📦 INVENTORY",
 
-${intelligence.explanation}
+        risk:
+            "⚠️ BUSINESS RISK",
 
-━━━━━━━━━━━━━━━━━━
+        priority:
+            "🎯 TODAY'S PRIORITY",
 
-🎯 RECOMMENDATION
+        overview:
+            "🤖 AI CFO — BUSINESS OVERVIEW",
 
-${intelligence.recommendation}
+        scenario:
+            "🔮 BUSINESS SCENARIO"
+    };
 
-━━━━━━━━━━━━━━━━━━
+    const header =
+        headers[topic] ||
+        "🤖 AI CFO";
 
-⚠️ PRIORITY
+    let output =
+        `${header}\n\n`;
 
-${intelligence.priority}
+    // ========================================================
+    // REVENUE
+    // ========================================================
 
-━━━━━━━━━━━━━━━━━━
+    if (
+        topic === "revenue"
+    ) {
 
-🚦 URGENCY
+        output +=
+            `Projected Revenue\n\n` +
+            `₦${Math.round(
+                getProjectedRevenue(
+                    intelligence
+                )
+            ).toLocaleString()}\n\n` +
+            `━━━━━━━━━━━━━━━━━━\n\n`;
+    }
 
-${intelligence.urgency}`;
+    // ========================================================
+    // PROFIT
+    // ========================================================
 
+    if (
+        topic === "profit"
+    ) {
+
+        output +=
+            `Projected Profit\n\n` +
+            `₦${Math.round(
+                getProjectedProfit(
+                    intelligence
+                )
+            ).toLocaleString()}\n\n` +
+            `━━━━━━━━━━━━━━━━━━\n\n`;
+    }
+
+    // ========================================================
+    // PRIORITY
+    // ========================================================
+
+    if (
+        topic === "priority"
+    ) {
+
+        output +=
+            `${intelligence.priority}\n\n` +
+            `━━━━━━━━━━━━━━━━━━\n\n`;
+    }
+
+    // ========================================================
+    // SCENARIO
+    // ========================================================
+
+    if (
+        topic === "scenario"
+    ) {
+
+        output +=
+            `Scenario\n\n` +
+            `${intelligence.scenarioQuestion || ""}\n\n` +
+            `━━━━━━━━━━━━━━━━━━\n\n`;
+    }
+
+    // ========================================================
+    // AI ANALYSIS
+    // ========================================================
+
+    output +=
+        `🧠 AI CFO ANALYSIS\n\n` +
+        `${intelligence.explanation}\n\n` +
+        `━━━━━━━━━━━━━━━━━━\n\n`;
+
+    // ========================================================
+    // RECOMMENDATION
+    // ========================================================
+
+    output +=
+        `🎯 RECOMMENDED ACTION\n\n` +
+        `${intelligence.recommendation}\n\n` +
+        `━━━━━━━━━━━━━━━━━━\n\n`;
+
+    // ========================================================
+    // PRIORITY
+    // ========================================================
+
+    output +=
+        `⚠️ PRIORITY\n\n` +
+        `${intelligence.priority}\n\n` +
+        `━━━━━━━━━━━━━━━━━━\n\n`;
+
+    // ========================================================
+    // URGENCY
+    // ========================================================
+
+    output +=
+        `🚦 URGENCY\n\n` +
+        `${intelligence.urgency}`;
+
+    return output;
 }
 
+// ============================================================
+// HELP RESPONSE
+// ============================================================
 
-// ==========================
-// RISK RESPONSE
-// ==========================
-function buildRiskResponse(
-    intelligence
-) {
+function buildHelpResponse() {
 
-    return `⚠️ BUSINESS RISK
+    return `🤖 AI CFO
 
-${intelligence.explanation}
+I can currently help you understand:
 
-━━━━━━━━━━━━━━━━━━
+• Business overview
+• Cash flow
+• Revenue
+• Profit
+• Inventory
+• Business risks
+• Business priorities
+• Business scenarios
 
-🎯 RECOMMENDED ACTION
+Try asking:
 
-${intelligence.recommendation}
+"How is my business doing?"
 
-━━━━━━━━━━━━━━━━━━
+"How are my sales?"
 
-⚠️ PRIORITY
+"What is happening with my cash?"
 
-${intelligence.priority}
+"Am I making money?"
 
-━━━━━━━━━━━━━━━━━━
+"What should I restock?"
 
-🚦 URGENCY
+"What should I worry about?"
 
-${intelligence.urgency}`;
+"What should I do today?"
 
+"What happens if sales fall 20%?"`;
 }
 
-
-// ==========================
-// PRIORITY RESPONSE
-// ==========================
-function buildPriorityResponse(
-    intelligence
-) {
-
-    return `🎯 TODAY'S PRIORITY
-
-${intelligence.priority}
-
-━━━━━━━━━━━━━━━━━━
-
-🧠 WHY THIS MATTERS
-
-${intelligence.explanation}
-
-━━━━━━━━━━━━━━━━━━
-
-✅ RECOMMENDED ACTION
-
-${intelligence.recommendation}
-
-━━━━━━━━━━━━━━━━━━
-
-🚦 URGENCY
-
-${intelligence.urgency}`;
-
-}
-
-
-// ==========================
+// ============================================================
 // FOLLOW-UP RESPONSE
-// ==========================
+// ============================================================
+
 function buildFollowUpResponse(
     topic,
     intelligence
 ) {
 
-    switch (topic) {
-
-        // ==========================
-        // CASH FOLLOW-UP
-        // ==========================
-
-        case "cash":
-
-            return `💵 CASH FLOW — EXPLANATION
-
-${intelligence.explanation}
-
-━━━━━━━━━━━━━━━━━━
-
-🎯 WHAT YOU SHOULD DO
-
-${intelligence.recommendation}
-
-━━━━━━━━━━━━━━━━━━
-
-⚠️ PRIORITY
-
-${intelligence.priority}
-
-━━━━━━━━━━━━━━━━━━
-
-🚦 URGENCY
-
-${intelligence.urgency}`;
-
-
-        // ==========================
-        // PROFIT FOLLOW-UP
-        // ==========================
-
-        case "profit":
-
-            return `🏆 PROFIT — EXPLANATION
-
-${intelligence.explanation}
-
-━━━━━━━━━━━━━━━━━━
-
-🎯 WHAT YOU SHOULD DO
-
-${intelligence.recommendation}
-
-━━━━━━━━━━━━━━━━━━
-
-⚠️ PRIORITY
-
-${intelligence.priority}
-
-━━━━━━━━━━━━━━━━━━
-
-🚦 URGENCY
-
-${intelligence.urgency}`;
-
-
-        // ==========================
-        // REVENUE FOLLOW-UP
-        // ==========================
-
-        case "revenue":
-
-            return `📈 REVENUE — EXPLANATION
-
-${intelligence.explanation}
-
-━━━━━━━━━━━━━━━━━━
-
-🎯 WHAT YOU SHOULD DO
-
-${intelligence.recommendation}
-
-━━━━━━━━━━━━━━━━━━
-
-⚠️ PRIORITY
-
-${intelligence.priority}
-
-━━━━━━━━━━━━━━━━━━
-
-🚦 URGENCY
-
-${intelligence.urgency}`;
-
-
-        // ==========================
-        // RISK FOLLOW-UP
-        // ==========================
-
-        case "risk":
-
-            return `⚠️ BUSINESS RISK — EXPLANATION
-
-${intelligence.explanation}
-
-━━━━━━━━━━━━━━━━━━
-
-🎯 RECOMMENDED ACTION
-
-${intelligence.recommendation}
-
-━━━━━━━━━━━━━━━━━━
-
-⚠️ PRIORITY
-
-${intelligence.priority}
-
-━━━━━━━━━━━━━━━━━━
-
-🚦 URGENCY
-
-${intelligence.urgency}`;
-
-
-        // ==========================
-        // PRIORITY FOLLOW-UP
-        // ==========================
-
-        case "priority":
-
-            return `🎯 TODAY'S PRIORITY — EXPLANATION
-
-${intelligence.explanation}
-
-━━━━━━━━━━━━━━━━━━
-
-✅ NEXT ACTION
-
-${intelligence.recommendation}
-
-━━━━━━━━━━━━━━━━━━
-
-🚦 URGENCY
-
-${intelligence.urgency}`;
-
-
-        // ==========================
-        // NO TOPIC
-        // ==========================
-
-        default:
-
-            return `🤖 AI CFO
-
-I need a little more context.
-
-You can ask me about:
-
-• Cash flow
-• Profit
-• Revenue
-• Business risk
-• Today's priority`;
-
+    if (
+        !topic ||
+        topic === "help"
+    ) {
+
+        return buildHelpResponse();
     }
 
+    return buildResponse(
+        topic,
+        intelligence
+    );
 }
 
-
-// ==========================
+// ============================================================
 // PROCESS QUESTION
-// ==========================
-function processQuestion(
+// ============================================================
+
+async function processQuestion(
     telegramId,
     question
 ) {
 
-    // ==================================================
-    // STEP 1 — DETECT NEW TOPIC
-    // ==================================================
+    // ========================================================
+    // STEP 1 — DETERMINE ADVISOR INTENT
+    // ========================================================
+
+    const intentResult =
+        advisorIntent.getAdvisorIntent(
+            question
+        );
+
+    // ========================================================
+    // STEP 2 — MAP INTENT TO TOPIC
+    // ========================================================
 
     const detectedTopic =
-        detectTopic(question);
+        mapIntentToTopic(
+            intentResult.intent
+        );
 
-
-    // ==================================================
-    // STEP 2 — CHECK FOLLOW-UP
-    // ==================================================
+    // ========================================================
+    // STEP 3 — FOLLOW-UP
+    // ========================================================
 
     if (
-        isFollowUp(question)
+        isFollowUp(
+            question
+        )
     ) {
 
         const currentTopic =
@@ -541,12 +452,13 @@ function processQuestion(
                 telegramId
             );
 
+        // ----------------------------------------------------
+        // No active conversation
+        // ----------------------------------------------------
 
-        // ------------------------------------------
-        // FOLLOW-UP WITHOUT PREVIOUS TOPIC
-        // ------------------------------------------
-
-        if (!currentTopic) {
+        if (
+            !currentTopic
+        ) {
 
             const answer =
                 `🤖 AI CFO
@@ -558,9 +470,9 @@ You can ask about:
 • Cash flow
 • Profit
 • Revenue
+• Inventory
 • Business risk
 • Today's priority`;
-
 
             conversation.saveConversation(
                 telegramId,
@@ -568,22 +480,22 @@ You can ask about:
                 answer
             );
 
-
             return answer;
-
         }
 
-
-        // ------------------------------------------
-        // USE EXISTING TOPIC
-        // ------------------------------------------
+        // ----------------------------------------------------
+        // Build intelligence for active topic
+        // ----------------------------------------------------
 
         const intelligence =
-            aiIntelligence.buildIntelligence(
+            await aiIntelligence.buildIntelligence(
                 telegramId,
                 currentTopic
             );
 
+        // ----------------------------------------------------
+        // Build follow-up response
+        // ----------------------------------------------------
 
         const answer =
             buildFollowUpResponse(
@@ -591,22 +503,18 @@ You can ask about:
                 intelligence
             );
 
-
         conversation.saveConversation(
             telegramId,
             question,
             answer
         );
 
-
         return answer;
-
     }
 
-
-    // ==================================================
-    // STEP 3 — SAVE NEW TOPIC
-    // ==================================================
+    // ========================================================
+    // STEP 4 — SAVE NEW TOPIC
+    // ========================================================
 
     if (
         detectedTopic
@@ -616,13 +524,11 @@ You can ask about:
             telegramId,
             detectedTopic
         );
-
     }
 
-
-    // ==================================================
-    // STEP 4 — DETERMINE ACTIVE TOPIC
-    // ==================================================
+    // ========================================================
+    // STEP 5 — ACTIVE TOPIC
+    // ========================================================
 
     const activeTopic =
         detectedTopic ||
@@ -630,32 +536,17 @@ You can ask about:
             telegramId
         );
 
+    // ========================================================
+    // STEP 6 — UNKNOWN / HELP
+    // ========================================================
 
-    // ==================================================
-    // STEP 5 — NO TOPIC
-    // ==================================================
-
-    if (!activeTopic) {
+    if (
+        !activeTopic ||
+        activeTopic === "help"
+    ) {
 
         const answer =
-            `🤖 AI CFO
-
-I can currently help you understand:
-
-• Cash flow
-• Profit
-• Revenue
-• Business risk
-• Business priorities
-
-Try asking:
-
-"How is my cash flow?"
-
-or:
-
-"How is my profit?"`;
-
+            buildHelpResponse();
 
         conversation.saveConversation(
             telegramId,
@@ -663,127 +554,44 @@ or:
             answer
         );
 
-
         return answer;
-
     }
 
-
-    // ==================================================
-    // STEP 6 — BUILD TOPIC-SPECIFIC INTELLIGENCE
-    // ==================================================
+    // ========================================================
+    // STEP 7 — BUILD INTELLIGENCE
+    // ========================================================
 
     const intelligence =
-        aiIntelligence.buildIntelligence(
+        await aiIntelligence.buildIntelligence(
             telegramId,
             activeTopic
         );
 
+    // ========================================================
+    // STEP 8 — SCENARIO QUESTION
+    // ========================================================
 
-    // ==================================================
-    // STEP 7 — BUILD RESPONSE
-    // ==================================================
+    if (
+        activeTopic === "scenario"
+    ) {
 
-    let answer;
-
-
-    switch (activeTopic) {
-
-        // ==========================
-        // CASH
-        // ==========================
-
-        case "cash":
-
-            answer =
-                buildCashResponse(
-                    intelligence
-                );
-
-            break;
-
-
-        // ==========================
-        // PROFIT
-        // ==========================
-
-        case "profit":
-
-            answer =
-                buildProfitResponse(
-                    intelligence
-                );
-
-            break;
-
-
-        // ==========================
-        // REVENUE
-        // ==========================
-
-        case "revenue":
-
-            answer =
-                buildRevenueResponse(
-                    intelligence
-                );
-
-            break;
-
-
-        // ==========================
-        // RISK
-        // ==========================
-
-        case "risk":
-
-            answer =
-                buildRiskResponse(
-                    intelligence
-                );
-
-            break;
-
-
-        // ==========================
-        // PRIORITY
-        // ==========================
-
-        case "priority":
-
-            answer =
-                buildPriorityResponse(
-                    intelligence
-                );
-
-            break;
-
-
-        // ==========================
-        // FALLBACK
-        // ==========================
-
-        default:
-
-            answer =
-                `🤖 AI CFO
-
-I need a little more context.
-
-You can ask me about:
-
-• Cash flow
-• Profit
-• Revenue
-• Business risk
-• Today's priority`;
-
+        intelligence.scenarioQuestion =
+            question;
     }
 
+    // ========================================================
+    // STEP 9 — BUILD RESPONSE
+    // ========================================================
 
-    // ==================================================
-    // STEP 8 — SAVE CONVERSATION
-    // ==================================================
+    const answer =
+        buildResponse(
+            activeTopic,
+            intelligence
+        );
+
+    // ========================================================
+    // STEP 10 — SAVE CONVERSATION
+    // ========================================================
 
     conversation.saveConversation(
         telegramId,
@@ -791,21 +599,26 @@ You can ask me about:
         answer
     );
 
-
     return answer;
-
 }
 
-
-// ==========================
+// ============================================================
 // EXPORT
-// ==========================
+// ============================================================
+
 module.exports = {
 
     processQuestion,
 
     hasActiveConversation,
 
-    isFollowUp
+    isFollowUp,
 
+    detectTopic,
+
+    mapIntentToTopic,
+
+    buildResponse,
+
+    buildHelpResponse
 };
