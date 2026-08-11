@@ -86,6 +86,29 @@ function formatMoney(value) {
 // 100,000 with +20%
 // = 120,000
 //
+// IMPORTANT:
+//
+// Financial calculations can produce tiny floating-point
+// precision errors in JavaScript.
+//
+// Example:
+//
+// 100,000 * 1.10
+//
+// may internally become:
+//
+// 110000.00000000001
+//
+// The scenario engine therefore rounds the result to two
+// decimal places.
+//
+// This keeps calculations:
+//
+// - deterministic
+// - financially sensible
+// - testable
+// - accurate to normal currency precision
+//
 // ============================================================
 
 function applyPercentageChange(
@@ -99,12 +122,15 @@ function applyPercentageChange(
     const change =
         toNumber(percentage);
 
-    return (
+    const result =
         base *
         (
             1 +
             change / 100
-        )
+        );
+
+    return Number(
+        result.toFixed(2)
     );
 }
 
@@ -232,8 +258,12 @@ function simulateExpenseChange(
         );
 
     const additionalExpenses =
-        projectedExpenses -
-        totalExpenses;
+        Number(
+            (
+                projectedExpenses -
+                totalExpenses
+            ).toFixed(2)
+        );
 
     const direction =
         change < 0
@@ -283,8 +313,12 @@ function analyzeRevenueScenario(
         );
 
     const difference =
-        simulated.tomorrow -
-        baseline;
+        Number(
+            (
+                simulated.tomorrow -
+                baseline
+            ).toFixed(2)
+        );
 
     const direction =
         change < 0
@@ -356,15 +390,23 @@ function analyzeRevenueScenario(
                 difference,
 
             next7Days:
-                simulated.next7Days -
-                toNumber(
-                    revenue?.next7Days
+                Number(
+                    (
+                        simulated.next7Days -
+                        toNumber(
+                            revenue?.next7Days
+                        )
+                    ).toFixed(2)
                 ),
 
             next30Days:
-                simulated.next30Days -
-                toNumber(
-                    revenue?.next30Days
+                Number(
+                    (
+                        simulated.next30Days -
+                        toNumber(
+                            revenue?.next30Days
+                        )
+                    ).toFixed(2)
                 )
 
         },
@@ -544,12 +586,20 @@ function analyzeCashImpact(
         scenario: {
 
             next7Days:
-                currentNext7Days +
-                revenueDifference7,
+                Number(
+                    (
+                        currentNext7Days +
+                        revenueDifference7
+                    ).toFixed(2)
+                ),
 
             next30Days:
-                currentNext30Days +
-                revenueDifference30
+                Number(
+                    (
+                        currentNext30Days +
+                        revenueDifference30
+                    ).toFixed(2)
+                )
 
         },
 
