@@ -5,7 +5,6 @@ const {
     vi
 } = await import("vitest");
 
-
 // ============================================================
 // FORECAST ENGINE
 // ============================================================
@@ -16,13 +15,11 @@ const {
     "../src/services/forecasting/forecastEngine"
 );
 
-
 // ============================================================
 // TEST USER
 // ============================================================
 
 const USER_ID = 999999;
-
 
 // ============================================================
 // MOCK FORECAST SERVICES
@@ -46,7 +43,6 @@ const getProfitForecastMock =
 const getRiskForecastMock =
     vi.fn();
 
-
 // ============================================================
 // MOCK DATA SERVICES
 // ============================================================
@@ -56,7 +52,6 @@ const getExpenseHistoryMock =
 
 const getDailyCOGSMock =
     vi.fn();
-
 
 // ============================================================
 // HISTORICAL EXPENSE DATA
@@ -81,7 +76,6 @@ const expenseHistory = [
     }
 
 ];
-
 
 // ============================================================
 // HISTORICAL COGS DATA
@@ -113,7 +107,6 @@ const cogsHistory = [
 
 ];
 
-
 // ============================================================
 // REVENUE FORECAST
 // ============================================================
@@ -134,7 +127,6 @@ const revenueForecast = {
 
 };
 
-
 // ============================================================
 // CASH FORECAST
 // ============================================================
@@ -152,7 +144,6 @@ const cashForecast = {
 
 };
 
-
 // ============================================================
 // INVENTORY FORECAST
 // ============================================================
@@ -167,7 +158,6 @@ const inventoryForecast = {
 
 };
 
-
 // ============================================================
 // INVENTORY DEMAND FORECAST
 // ============================================================
@@ -181,7 +171,6 @@ const inventoryDemandForecast = {
         2
 
 };
-
 
 // ============================================================
 // PROFIT FORECAST
@@ -203,7 +192,6 @@ const profitForecast = {
 
 };
 
-
 // ============================================================
 // RISK FORECAST
 // ============================================================
@@ -217,7 +205,6 @@ const riskForecast = {
         []
 
 };
-
 
 // ============================================================
 // MOCK SERVICES
@@ -257,7 +244,6 @@ const mockServices = {
         getDailyCOGSMock
 
 };
-
 
 // ============================================================
 // RESET MOCKS
@@ -317,7 +303,6 @@ function setupMocks() {
 
 }
 
-
 // ============================================================
 // FORECAST ENGINE TESTS
 // ============================================================
@@ -368,8 +353,30 @@ describe(
                     profit:
                         profitForecast,
 
+                    expenseHistory:
+                        expenseHistory,
+
+                    cogsHistory:
+                        cogsHistory,
+
                     risks:
-                        riskForecast
+                        riskForecast,
+
+                    decisions:
+                        [],
+
+                    executiveSummary: {
+
+                        headline:
+                            "No immediate business decisions are required.",
+
+                        message:
+                            "Current forecasts do not indicate significant conditions requiring immediate management action.",
+
+                        status:
+                            "Healthy"
+
+                    }
 
                 });
 
@@ -704,4 +711,5 @@ describe(
         );
 
     }
+
 );
