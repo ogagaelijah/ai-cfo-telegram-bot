@@ -1,17 +1,22 @@
 // ============================================================
-// DECISION ENGINE V1
+// INTELLIGENCE DECISION ENGINE V2
 // ============================================================
 //
 // BUSINESS DECISION INTELLIGENCE
 //
 // Responsibilities:
 //
-// 1. Read forecast results.
-// 2. Read identified business risks.
-// 3. Convert risks into actionable decisions.
-// 4. Prioritize decisions by urgency.
-// 5. Explain WHY each decision matters.
-// 6. Recommend a concrete business action.
+// 1. Read risks produced by the Risk Engine.
+// 2. Convert risks into actionable management decisions.
+// 3. Score decisions by:
+//      - severity
+//      - business impact
+//      - urgency
+//      - actionability
+// 4. Rank all decisions.
+// 5. Identify the single highest-priority decision.
+// 6. Produce an executive summary.
+// 7. Preserve compatibility with the existing AI CFO.
 //
 // IMPORTANT:
 //
@@ -86,12 +91,17 @@ function getSeverityPriority(
 // DECISION PRIORITY
 // ============================================================
 //
-// Decision priorities:
+// Critical
+//     → Immediate
 //
-// 1 = Immediate
-// 2 = High
-// 3 = Medium
-// 4 = Low
+// Warning
+//     → High
+//
+// Info
+//     → Medium
+//
+// Unknown
+//     → Low
 //
 // ============================================================
 
@@ -117,29 +127,268 @@ function getDecisionPriority(
 
 
 // ============================================================
-// SORT DECISIONS
+// BUSINESS IMPACT SCORE
+// ============================================================
+//
+// Higher number = greater business impact.
+//
+// Liquidity and profitability receive the highest weight
+// because they directly affect the business's ability to
+// survive and remain financially healthy.
+//
 // ============================================================
 
-function sortDecisions(
-    decisions
+function getBusinessImpactScore(
+    category
 ) {
 
-    return decisions.sort(
+    switch (category) {
+
+        case "Liquidity":
+            return 100;
+
+        case "Profitability":
+            return 95;
+
+        case "Revenue":
+            return 90;
+
+        case "Inventory Demand":
+            return 85;
+
+        case "Inventory":
+            return 80;
+
+        case "Data Quality":
+            return 40;
+
+        case "Business Outlook":
+            return 10;
+
+        default:
+            return 50;
+    }
+}
+
+
+// ============================================================
+// ACTIONABILITY SCORE
+// ============================================================
+//
+// Higher number = easier to convert into an immediate
+// management action.
+//
+// ============================================================
+
+function getActionabilityScore(
+    category,
+    title
+) {
+
+    if (
+        category ===
+        "Liquidity"
+    ) {
+
+        return 100;
+    }
+
+
+    if (
+        category ===
+        "Profitability"
+    ) {
+
+        return 95;
+    }
+
+
+    if (
+        category ===
+        "Inventory Demand"
+    ) {
+
+        return 90;
+    }
+
+
+    if (
+        category ===
+        "Inventory"
+    ) {
+
+        return 85;
+    }
+
+
+    if (
+        category ===
+        "Revenue"
+    ) {
+
+        return 80;
+    }
+
+
+    if (
+        category ===
+        "Data Quality"
+    ) {
+
+        return 45;
+    }
+
+
+    if (
+        title &&
+        title.includes(
+            "Monitoring"
+        )
+    ) {
+
+        return 30;
+    }
+
+
+    return 50;
+}
+
+
+// ============================================================
+// URGENCY SCORE
+// ============================================================
+//
+// Higher number = more urgent.
+//
+// ============================================================
+
+function getUrgencyScore(
+    severity,
+    priority
+) {
+
+    if (
+        severity ===
+        "Critical"
+    ) {
+
+        return 100;
+    }
+
+
+    if (
+        priority ===
+        "Immediate"
+    ) {
+
+        return 100;
+    }
+
+
+    if (
+        severity ===
+        "Warning"
+    ) {
+
+        return 70;
+    }
+
+
+    if (
+        priority ===
+        "High"
+    ) {
+
+        return 70;
+    }
+
+
+    if (
+        severity ===
+        "Info"
+    ) {
+
+        return 40;
+    }
+
+
+    return 20;
+}
+
+
+// ============================================================
+// DECISION SCORE
+// ============================================================
+//
+// The final score combines:
+//
+//     Severity
+//     Business Impact
+//     Urgency
+//     Actionability
+//
+// Maximum:
+//
+//     100
+//
+// This allows two Critical decisions to be ranked instead
+// of simply treating them as equal.
+//
+// ============================================================
+
+function calculateDecisionScore(
+    severity,
+    category,
+    priority,
+    title
+) {
+
+    const severityScore =
         (
-            a,
-            b
-        ) => {
+            5 -
+            getSeverityPriority(
+                severity
+            )
+        ) * 20;
 
-            return (
-                getSeverityPriority(
-                    a.severity
-                ) -
-                getSeverityPriority(
-                    b.severity
-                )
-            );
 
-        }
+    const impactScore =
+        getBusinessImpactScore(
+            category
+        );
+
+
+    const urgencyScore =
+        getUrgencyScore(
+            severity,
+            priority
+        );
+
+
+    const actionabilityScore =
+        getActionabilityScore(
+            category,
+            title
+        );
+
+
+    const score =
+        (
+            severityScore * 0.40
+        ) +
+        (
+            impactScore * 0.25
+        ) +
+        (
+            urgencyScore * 0.20
+        ) +
+        (
+            actionabilityScore * 0.15
+        );
+
+
+    return Math.round(
+        score
     );
 }
 
@@ -162,7 +411,23 @@ function createDecision(
 
 
     const severity =
-        risk.severity || "Info";
+        risk.severity ||
+        "Info";
+
+
+    const category =
+        risk.category;
+
+
+    const title =
+        risk.title ||
+        "Business Decision";
+
+
+    const priority =
+        getDecisionPriority(
+            severity
+        );
 
 
     let action =
@@ -179,12 +444,12 @@ function createDecision(
     // ========================================================
 
     if (
-        risk.category ===
+        category ===
         "Liquidity"
     ) {
 
         if (
-            risk.title ===
+            title ===
             "Cash Flow Risk"
         ) {
 
@@ -194,7 +459,7 @@ function createDecision(
         }
 
         else if (
-            risk.title ===
+            title ===
             "Projected Cash Shortage"
         ) {
 
@@ -204,7 +469,7 @@ function createDecision(
         }
 
         else if (
-            risk.title ===
+            title ===
             "Future Cash Pressure"
         ) {
 
@@ -214,7 +479,7 @@ function createDecision(
         }
 
         else if (
-            risk.title ===
+            title ===
             "Declining Cash Flow"
         ) {
 
@@ -231,12 +496,12 @@ function createDecision(
     // ========================================================
 
     else if (
-        risk.category ===
+        category ===
         "Revenue"
     ) {
 
         if (
-            risk.title ===
+            title ===
             "Sales Trend"
         ) {
 
@@ -246,7 +511,7 @@ function createDecision(
         }
 
         else if (
-            risk.title ===
+            title ===
             "Limited Revenue History"
         ) {
 
@@ -263,12 +528,12 @@ function createDecision(
     // ========================================================
 
     else if (
-        risk.category ===
+        category ===
         "Profitability"
     ) {
 
         if (
-            risk.title ===
+            title ===
             "Projected Loss"
         ) {
 
@@ -278,7 +543,7 @@ function createDecision(
         }
 
         else if (
-            risk.title ===
+            title ===
             "Break-even Forecast"
         ) {
 
@@ -288,7 +553,7 @@ function createDecision(
         }
 
         else if (
-            risk.title ===
+            title ===
             "Low Gross Margin"
         ) {
 
@@ -298,7 +563,7 @@ function createDecision(
         }
 
         else if (
-            risk.title ===
+            title ===
             "Low Net Profit Margin"
         ) {
 
@@ -315,12 +580,12 @@ function createDecision(
     // ========================================================
 
     else if (
-        risk.category ===
+        category ===
         "Inventory"
     ) {
 
         if (
-            risk.title ===
+            title ===
             "Inventory Risk"
         ) {
 
@@ -330,7 +595,7 @@ function createDecision(
         }
 
         else if (
-            risk.title ===
+            title ===
             "Inventory Pressure"
         ) {
 
@@ -340,7 +605,7 @@ function createDecision(
         }
 
         else if (
-            risk.title ===
+            title ===
             "Inventory Monitoring"
         ) {
 
@@ -357,12 +622,12 @@ function createDecision(
     // ========================================================
 
     else if (
-        risk.category ===
+        category ===
         "Inventory Demand"
     ) {
 
         if (
-            risk.title.startsWith(
+            title.startsWith(
                 "Urgent Product Reorder"
             )
         ) {
@@ -373,7 +638,7 @@ function createDecision(
         }
 
         else if (
-            risk.title.startsWith(
+            title.startsWith(
                 "Immediate Product Reorder"
             )
         ) {
@@ -384,7 +649,7 @@ function createDecision(
         }
 
         else if (
-            risk.title.startsWith(
+            title.startsWith(
                 "Upcoming Product Stockout"
             )
         ) {
@@ -402,12 +667,12 @@ function createDecision(
     // ========================================================
 
     else if (
-        risk.category ===
+        category ===
         "Data Quality"
     ) {
 
         if (
-            risk.title ===
+            title ===
             "Revenue Forecast Confidence"
         ) {
 
@@ -417,7 +682,7 @@ function createDecision(
         }
 
         else if (
-            risk.title ===
+            title ===
             "Inventory Demand Confidence"
         ) {
 
@@ -427,7 +692,7 @@ function createDecision(
         }
 
         else if (
-            risk.title ===
+            title ===
             "Limited Revenue History"
         ) {
 
@@ -440,23 +705,31 @@ function createDecision(
 
 
     // ========================================================
-    // RETURN DECISION
+    // DECISION SCORE
+    // ========================================================
+
+    const score =
+        calculateDecisionScore(
+            severity,
+            category,
+            priority,
+            title
+        );
+
+
+    // ========================================================
+    // RETURN
     // ========================================================
 
     return {
 
         severity,
 
-        priority:
-            getDecisionPriority(
-                severity
-            ),
+        priority,
 
-        category:
-            risk.category,
+        category,
 
-        title:
-            risk.title,
+        title,
 
         decision:
             action,
@@ -464,9 +737,95 @@ function createDecision(
         reason,
 
         sourceRisk:
-            risk.message
+            risk.message,
+
+        score,
+
+        businessImpact:
+            getBusinessImpactScore(
+                category
+            ),
+
+        urgency:
+            getUrgencyScore(
+                severity,
+                priority
+            ),
+
+        actionability:
+            getActionabilityScore(
+                category,
+                title
+            )
 
     };
+}
+
+
+// ============================================================
+// SORT DECISIONS
+// ============================================================
+//
+// Highest score first.
+//
+// If two decisions have the same score:
+//
+//     1. Severity wins.
+//     2. Business impact wins.
+//     3. Original order is preserved.
+//
+// ============================================================
+
+function sortDecisions(
+    decisions
+) {
+
+    return decisions.sort(
+        (
+            a,
+            b
+        ) => {
+
+            if (
+                b.score !==
+                a.score
+            ) {
+
+                return (
+                    b.score -
+                    a.score
+                );
+            }
+
+
+            const severityDifference =
+                getSeverityPriority(
+                    a.severity
+                ) -
+                getSeverityPriority(
+                    b.severity
+                );
+
+
+            if (
+                severityDifference !== 0
+            ) {
+
+                return severityDifference;
+            }
+
+
+            return (
+                getBusinessImpactScore(
+                    b.category
+                ) -
+                getBusinessImpactScore(
+                    a.category
+                )
+            );
+
+        }
+    );
 }
 
 
@@ -479,7 +838,9 @@ function buildDecisions(
 ) {
 
     if (
-        !Array.isArray(risks)
+        !Array.isArray(
+            risks
+        )
     ) {
 
         return [];
@@ -488,16 +849,15 @@ function buildDecisions(
 
     const decisions =
         risks
+
             // ==================================================
             // BUSINESS OUTLOOK IS INFORMATIONAL ONLY
             // ==================================================
             //
-            // This is generated by the Risk Engine when there
-            // are no significant risks.
+            // It belongs in reports, but should never become
+            // an actionable management decision.
             //
-            // It should appear in reports, but it should NOT
-            // become an actionable management decision.
-            //
+
             .filter(
                 risk =>
                     !(
@@ -506,9 +866,11 @@ function buildDecisions(
                         "Business Outlook"
                     )
             )
+
             .map(
                 createDecision
             )
+
             .filter(
                 decision =>
                     decision !== null
@@ -522,7 +884,35 @@ function buildDecisions(
 
 
 // ============================================================
-// EXECUTIVE SUMMARY
+// GET TOP DECISION
+// ============================================================
+//
+// The top decision is the single action the AI CFO believes
+// deserves the owner's attention first.
+//
+// ============================================================
+
+function getTopDecision(
+    decisions
+) {
+
+    if (
+        !Array.isArray(
+            decisions
+        ) ||
+        decisions.length === 0
+    ) {
+
+        return null;
+    }
+
+
+    return decisions[0];
+}
+
+
+// ============================================================
+// BUILD EXECUTIVE SUMMARY
 // ============================================================
 
 function buildExecutiveSummary(
@@ -530,11 +920,14 @@ function buildExecutiveSummary(
 ) {
 
     if (
-        !Array.isArray(decisions) ||
+        !Array.isArray(
+            decisions
+        ) ||
         decisions.length === 0
     ) {
 
         return {
+
             status:
                 "Healthy",
 
@@ -542,7 +935,11 @@ function buildExecutiveSummary(
                 "No immediate business decisions are required.",
 
             message:
-                "Current forecasts do not indicate significant conditions requiring immediate management action."
+                "Current forecasts do not indicate significant conditions requiring immediate management action.",
+
+            topPriority:
+                "Maintain Current Operations"
+
         };
     }
 
@@ -563,6 +960,10 @@ function buildExecutiveSummary(
         );
 
 
+    const topDecision =
+        decisions[0];
+
+
     if (
         critical.length > 0
     ) {
@@ -576,7 +977,10 @@ function buildExecutiveSummary(
                 `${critical.length} immediate business decision(s) require attention.`,
 
             message:
-                "The business has forecast conditions that may materially affect cash flow, profitability, revenue or inventory. Critical actions should be addressed first."
+                `The highest-priority action is: ${topDecision.title}. ${topDecision.decision}`,
+
+            topPriority:
+                topDecision.title
 
         };
     }
@@ -595,7 +999,10 @@ function buildExecutiveSummary(
                 `${warnings.length} high-priority business decision(s) require attention.`,
 
             message:
-                "The business is not currently showing critical conditions, but several areas should be addressed before they become more serious."
+                `The highest-priority action is: ${topDecision.title}. ${topDecision.decision}`,
+
+            topPriority:
+                topDecision.title
 
         };
     }
@@ -610,7 +1017,64 @@ function buildExecutiveSummary(
             `${decisions.length} business area(s) should be monitored.`,
 
         message:
-            "The forecast engine has identified conditions worth monitoring, but no critical intervention is currently indicated."
+            `The most important current action is: ${topDecision.title}. ${topDecision.decision}`,
+
+        topPriority:
+            topDecision.title
+
+    };
+}
+
+
+// ============================================================
+// GET DECISION GROUPS
+// ============================================================
+
+function getDecisionGroups(
+    decisions
+) {
+
+    const list =
+        Array.isArray(
+            decisions
+        )
+            ? decisions
+            : [];
+
+
+    const immediateDecisions =
+        list.filter(
+            decision =>
+                decision.priority ===
+                "Immediate"
+        );
+
+
+    const highPriorityDecisions =
+        list.filter(
+            decision =>
+                decision.priority ===
+                "High"
+        );
+
+
+    const monitoringDecisions =
+        list.filter(
+            decision =>
+                decision.priority ===
+                "Medium" ||
+                decision.priority ===
+                "Low"
+        );
+
+
+    return {
+
+        immediateDecisions,
+
+        highPriorityDecisions,
+
+        monitoringDecisions
 
     };
 }
@@ -647,11 +1111,31 @@ function getDecisionForecast(
 
 
     // ========================================================
+    // TOP DECISION
+    // ========================================================
+
+    const topDecision =
+        getTopDecision(
+            decisions
+        );
+
+
+    // ========================================================
     // EXECUTIVE SUMMARY
     // ========================================================
 
     const executiveSummary =
         buildExecutiveSummary(
+            decisions
+        );
+
+
+    // ========================================================
+    // DECISION GROUPS
+    // ========================================================
+
+    const groups =
+        getDecisionGroups(
             decisions
         );
 
@@ -689,27 +1173,47 @@ function getDecisionForecast(
     // ========================================================
 
     console.log(
-        "🧠 DECISION ENGINE"
+        "🧠 DECISION ENGINE V2"
     );
+
 
     console.log(
         "Total Decisions:",
         decisions.length
     );
 
+
     console.log(
         "Immediate Decisions:",
         criticalDecisions
     );
+
 
     console.log(
         "High Priority Decisions:",
         highPriorityDecisions
     );
 
+
     console.log(
         "Medium Priority Decisions:",
         mediumPriorityDecisions
+    );
+
+
+    console.log(
+        "Top Decision:",
+        topDecision
+            ? topDecision.title
+            : "None"
+    );
+
+
+    console.log(
+        "Top Decision Score:",
+        topDecision
+            ? topDecision.score
+            : 0
     );
 
 
@@ -721,6 +1225,8 @@ function getDecisionForecast(
 
         executiveSummary,
 
+        topDecision,
+
         totalDecisions:
             decisions.length,
 
@@ -729,6 +1235,15 @@ function getDecisionForecast(
         highPriorityDecisions,
 
         mediumPriorityDecisions,
+
+        immediateDecisions:
+            groups.immediateDecisions,
+
+        highPriorityDecisionList:
+            groups.highPriorityDecisions,
+
+        monitoringDecisions:
+            groups.monitoringDecisions,
 
         decisions
 
@@ -750,6 +1265,22 @@ module.exports = {
 
     createDecision,
 
-    getDecisionPriority
+    getDecisionPriority,
+
+    getSeverityPriority,
+
+    getBusinessImpactScore,
+
+    getActionabilityScore,
+
+    getUrgencyScore,
+
+    calculateDecisionScore,
+
+    getTopDecision,
+
+    getDecisionGroups,
+
+    sortDecisions
 
 };

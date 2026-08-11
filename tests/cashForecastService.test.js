@@ -1,48 +1,94 @@
 // ======================================================
+// CASH FORECAST SERVICE TEST
+// ======================================================
+//
+// IMPORTANT:
+//
+// cashForecastService.js depends on:
+//
+// 1. financialAnalyticsService.getCashMetrics()
+// 2. revenueForecastService.getRevenueForecast()
+// 3. businessTrendsRepository.getAverageDailyPurchaseCashOutflow()
+// 4. businessTrendsRepository.getAverageDailyExpenses()
+//
+// These tests mock those exact dependencies.
+//
+// Production logic is NOT being changed.
+// ======================================================
+
+const {
+    describe,
+    it,
+    expect,
+    beforeEach,
+    vi
+} = await import("vitest");
+
+
+// ======================================================
 // MOCK BUSINESS TRENDS REPOSITORY
 // ======================================================
-//
-// IMPORTANT: cashForecastService.js destructures these
-// three functions at require-time:
-//
-//   const { getAverageDailySales, ... } = require(...)
-//
-// Destructuring copies the function reference immediately.
-// So these mocks MUST be assigned onto the repository's
-// exports object BEFORE cashForecastService.js is required
-// below - otherwise cashForecastService.js will have already
-// captured the real (unmocked) functions.
+
+const trendsRepo =
+    require(
+        "../src/repositories/businessTrendsRepository"
+    );
+
+const getAverageDailyExpensesMock =
+    vi.fn();
+
+const getAverageDailyPurchaseCashOutflowMock =
+    vi.fn();
+
+trendsRepo.getAverageDailyExpenses =
+    getAverageDailyExpensesMock;
+
+trendsRepo.getAverageDailyPurchaseCashOutflow =
+    getAverageDailyPurchaseCashOutflowMock;
+
+
+// ======================================================
+// MOCK REVENUE FORECAST SERVICE
 // ======================================================
 
-const trendsRepo = require("../src/repositories/businessTrendsRepository");
+const revenueForecastService =
+    require(
+        "../src/services/forecasting/revenueForecastService"
+    );
 
-const getAverageDailySalesMock = vi.fn();
-const getAverageDailyPurchasesMock = vi.fn();
-const getAverageDailyExpensesMock = vi.fn();
+const getRevenueForecastMock =
+    vi.fn();
 
-trendsRepo.getAverageDailySales = getAverageDailySalesMock;
-trendsRepo.getAverageDailyPurchases = getAverageDailyPurchasesMock;
-trendsRepo.getAverageDailyExpenses = getAverageDailyExpensesMock;
+revenueForecastService.getRevenueForecast =
+    getRevenueForecastMock;
 
 
 // ======================================================
 // MOCK FINANCIAL ANALYTICS SERVICE
 // ======================================================
-//
-// cashForecastService.js accesses this one as
-// analytics.getCashMetrics(...) (NOT destructured), so a
-// plain vi.spyOn works fine for this one, refreshed each
-// test in beforeEach below.
+
+const analyticsService =
+    require(
+        "../src/services/financialAnalyticsService"
+    );
+
+const getCashMetricsMock =
+    vi.fn();
+
+analyticsService.getCashMetrics =
+    getCashMetricsMock;
+
+
+// ======================================================
+// IMPORT CASH FORECAST SERVICE
 // ======================================================
 
-const analyticsService = require("../src/services/financialAnalyticsService");
-
-
-// ======================================================
-// IMPORT FORECAST SERVICE AFTER MOCKS ARE IN PLACE
-// ======================================================
-
-const { getCashForecast } = require("../src/services/forecasting/cashForecastService");
+const {
+    getCashForecast
+} =
+    require(
+        "../src/services/forecasting/cashForecastService"
+    );
 
 
 // ======================================================
@@ -61,25 +107,70 @@ const USER_ID = 999999;
 // Daily purchases    = ₦20,000
 // Daily expenses     = ₦10,000
 //
-// Net daily cash flow = ₦70,000
+// Daily outflow      = ₦30,000
 //
-// 7 days  = ₦990,000
-// 30 days = ₦2,600,000
+// Net daily flow     = ₦70,000
+//
+// 7 days:
+// ₦500,000 + (₦70,000 × 7)
+// = ₦990,000
+//
+// 30 days:
+// ₦500,000 + (₦70,000 × 30)
+// = ₦2,600,000
 // ======================================================
 
-beforeEach(() => {
+beforeEach(
+    () => {
 
-    vi.clearAllMocks();
+        vi.clearAllMocks();
 
-    vi.spyOn(analyticsService, "getCashMetrics").mockReturnValue({
-        cashPosition: 500000
-    });
 
-    getAverageDailySalesMock.mockReturnValue(100000);
-    getAverageDailyPurchasesMock.mockReturnValue(20000);
-    getAverageDailyExpensesMock.mockReturnValue(10000);
+        // ----------------------------------------------
+        // CURRENT CASH
+        // ----------------------------------------------
 
-});
+        getCashMetricsMock.mockReturnValue({
+
+            cashPosition:
+                500000
+
+        });
+
+
+        // ----------------------------------------------
+        // REVENUE FORECAST
+        // ----------------------------------------------
+
+        getRevenueForecastMock.mockReturnValue({
+
+            averageDailySales:
+                100000
+
+        });
+
+
+        // ----------------------------------------------
+        // PURCHASE CASH OUTFLOW
+        // ----------------------------------------------
+
+        getAverageDailyPurchaseCashOutflowMock
+            .mockReturnValue(
+                20000
+            );
+
+
+        // ----------------------------------------------
+        // OPERATING EXPENSES
+        // ----------------------------------------------
+
+        getAverageDailyExpensesMock
+            .mockReturnValue(
+                10000
+            );
+
+    }
+);
 
 
 // ======================================================
@@ -267,13 +358,16 @@ describe(
                     "should identify improving cash flow",
                     () => {
 
-                        getAverageDailySalesMock
-                            .mockReturnValue(
-                                100000
-                            );
+                        getRevenueForecastMock
+                            .mockReturnValue({
+
+                                averageDailySales:
+                                    100000
+
+                            });
 
 
-                        getAverageDailyPurchasesMock
+                        getAverageDailyPurchaseCashOutflowMock
                             .mockReturnValue(
                                 20000
                             );
@@ -289,6 +383,13 @@ describe(
                             getCashForecast(
                                 USER_ID
                             );
+
+
+                        expect(
+                            result.estimatedDailyNetCashFlow
+                        ).toBe(
+                            70000
+                        );
 
 
                         expect(
@@ -309,13 +410,16 @@ describe(
                     "should identify stable cash flow",
                     () => {
 
-                        getAverageDailySalesMock
-                            .mockReturnValue(
-                                100000
-                            );
+                        getRevenueForecastMock
+                            .mockReturnValue({
+
+                                averageDailySales:
+                                    100000
+
+                            });
 
 
-                        getAverageDailyPurchasesMock
+                        getAverageDailyPurchaseCashOutflowMock
                             .mockReturnValue(
                                 60000
                             );
@@ -358,13 +462,16 @@ describe(
                     "should identify declining cash flow",
                     () => {
 
-                        getAverageDailySalesMock
-                            .mockReturnValue(
-                                50000
-                            );
+                        getRevenueForecastMock
+                            .mockReturnValue({
+
+                                averageDailySales:
+                                    50000
+
+                            });
 
 
-                        getAverageDailyPurchasesMock
+                        getAverageDailyPurchaseCashOutflowMock
                             .mockReturnValue(
                                 40000
                             );
@@ -414,13 +521,16 @@ describe(
                     "should calculate cash burn correctly",
                     () => {
 
-                        getAverageDailySalesMock
-                            .mockReturnValue(
-                                50000
-                            );
+                        getRevenueForecastMock
+                            .mockReturnValue({
+
+                                averageDailySales:
+                                    50000
+
+                            });
 
 
-                        getAverageDailyPurchasesMock
+                        getAverageDailyPurchaseCashOutflowMock
                             .mockReturnValue(
                                 40000
                             );
@@ -456,24 +566,25 @@ describe(
                     "should identify high risk when cash becomes negative within seven days",
                     () => {
 
-                        vi.spyOn(
-                            analyticsService,
-                            "getCashMetrics"
-                        ).mockReturnValue({
+                        getCashMetricsMock
+                            .mockReturnValue({
 
-                            cashPosition:
-                                50000
+                                cashPosition:
+                                    50000
 
-                        });
+                            });
 
 
-                        getAverageDailySalesMock
-                            .mockReturnValue(
-                                10000
-                            );
+                        getRevenueForecastMock
+                            .mockReturnValue({
+
+                                averageDailySales:
+                                    10000
+
+                            });
 
 
-                        getAverageDailyPurchasesMock
+                        getAverageDailyPurchaseCashOutflowMock
                             .mockReturnValue(
                                 40000
                             );
@@ -516,31 +627,32 @@ describe(
 
 
                 // ==================================================
-                // MONITOR CLOSELY WITHIN 30 DAYS
+                // CASH REMAINS POSITIVE
                 // ==================================================
 
                 it(
-                    "should identify monitor closely when cash becomes negative within thirty days",
+                    "should remain healthy when cash stays positive within thirty days",
                     () => {
 
-                        vi.spyOn(
-                            analyticsService,
-                            "getCashMetrics"
-                        ).mockReturnValue({
+                        getCashMetricsMock
+                            .mockReturnValue({
 
-                            cashPosition:
-                                500000
+                                cashPosition:
+                                    500000
 
-                        });
+                            });
 
 
-                        getAverageDailySalesMock
-                            .mockReturnValue(
-                                20000
-                            );
+                        getRevenueForecastMock
+                            .mockReturnValue({
+
+                                averageDailySales:
+                                    20000
+
+                            });
 
 
-                        getAverageDailyPurchasesMock
+                        getAverageDailyPurchaseCashOutflowMock
                             .mockReturnValue(
                                 25000
                             );
@@ -590,24 +702,25 @@ describe(
                     "should identify monitor closely when thirty-day cash becomes negative",
                     () => {
 
-                        vi.spyOn(
-                            analyticsService,
-                            "getCashMetrics"
-                        ).mockReturnValue({
+                        getCashMetricsMock
+                            .mockReturnValue({
 
-                            cashPosition:
-                                500000
+                                cashPosition:
+                                    500000
 
-                        });
+                            });
 
 
-                        getAverageDailySalesMock
-                            .mockReturnValue(
-                                10000
-                            );
+                        getRevenueForecastMock
+                            .mockReturnValue({
+
+                                averageDailySales:
+                                    10000
+
+                            });
 
 
-                        getAverageDailyPurchasesMock
+                        getAverageDailyPurchaseCashOutflowMock
                             .mockReturnValue(
                                 20000
                             );
@@ -657,15 +770,13 @@ describe(
                     "should safely handle zero current cash",
                     () => {
 
-                        vi.spyOn(
-                            analyticsService,
-                            "getCashMetrics"
-                        ).mockReturnValue({
+                        getCashMetricsMock
+                            .mockReturnValue({
 
-                            cashPosition:
-                                0
+                                cashPosition:
+                                    0
 
-                        });
+                            });
 
 
                         const result =
@@ -684,7 +795,7 @@ describe(
                         expect(
                             result.estimatedDaysRemaining
                         ).toBe(
-                            0
+                            Infinity
                         );
 
                     }
@@ -692,22 +803,34 @@ describe(
 
 
                 // ==================================================
-                // NEGATIVE CURRENT CASH
+                // NEGATIVE CASH + POSITIVE FLOW
+                // ==================================================
+                //
+                // This is intentionally:
+                //
+                // "Critical - Recovering"
+                //
+                // because the production logic says:
+                //
+                // currentCash < 0
+                // AND
+                // net daily flow > 0
+                //
+                // => Critical - Recovering
+                //
                 // ==================================================
 
                 it(
-                    "should identify critical status when current cash is negative",
+                    "should identify critical recovering status when current cash is negative but cash flow is positive",
                     () => {
 
-                        vi.spyOn(
-                            analyticsService,
-                            "getCashMetrics"
-                        ).mockReturnValue({
+                        getCashMetricsMock
+                            .mockReturnValue({
 
-                            cashPosition:
-                                -100000
+                                cashPosition:
+                                    -100000
 
-                        });
+                            });
 
 
                         const result =
@@ -724,9 +847,115 @@ describe(
 
 
                         expect(
+                            result.estimatedDailyNetCashFlow
+                        ).toBe(
+                            70000
+                        );
+
+
+                        expect(
+                            result.status
+                        ).toBe(
+                            "Critical - Recovering"
+                        );
+
+
+                        expect(
+                            result.cashRecoveryDays
+                        ).toBe(
+                            2
+                        );
+
+                    }
+                );
+
+
+                // ==================================================
+                // NEGATIVE CASH + NEGATIVE FLOW
+                // ==================================================
+                //
+                // This is the actual Critical scenario.
+                //
+                // currentCash < 0
+                // AND
+                // net daily flow < 0
+                //
+                // => Critical
+                //
+                // ==================================================
+
+                it(
+                    "should identify critical status when current cash is negative and cash flow is negative",
+                    () => {
+
+                        getCashMetricsMock
+                            .mockReturnValue({
+
+                                cashPosition:
+                                    -100000
+
+                            });
+
+
+                        getRevenueForecastMock
+                            .mockReturnValue({
+
+                                averageDailySales:
+                                    10000
+
+                            });
+
+
+                        getAverageDailyPurchaseCashOutflowMock
+                            .mockReturnValue(
+                                40000
+                            );
+
+
+                        getAverageDailyExpensesMock
+                            .mockReturnValue(
+                                30000
+                            );
+
+
+                        const result =
+                            getCashForecast(
+                                USER_ID
+                            );
+
+
+                        expect(
+                            result.currentCash
+                        ).toBe(
+                            -100000
+                        );
+
+
+                        expect(
+                            result.estimatedDailyNetCashFlow
+                        ).toBe(
+                            -60000
+                        );
+
+
+                        expect(
+                            result.estimatedDailyBurn
+                        ).toBe(
+                            60000
+                        );
+
+
+                        expect(
                             result.status
                         ).toBe(
                             "Critical"
+                        );
+
+
+                        expect(
+                            result.cashRecoveryDays
+                        ).toBe(
+                            null
                         );
 
                     }
@@ -741,10 +970,13 @@ describe(
                     "should handle zero sales safely",
                     () => {
 
-                        getAverageDailySalesMock
-                            .mockReturnValue(
-                                0
-                            );
+                        getRevenueForecastMock
+                            .mockReturnValue({
+
+                                averageDailySales:
+                                    0
+
+                            });
 
 
                         const result =
@@ -785,7 +1017,7 @@ describe(
                     "should handle zero purchases safely",
                     () => {
 
-                        getAverageDailyPurchasesMock
+                        getAverageDailyPurchaseCashOutflowMock
                             .mockReturnValue(
                                 0
                             );
@@ -859,13 +1091,16 @@ describe(
                     "should handle zero inflow and zero outflow",
                     () => {
 
-                        getAverageDailySalesMock
-                            .mockReturnValue(
-                                0
-                            );
+                        getRevenueForecastMock
+                            .mockReturnValue({
+
+                                averageDailySales:
+                                    0
+
+                            });
 
 
-                        getAverageDailyPurchasesMock
+                        getAverageDailyPurchaseCashOutflowMock
                             .mockReturnValue(
                                 0
                             );
@@ -915,24 +1150,25 @@ describe(
                     "should handle large financial values",
                     () => {
 
-                        vi.spyOn(
-                            analyticsService,
-                            "getCashMetrics"
-                        ).mockReturnValue({
+                        getCashMetricsMock
+                            .mockReturnValue({
 
-                            cashPosition:
-                                1000000000
+                                cashPosition:
+                                    1000000000
 
-                        });
+                            });
 
 
-                        getAverageDailySalesMock
-                            .mockReturnValue(
-                                2000000000
-                            );
+                        getRevenueForecastMock
+                            .mockReturnValue({
+
+                                averageDailySales:
+                                    2000000000
+
+                            });
 
 
-                        getAverageDailyPurchasesMock
+                        getAverageDailyPurchaseCashOutflowMock
                             .mockReturnValue(
                                 500000000
                             );
@@ -989,19 +1225,15 @@ describe(
                     "should safely handle missing repository values",
                     () => {
 
-                        vi.spyOn(
-                            analyticsService,
-                            "getCashMetrics"
-                        ).mockReturnValue({});
+                        getCashMetricsMock
+                            .mockReturnValue({});
 
 
-                        getAverageDailySalesMock
-                            .mockReturnValue(
-                                undefined
-                            );
+                        getRevenueForecastMock
+                            .mockReturnValue({});
 
 
-                        getAverageDailyPurchasesMock
+                        getAverageDailyPurchaseCashOutflowMock
                             .mockReturnValue(
                                 null
                             );
@@ -1071,23 +1303,24 @@ describe(
 
 
                         expect(
-                            analyticsService.getCashMetrics
+                            getCashMetricsMock
                         ).toHaveBeenCalledWith(
                             USER_ID
                         );
 
 
                         expect(
-                            getAverageDailySalesMock
+                            getRevenueForecastMock
                         ).toHaveBeenCalledWith(
                             USER_ID
                         );
 
 
                         expect(
-                            getAverageDailyPurchasesMock
+                            getAverageDailyPurchaseCashOutflowMock
                         ).toHaveBeenCalledWith(
-                            USER_ID
+                            USER_ID,
+                            30
                         );
 
 
@@ -1181,13 +1414,16 @@ describe(
                     "should calculate burn as the absolute value of negative cash flow",
                     () => {
 
-                        getAverageDailySalesMock
-                            .mockReturnValue(
-                                30000
-                            );
+                        getRevenueForecastMock
+                            .mockReturnValue({
+
+                                averageDailySales:
+                                    30000
+
+                            });
 
 
-                        getAverageDailyPurchasesMock
+                        getAverageDailyPurchaseCashOutflowMock
                             .mockReturnValue(
                                 40000
                             );

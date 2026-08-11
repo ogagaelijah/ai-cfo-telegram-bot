@@ -323,6 +323,17 @@ function getAverageDailyExpenses(telegramId) {
 // ==========================
 // AVERAGE DAILY PURCHASES
 // ==========================
+//
+// Calculates the average cash paid
+// on days where purchase payments
+// actually occurred.
+//
+// This metric is intentionally kept
+// separate from the calendar-day
+// purchase cash-outflow metric below.
+//
+// ==========================
+
 function getAverageDailyPurchases(telegramId) {
 
     const userId =
@@ -365,6 +376,112 @@ function getAverageDailyPurchases(telegramId) {
     return Number(
         result.average
     ) || 0;
+}
+
+
+// ==========================
+// AVERAGE DAILY PURCHASE CASH OUTFLOW
+// ==========================
+//
+// Measures actual supplier cash
+// payments across the complete
+// calendar forecasting period.
+//
+// Unlike getAverageDailyPurchases(),
+// this metric does NOT ignore days
+// where no purchase payment occurred.
+//
+// Example:
+//
+// 30-day period:
+//
+// Total cash paid to suppliers
+// = ₦238,000
+//
+// Average daily purchase cash
+// outflow:
+//
+// ₦238,000 / 30
+//
+// = ₦7,933.33
+//
+// This metric is specifically
+// intended for CASH FLOW forecasting.
+//
+// It is different from:
+//
+// PURCHASE VALUE
+//     → total_amount
+//
+// COGS
+//     → cost_of_goods from sales
+//
+// PURCHASE-DAY PAYMENT AVERAGE
+//     → getAverageDailyPurchases()
+//
+// SUPPLIER BALANCE
+//     → outstanding amount owed
+//
+// ==========================
+
+function getAverageDailyPurchaseCashOutflow(
+    telegramId,
+    days = 30
+) {
+
+    const userId =
+        getUserId(telegramId);
+
+
+    const safeDays =
+        Number(days) > 0
+            ? Math.floor(
+                Number(days)
+            )
+            : 30;
+
+
+    const result =
+        db.prepare(`
+
+            SELECT
+
+                COALESCE(
+                    SUM(
+                        amount_paid
+                    ),
+                    0
+                ) AS total_cash_paid
+
+            FROM purchases
+
+            WHERE user_id = ?
+
+                AND DATE(
+                    created_at,
+                    'localtime'
+                ) >= DATE(
+                    'now',
+                    'localtime',
+                    ?
+                )
+
+        `).get(
+            userId,
+            `-${safeDays} days`
+        );
+
+
+    const totalCashPaid =
+        Number(
+            result.total_cash_paid
+        ) || 0;
+
+
+    return (
+        totalCashPaid /
+        safeDays
+    );
 }
 
 
@@ -552,9 +669,11 @@ function getDailyExpenses(
 // PRODUCT DAILY DEMAND HISTORY
 // ==========================
 //
-// Returns product-level daily quantities sold.
+// Returns product-level daily
+// quantities sold.
 //
-// A sale does not always have an inventory_id.
+// A sale does not always have an
+// inventory_id.
 //
 // Therefore:
 // 1. LEFT JOIN is used.
@@ -659,16 +778,17 @@ function getProductDailyDemand(
 //
 // IMPORTANT:
 //
-// This function receives the TELEGRAM ID,
-// just like the other higher-level repository
-// functions that use getUserId().
+// This function receives the
+// TELEGRAM ID, just like the other
+// higher-level repository functions
+// that use getUserId().
 //
-// It converts the Telegram ID into the
-// internal database user ID before querying
-// the sales table.
+// It converts the Telegram ID into
+// the internal database user ID before
+// querying the sales table.
 //
-// COGS represents the cost of inventory
-// actually sold.
+// COGS represents the cost of
+// inventory actually sold.
 //
 // It does NOT represent purchases.
 //
@@ -777,6 +897,8 @@ module.exports = {
     getAverageDailyExpenses,
 
     getAverageDailyPurchases,
+
+    getAverageDailyPurchaseCashOutflow,
 
     getDailyPurchases,
 

@@ -253,48 +253,40 @@ function setupMocks() {
 
     vi.clearAllMocks();
 
-
     getRevenueForecastMock
         .mockReturnValue(
             revenueForecast
         );
-
 
     getCashForecastMock
         .mockReturnValue(
             cashForecast
         );
 
-
     getInventoryForecastMock
         .mockReturnValue(
             inventoryForecast
         );
-
 
     getInventoryDemandForecastMock
         .mockReturnValue(
             inventoryDemandForecast
         );
 
-
     getProfitForecastMock
         .mockReturnValue(
             profitForecast
         );
-
 
     getRiskForecastMock
         .mockReturnValue(
             riskForecast
         );
 
-
     getExpenseHistoryMock
         .mockReturnValue(
             expenseHistory
         );
-
 
     getDailyCOGSMock
         .mockReturnValue(
@@ -321,18 +313,15 @@ describe(
 
                 setupMocks();
 
-
                 const result =
                     buildForecast(
                         USER_ID,
                         mockServices
                     );
 
-
                 expect(
                     result
                 ).toBeDefined();
-
 
                 expect(
                     result
@@ -374,7 +363,10 @@ describe(
                             "Current forecasts do not indicate significant conditions requiring immediate management action.",
 
                         status:
-                            "Healthy"
+                            "Healthy",
+
+                        topPriority:
+                            "Maintain Current Operations"
 
                     }
 
@@ -382,7 +374,6 @@ describe(
 
             }
         );
-
 
         // ====================================================
         // TEST 2
@@ -394,12 +385,10 @@ describe(
 
                 setupMocks();
 
-
                 buildForecast(
                     USER_ID,
                     mockServices
                 );
-
 
                 expect(
                     getRevenueForecastMock
@@ -407,13 +396,11 @@ describe(
                     1
                 );
 
-
                 expect(
                     getCashForecastMock
                 ).toHaveBeenCalledTimes(
                     1
                 );
-
 
                 expect(
                     getInventoryForecastMock
@@ -421,20 +408,17 @@ describe(
                     1
                 );
 
-
                 expect(
                     getInventoryDemandForecastMock
                 ).toHaveBeenCalledTimes(
                     1
                 );
 
-
                 expect(
                     getProfitForecastMock
                 ).toHaveBeenCalledTimes(
                     1
                 );
-
 
                 expect(
                     getRiskForecastMock
@@ -444,7 +428,6 @@ describe(
 
             }
         );
-
 
         // ====================================================
         // TEST 3
@@ -456,12 +439,10 @@ describe(
 
                 setupMocks();
 
-
                 buildForecast(
                     USER_ID,
                     mockServices
                 );
-
 
                 expect(
                     getRevenueForecastMock
@@ -469,20 +450,17 @@ describe(
                     USER_ID
                 );
 
-
                 expect(
                     getCashForecastMock
                 ).toHaveBeenCalledWith(
                     USER_ID
                 );
 
-
                 expect(
                     getInventoryForecastMock
                 ).toHaveBeenCalledWith(
                     USER_ID
                 );
-
 
                 expect(
                     getInventoryDemandForecastMock
@@ -492,7 +470,6 @@ describe(
 
             }
         );
-
 
         // ====================================================
         // TEST 4
@@ -504,19 +481,16 @@ describe(
 
                 setupMocks();
 
-
                 buildForecast(
                     USER_ID,
                     mockServices
                 );
-
 
                 expect(
                     getExpenseHistoryMock
                 ).toHaveBeenCalledTimes(
                     1
                 );
-
 
                 expect(
                     getExpenseHistoryMock
@@ -526,7 +500,6 @@ describe(
 
             }
         );
-
 
         // ====================================================
         // TEST 5
@@ -538,19 +511,16 @@ describe(
 
                 setupMocks();
 
-
                 buildForecast(
                     USER_ID,
                     mockServices
                 );
-
 
                 expect(
                     getDailyCOGSMock
                 ).toHaveBeenCalledTimes(
                     1
                 );
-
 
                 expect(
                     getDailyCOGSMock
@@ -560,7 +530,6 @@ describe(
 
             }
         );
-
 
         // ====================================================
         // TEST 6
@@ -572,19 +541,16 @@ describe(
 
                 setupMocks();
 
-
                 buildForecast(
                     USER_ID,
                     mockServices
                 );
-
 
                 expect(
                     getProfitForecastMock
                 ).toHaveBeenCalledTimes(
                     1
                 );
-
 
                 expect(
                     getProfitForecastMock
@@ -601,7 +567,6 @@ describe(
             }
         );
 
-
         // ====================================================
         // TEST 7
         // ====================================================
@@ -612,19 +577,16 @@ describe(
 
                 setupMocks();
 
-
                 buildForecast(
                     USER_ID,
                     mockServices
                 );
-
 
                 expect(
                     getRiskForecastMock
                 ).toHaveBeenCalledTimes(
                     1
                 );
-
 
                 expect(
                     getRiskForecastMock
@@ -647,7 +609,6 @@ describe(
             }
         );
 
-
         // ====================================================
         // TEST 8
         // ====================================================
@@ -658,13 +619,11 @@ describe(
 
                 setupMocks();
 
-
                 const result =
                     buildForecast(
                         USER_ID,
                         mockServices
                     );
-
 
                 expect(
                     result.revenue
@@ -672,13 +631,11 @@ describe(
                     revenueForecast
                 );
 
-
                 expect(
                     result.cash
                 ).toBe(
                     cashForecast
                 );
-
 
                 expect(
                     result.inventory
@@ -686,20 +643,17 @@ describe(
                     inventoryForecast
                 );
 
-
                 expect(
                     result.inventoryDemand
                 ).toBe(
                     inventoryDemandForecast
                 );
 
-
                 expect(
                     result.profit
                 ).toBe(
                     profitForecast
                 );
-
 
                 expect(
                     result.risks
@@ -711,5 +665,4 @@ describe(
         );
 
     }
-
 );
