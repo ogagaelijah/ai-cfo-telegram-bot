@@ -20,14 +20,14 @@ const intelligenceDecisionEngine =
 //          ↓
 //     AI Chat / Dashboard
 //
-// This service is responsible for:
+// Responsibilities:
 //
-// 1. Getting the complete business forecast.
-// 2. Running the real intelligence decision engine.
-// 3. Selecting a decision by topic.
-// 4. Normalizing intelligence data.
-// 5. Providing consistent data to AI Chat and Dashboard.
-// 6. Providing intelligent topic-specific fallbacks when the
+// 1. Get the complete business forecast.
+// 2. Run the real Intelligence Decision Engine.
+// 3. Select a decision by topic.
+// 4. Normalize intelligence data.
+// 5. Provide consistent data to AI Chat and Dashboard.
+// 6. Provide topic-specific fallback intelligence when the
 //    Decision Engine has no matching decision.
 //
 // ============================================================
@@ -150,11 +150,19 @@ function findDecisionByTopic(
                     decision.category ===
                     "Inventory"
             ) ||
+
+            decisions.find(
+                decision =>
+                    decision.category ===
+                    "Inventory Demand"
+            ) ||
+
             decisions.find(
                 decision =>
                     decision.category ===
                     "Stock"
             ) ||
+
             null
         );
     }
@@ -249,35 +257,6 @@ function findDecisionByTopic(
 // ============================================================
 // TOPIC-SPECIFIC FALLBACK INTELLIGENCE
 // ============================================================
-//
-// A topic can have useful forecast intelligence even when the
-// Decision Engine does not produce a decision specifically for
-// that topic.
-//
-// Example:
-//
-// User asks:
-//
-//     "Am I making money?"
-//
-// Topic:
-//
-//     profit
-//
-// The Decision Engine may have no "Profitability" decision.
-//
-// However, the Profit Forecast can still tell us:
-//
-//     Tomorrow Net Profit
-//     Net Profit Margin
-//     Profit Status
-//
-// Therefore we should answer from the actual forecast rather
-// than returning:
-//
-//     "Maintain Current Operations"
-//
-// ============================================================
 
 function buildTopicFallback(
     topic,
@@ -302,15 +281,21 @@ function buildTopicFallback(
             toNumber(
                 profit.tomorrowNetProfit
             ) ||
+
             toNumber(
                 profit.tomorrowProfit
             ) ||
+
             projectedProfit;
 
 
         const netMargin =
             toNumber(
                 profit.tomorrowNetProfitMargin
+            ) ||
+
+            toNumber(
+                profit.tomorrowProfitMargin
             );
 
 
@@ -335,7 +320,9 @@ function buildTopicFallback(
         ) {
 
             let explanation =
-                `The business is currently forecast to remain profitable, with projected net profit of ₦${Math.round(netProfit).toLocaleString()}.`;
+                `The business is currently forecast to remain profitable, with projected net profit of ₦${Math.round(
+                    netProfit
+                ).toLocaleString()}.`;
 
 
             if (
@@ -343,7 +330,9 @@ function buildTopicFallback(
             ) {
 
                 explanation +=
-                    ` The projected net profit margin is ${netMargin.toFixed(1)}%.`;
+                    ` The projected net profit margin is ${netMargin.toFixed(
+                        1
+                    )}%.`;
             }
 
 
@@ -412,7 +401,11 @@ function buildTopicFallback(
                     "High",
 
                 explanation:
-                    `The business is currently forecast to lose approximately ₦${Math.abs(Math.round(netProfit)).toLocaleString()} in net profit.`,
+                    `The business is currently forecast to lose approximately ₦${Math.abs(
+                        Math.round(
+                            netProfit
+                        )
+                    ).toLocaleString()} in net profit.`,
 
                 recommendation:
                     "Review pricing, cost of goods, operating expenses and sales performance immediately to identify the main causes of the projected loss.",
@@ -507,12 +500,16 @@ function buildTopicFallback(
             ) {
 
                 explanation =
-                    `Projected revenue is approximately ₦${Math.round(projectedRevenue).toLocaleString()} per selling day based on the current sales history. The forecast currently uses ${activeSalesDays} active selling day(s).`;
+                    `Projected revenue is approximately ₦${Math.round(
+                        projectedRevenue
+                    ).toLocaleString()} per selling day based on the current sales history. The forecast currently uses ${activeSalesDays} active selling day(s).`;
 
             } else {
 
                 explanation =
-                    `Projected revenue is approximately ₦${Math.round(projectedRevenue).toLocaleString()}.`;
+                    `Projected revenue is approximately ₦${Math.round(
+                        projectedRevenue
+                    ).toLocaleString()}.`;
             }
 
 
@@ -614,22 +611,36 @@ function buildTopicFallback(
             );
 
 
-        const cashPosition =
+        let cashPosition;
+
+
+        if (
             Number.isFinite(
                 Number(
                     cash.currentCash
                 )
             )
-                ? currentCash
-                : (
-                    Number.isFinite(
-                        Number(
-                            cash.cashBalance
-                        )
-                    )
-                        ? cashBalance
-                        : availableCash
-                );
+        ) {
+
+            cashPosition =
+                currentCash;
+
+        } else if (
+            Number.isFinite(
+                Number(
+                    cash.cashBalance
+                )
+            )
+        ) {
+
+            cashPosition =
+                cashBalance;
+
+        } else {
+
+            cashPosition =
+                availableCash;
+        }
 
 
         if (
@@ -645,7 +656,9 @@ function buildTopicFallback(
                     "High",
 
                 explanation:
-                    `Cash is currently negative at ₦${Math.round(cashPosition).toLocaleString()}. Immediate attention is required to improve liquidity.`,
+                    `Cash is currently negative at ₦${Math.round(
+                        cashPosition
+                    ).toLocaleString()}. Immediate attention is required to improve liquidity.`,
 
                 recommendation:
                     "Prioritize cash collections, reduce non-essential spending and review all immediate payment obligations.",
@@ -672,7 +685,9 @@ function buildTopicFallback(
                     "Low",
 
                 explanation:
-                    `The business currently has positive cash of approximately ₦${Math.round(cashPosition).toLocaleString()}.`,
+                    `The business currently has positive cash of approximately ₦${Math.round(
+                        cashPosition
+                    ).toLocaleString()}.`,
 
                 recommendation:
                     "Protect the current cash position by prioritizing essential spending, collecting outstanding receivables and maintaining adequate liquidity.",
@@ -684,6 +699,28 @@ function buildTopicFallback(
 
             };
         }
+
+
+        return {
+
+            priority:
+                "Cash Position",
+
+            urgency:
+                "Medium",
+
+            explanation:
+                "The current cash position is approximately ₦0.",
+
+            recommendation:
+                "Prioritize cash collections and avoid unnecessary spending until liquidity improves.",
+
+            source:
+                "Cash Flow Forecast",
+
+            cashPosition: 0
+
+        };
     }
 
 
@@ -700,11 +737,24 @@ function buildTopicFallback(
             {};
 
 
+        const inventoryDemand =
+            businessForecastData.inventoryDemand ||
+            {};
+
+
         const products =
             Array.isArray(
                 inventory.products
             )
                 ? inventory.products
+                : [];
+
+
+        const demandProducts =
+            Array.isArray(
+                inventoryDemand.products
+            )
+                ? inventoryDemand.products
                 : [];
 
 
@@ -722,15 +772,32 @@ function buildTopicFallback(
                 );
 
 
+        const demandReorderProducts =
+            demandProducts.filter(
+                product =>
+                    product &&
+                    (
+                        product.reorderRecommendation ===
+                            "Urgent" ||
+
+                        product.reorderRecommendation ===
+                            "Reorder Immediately" ||
+
+                        product.reorderRecommendation ===
+                            "Reorder Soon"
+                    )
+            );
+
+
         const productsRequiringReorder =
-            reorderProducts.length;
+            Math.max(
+                reorderProducts.length,
+                demandReorderProducts.length
+            );
 
 
         const productCount =
-            products.length ||
-            toNumber(
-                inventory.products
-            );
+            products.length;
 
 
         if (
@@ -949,34 +1016,34 @@ function buildIntelligence(
             );
 
 
+    const businessForecastData =
+        forecast || {};
+
+
     // ========================================================
     // STEP 2
     // RUN REAL INTELLIGENCE DECISION ENGINE
+    // ========================================================
+    //
+    // IMPORTANT:
+    //
+    // The Decision Engine expects an object containing:
+    //
+    //     risks
+    //
+    // businessForecastService already provides that property.
+    //
     // ========================================================
 
     const intelligence =
         intelligenceDecisionEngine
             .getDecisionForecast(
-                forecast
+                businessForecastData
             );
 
 
-    // ========================================================
-    // SAFETY
-    // ========================================================
-
     const data =
         intelligence || {};
-
-
-    // ========================================================
-    // BUSINESS FORECAST
-    // ========================================================
-
-    const businessForecastData =
-        data.businessForecast ||
-        forecast ||
-        {};
 
 
     // ========================================================
@@ -988,7 +1055,13 @@ function buildIntelligence(
             data.decisions
         )
             ? data.decisions
-            : [];
+            : (
+                Array.isArray(
+                    businessForecastData.decisions
+                )
+                    ? businessForecastData.decisions
+                    : []
+            );
 
 
     // ========================================================
@@ -1022,17 +1095,25 @@ function buildIntelligence(
 
     const projectedRevenue =
         toNumber(
+            businessForecastData.projectedRevenue
+        ) ||
+
+        toNumber(
             forecastData.projectedRevenue
         ) ||
+
         toNumber(
             revenue.projectedRevenue
         ) ||
+
         toNumber(
             revenue.tomorrowRevenue
         ) ||
+
         toNumber(
             revenue.tomorrow
         ) ||
+
         toNumber(
             revenue.averageDailySales
         );
@@ -1049,14 +1130,21 @@ function buildIntelligence(
 
     const projectedProfit =
         toNumber(
+            businessForecastData.projectedProfit
+        ) ||
+
+        toNumber(
             forecastData.projectedProfit
         ) ||
+
         toNumber(
             profit.projectedProfit
         ) ||
+
         toNumber(
             profit.tomorrowNetProfit
         ) ||
+
         toNumber(
             profit.tomorrowProfit
         );
@@ -1068,8 +1156,13 @@ function buildIntelligence(
 
     const confidence =
         toNumber(
+            businessForecastData.confidence
+        ) ||
+
+        toNumber(
             forecastData.confidence
         ) ||
+
         toNumber(
             revenue.confidence
         );
@@ -1077,12 +1170,6 @@ function buildIntelligence(
 
     // ========================================================
     // NORMALIZED DECISION COUNTS
-    // ========================================================
-    //
-    // Calculate these directly from the decisions array.
-    //
-    // This prevents inconsistent values when the upstream
-    // decision engine does not expose the counters correctly.
     // ========================================================
 
     const totalDecisions =
@@ -1148,28 +1235,17 @@ function buildIntelligence(
     // ========================================================
     // RISKS
     // ========================================================
-    //
-    // Risks may currently be contained inside:
-    //
-    //     data.risks
-    //
-    // or:
-    //
-    //     businessForecast.risks
-    //
-    // Support both locations for compatibility.
-    // ========================================================
 
     const risks =
         Array.isArray(
-            data.risks
+            businessForecastData.risks
         )
-            ? data.risks
+            ? businessForecastData.risks
             : (
                 Array.isArray(
-                    businessForecastData.risks
+                    data.risks
                 )
-                    ? businessForecastData.risks
+                    ? data.risks
                     : []
             );
 
@@ -1181,20 +1257,41 @@ function buildIntelligence(
     const executiveSummary =
         data.executiveSummary ||
         businessForecastData.executiveSummary ||
-        {};
+        {
+            status:
+                "Healthy",
+
+            headline:
+                "No immediate business decisions are required.",
+
+            message:
+                "Current forecasts do not indicate significant conditions requiring immediate management action.",
+
+            topPriority:
+                "Maintain Current Operations"
+        };
 
 
     // ========================================================
-    // NO DECISION FALLBACK
+    // TOP DECISION
+    // ========================================================
+
+    const topDecision =
+        data.topDecision ||
+        decisions[0] ||
+        null;
+
+
+    // ========================================================
+    // NO MATCHING DECISION
     // ========================================================
     //
-    // IMPORTANT:
+    // A missing decision does NOT mean there is no
+    // intelligence.
     //
-    // No matching Decision Engine decision does NOT mean
-    // there is no intelligence.
+    // Profit, revenue, cash and inventory can still be
+    // answered directly from forecast data.
     //
-    // Profit, revenue, cash and other forecast topics can
-    // still be answered directly from the forecast data.
     // ========================================================
 
     if (
@@ -1240,17 +1337,9 @@ function buildIntelligence(
                 fallback.recommendation,
 
 
-            // ==================================================
-            // FALLBACK SOURCE
-            // ==================================================
-
             intelligenceSource:
                 fallback.source,
 
-
-            // ==================================================
-            // TOPIC FORECAST STATUS
-            // ==================================================
 
             forecastStatus:
                 fallback.forecastStatus ||
@@ -1258,10 +1347,12 @@ function buildIntelligence(
 
 
             // ==================================================
-            // FORECAST
+            // NORMALIZED FORECAST
             // ==================================================
 
             forecast: {
+
+                ...forecastData,
 
                 projectedRevenue,
 
@@ -1269,13 +1360,12 @@ function buildIntelligence(
 
                 confidence,
 
-                ...forecastData,
-
 
                 tomorrowRevenue:
                     toNumber(
                         revenue.tomorrow
                     ) ||
+
                     toNumber(
                         revenue.tomorrowRevenue
                     ),
@@ -1285,6 +1375,7 @@ function buildIntelligence(
                     toNumber(
                         revenue.next7Days
                     ) ||
+
                     toNumber(
                         revenue.next7DaysRevenue
                     ),
@@ -1294,6 +1385,7 @@ function buildIntelligence(
                     toNumber(
                         revenue.next30Days
                     ) ||
+
                     toNumber(
                         revenue.next30DaysRevenue
                     ),
@@ -1303,6 +1395,7 @@ function buildIntelligence(
                     toNumber(
                         profit.tomorrowNetProfit
                     ) ||
+
                     toNumber(
                         profit.tomorrowProfit
                     ),
@@ -1312,6 +1405,7 @@ function buildIntelligence(
                     toNumber(
                         profit.next7DaysNetProfit
                     ) ||
+
                     toNumber(
                         profit.next7DaysProfit
                     ),
@@ -1321,6 +1415,7 @@ function buildIntelligence(
                     toNumber(
                         profit.next30DaysNetProfit
                     ) ||
+
                     toNumber(
                         profit.next30DaysProfit
                     )
@@ -1355,14 +1450,11 @@ function buildIntelligence(
             // TOP DECISION
             // ==================================================
 
-            topDecision:
-                data.topDecision ||
-                decisions[0] ||
-                null,
+            topDecision,
 
 
             // ==================================================
-            // BUSINESS FORECAST
+            // COMPLETE BUSINESS FORECAST
             // ==================================================
 
             businessForecast:
@@ -1387,7 +1479,7 @@ function buildIntelligence(
 
 
     // ========================================================
-    // URGENCY
+    // NORMALIZE SELECTED DECISION URGENCY
     // ========================================================
 
     let urgency =
@@ -1468,19 +1560,20 @@ function buildIntelligence(
 
         forecast: {
 
+            ...forecastData,
+
             projectedRevenue,
 
             projectedProfit,
 
             confidence,
 
-            ...forecastData,
-
 
             tomorrowRevenue:
                 toNumber(
                     revenue.tomorrow
                 ) ||
+
                 toNumber(
                     revenue.tomorrowRevenue
                 ),
@@ -1490,6 +1583,7 @@ function buildIntelligence(
                 toNumber(
                     revenue.next7Days
                 ) ||
+
                 toNumber(
                     revenue.next7DaysRevenue
                 ),
@@ -1499,6 +1593,7 @@ function buildIntelligence(
                 toNumber(
                     revenue.next30Days
                 ) ||
+
                 toNumber(
                     revenue.next30DaysRevenue
                 ),
@@ -1508,6 +1603,7 @@ function buildIntelligence(
                 toNumber(
                     profit.tomorrowNetProfit
                 ) ||
+
                 toNumber(
                     profit.tomorrowProfit
                 ),
@@ -1517,6 +1613,7 @@ function buildIntelligence(
                 toNumber(
                     profit.next7DaysNetProfit
                 ) ||
+
                 toNumber(
                     profit.next7DaysProfit
                 ),
@@ -1526,6 +1623,7 @@ function buildIntelligence(
                 toNumber(
                     profit.next30DaysNetProfit
                 ) ||
+
                 toNumber(
                     profit.next30DaysProfit
                 )
@@ -1560,14 +1658,11 @@ function buildIntelligence(
         // TOP DECISION
         // ====================================================
 
-        topDecision:
-            data.topDecision ||
-            decisions[0] ||
-            null,
+        topDecision,
 
 
         // ====================================================
-        // BUSINESS FORECAST
+        // COMPLETE BUSINESS FORECAST
         // ====================================================
 
         businessForecast:
