@@ -26,6 +26,14 @@ const {
     getDecisionForecast
 } = require("../intelligence/decisionEngine");
 
+const {
+    buildRecommendations
+} = require("../intelligence/recommendationEngine");
+
+const {
+    getAdvisorAssessment
+} = require("../intelligence/advisorCore");
+
 const expenseRepository =
     require("../../repositories/expenseRepository");
 
@@ -44,7 +52,11 @@ const {
 // 1. Calculate independent forecasts.
 // 2. Collect historical financial data.
 // 3. Pass calculated intelligence to dependent engines.
-// 4. Return one structured business intelligence object.
+// 4. Generate risks.
+// 5. Generate decisions.
+// 6. Generate recommendations.
+// 7. Generate executive advisor assessment.
+// 8. Return one structured business intelligence object.
 //
 // This engine is interface-independent.
 //
@@ -56,11 +68,9 @@ const {
 // - OpenAI
 // - Any future AI provider
 //
-// Future interfaces can consume this same structure.
-//
 // ============================================================
 //
-// FLOW:
+// INTELLIGENCE FLOW:
 //
 //                    BUSINESS DATA
 //                         │
@@ -72,17 +82,20 @@ const {
 //                         ▼
 //                    Profit Engine
 //                         │
-//          ┌──────────────┼──────────────┐
-//          ▼              ▼              ▼
-//        Risks        Decisions      Scenarios
-//          │              │              │
-//          └──────────────┼──────────────┘
+//                         ▼
+//                    Risk Engine
+//                         │
+//                         ▼
+//                   Decision Engine
+//                         │
+//                         ▼
+//                Recommendation Engine
+//                         │
 //                         ▼
 //                    Advisor Core
 //                         │
-//          ┌──────────────┼──────────────┐
-//          ▼              ▼              ▼
-//       Telegram       Website        Mobile
+//                         ▼
+//              COMPLETE CFO INTELLIGENCE
 //
 // ============================================================
 
@@ -127,22 +140,6 @@ function buildForecast(
 
     // ========================================================
     // DATA SERVICES
-    // ========================================================
-    //
-    // These are injectable for testing.
-    //
-    // Production:
-    //
-    //     expenseRepository.getDailyHistory()
-    //
-    //     getDailyCOGS()
-    //
-    // Tests:
-    //
-    //     services.getExpenseHistory()
-    //
-    //     services.getDailyCOGS()
-    //
     // ========================================================
 
     const getExpenseHistory =
@@ -198,24 +195,6 @@ function buildForecast(
     // ========================================================
     // EXPENSE HISTORY
     // ========================================================
-    //
-    // This history serves two purposes:
-    //
-    // 1. Profit forecasting.
-    // 2. Future scenario analysis.
-    //
-    // Daily history intentionally contains zero-expense
-    // calendar days.
-    //
-    // Example:
-    //
-    // [
-    //     { date: "2026-08-01", expenses: 50000 },
-    //     { date: "2026-08-02", expenses: 0 },
-    //     { date: "2026-08-03", expenses: 30000 }
-    // ]
-    //
-    // ========================================================
 
     const expenseHistory =
         getExpenseHistory(
@@ -226,12 +205,6 @@ function buildForecast(
     // ========================================================
     // COGS HISTORY
     // ========================================================
-    //
-    // COGS represents the cost of products actually sold.
-    //
-    // It is NOT the same as inventory purchases.
-    //
-    // ========================================================
 
     const cogsHistory =
         getCOGSHistory(
@@ -241,16 +214,6 @@ function buildForecast(
 
     // ========================================================
     // PROFIT FORECAST
-    // ========================================================
-    //
-    // Profit receives:
-    //
-    // 1. Revenue forecast.
-    // 2. Operating expense history.
-    // 3. COGS history.
-    //
-    // Revenue is not recalculated here.
-    //
     // ========================================================
 
     const profit =
@@ -263,10 +226,6 @@ function buildForecast(
 
     // ========================================================
     // RISK FORECAST
-    // ========================================================
-    //
-    // Risk receives already-calculated intelligence.
-    //
     // ========================================================
 
     const risks =
@@ -284,7 +243,7 @@ function buildForecast(
     // DECISION FORECAST
     // ========================================================
     //
-    // Decisions interpret the risks.
+    // Decisions interpret identified risks.
     //
     // ========================================================
 
@@ -294,15 +253,78 @@ function buildForecast(
         });
 
 
+    const decisions =
+        decisionForecast.decisions;
+
+
     // ========================================================
-    // COMPLETE FORECAST
+    // RECOMMENDATION ENGINE
     // ========================================================
     //
-    // This is the central structured CFO intelligence
-    // payload.
+    // Recommendations convert business decisions into
+    // structured management actions.
     //
-    // Future interfaces should consume this object rather
-    // than directly accessing individual repositories.
+    // ========================================================
+
+    const recommendations =
+        buildRecommendations(
+            decisions
+        );
+
+
+    // ========================================================
+    // ADVISOR CORE
+    // ========================================================
+    //
+    // Advisor Core interprets the complete intelligence
+    // produced above.
+    //
+    // ========================================================
+
+    const intelligence = {
+
+        revenue,
+
+        cash,
+
+        inventory,
+
+        inventoryDemand,
+
+        profit,
+
+        expenseHistory,
+
+        cogsHistory,
+
+        risks,
+
+        decisions,
+
+        recommendations,
+
+        executiveSummary:
+            decisionForecast.executiveSummary
+
+    };
+
+
+    const advisor =
+        getAdvisorAssessment(
+            intelligence
+        );
+
+
+    // ========================================================
+    // COMPLETE CFO INTELLIGENCE
+    // ========================================================
+    //
+    // This is now the central structured intelligence
+    // payload for the entire application.
+    //
+    // Telegram, Website, Mobile App and future AI layers
+    // should consume this structure instead of directly
+    // accessing repositories.
     //
     // ========================================================
 
@@ -326,12 +348,6 @@ function buildForecast(
         // ----------------------------------------------------
         // HISTORICAL SUPPORTING DATA
         // ----------------------------------------------------
-        //
-        // Exposing expense history here allows the Scenario
-        // Engine and future intelligence services to work
-        // from the same structured financial context.
-        //
-        // ----------------------------------------------------
 
         expenseHistory,
 
@@ -344,11 +360,19 @@ function buildForecast(
 
         risks,
 
-        decisions:
-            decisionForecast.decisions,
+        decisions,
+
+        recommendations,
 
         executiveSummary:
-            decisionForecast.executiveSummary
+            decisionForecast.executiveSummary,
+
+
+        // ----------------------------------------------------
+        // ADVISOR CORE
+        // ----------------------------------------------------
+
+        advisor
 
     };
 }

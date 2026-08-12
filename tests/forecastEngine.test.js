@@ -210,8 +210,6 @@ const riskForecast = {
 // MOCK SERVICES
 // ============================================================
 //
-// IMPORTANT:
-//
 // These names MUST match the dependency-injection names
 // used by forecastEngine.js.
 //
@@ -354,6 +352,9 @@ describe(
                     decisions:
                         [],
 
+                    recommendations:
+                        [],
+
                     executiveSummary: {
 
                         headline:
@@ -368,12 +369,51 @@ describe(
                         topPriority:
                             "Maintain Current Operations"
 
+                    },
+
+                    advisor: {
+
+                        businessStatus:
+                            "Healthy",
+
+                        overallPriority:
+                            "Low",
+
+                        headline:
+                            "Business performance is currently healthy. Continue monitoring key financial indicators.",
+
+                        assessment:
+                            "The business currently appears healthy based on the available financial intelligence.",
+
+                        keyIssues:
+                            [],
+
+                        opportunities:
+                            [],
+
+                        recommendedActions:
+                            [],
+
+                        confidence:
+                            65,
+
+                        sourceData: {
+
+                            risks:
+                                [],
+
+                            decisions:
+                                []
+
+                        }
+
                     }
 
                 });
 
             }
         );
+
 
         // ====================================================
         // TEST 2
@@ -429,6 +469,7 @@ describe(
             }
         );
 
+
         // ====================================================
         // TEST 3
         // ====================================================
@@ -471,6 +512,7 @@ describe(
             }
         );
 
+
         // ====================================================
         // TEST 4
         // ====================================================
@@ -501,6 +543,7 @@ describe(
             }
         );
 
+
         // ====================================================
         // TEST 5
         // ====================================================
@@ -530,6 +573,7 @@ describe(
 
             }
         );
+
 
         // ====================================================
         // TEST 6
@@ -566,6 +610,7 @@ describe(
 
             }
         );
+
 
         // ====================================================
         // TEST 7
@@ -609,8 +654,141 @@ describe(
             }
         );
 
+
         // ====================================================
         // TEST 8
+        // ====================================================
+
+        it(
+            "should generate the Advisor Core assessment from complete intelligence",
+            () => {
+
+                setupMocks();
+
+                const result =
+                    buildForecast(
+                        USER_ID,
+                        mockServices
+                    );
+
+                expect(
+                    result.advisor
+                ).toBeDefined();
+
+                expect(
+                    result.advisor.businessStatus
+                ).toBe(
+                    "Healthy"
+                );
+
+                expect(
+                    result.advisor.overallPriority
+                ).toBe(
+                    "Low"
+                );
+
+                expect(
+                    result.advisor.confidence
+                ).toBe(
+                    65
+                );
+
+                expect(
+                    result.advisor.keyIssues
+                ).toEqual(
+                    []
+                );
+
+                expect(
+                    result.advisor.opportunities
+                ).toEqual(
+                    []
+                );
+
+                expect(
+                    result.advisor.recommendedActions
+                ).toEqual(
+                    []
+                );
+
+                expect(
+                    result.advisor.sourceData
+                ).toEqual({
+
+                    risks:
+                        [],
+
+                    decisions:
+                        []
+
+                });
+
+            }
+        );
+
+
+        // ====================================================
+        // TEST 9
+        // ====================================================
+
+        it(
+            "should preserve the Advisor Core assessment structure",
+            () => {
+
+                setupMocks();
+
+                const result =
+                    buildForecast(
+                        USER_ID,
+                        mockServices
+                    );
+
+                expect(
+                    result.advisor
+                ).toStrictEqual({
+
+                    businessStatus:
+                        "Healthy",
+
+                    overallPriority:
+                        "Low",
+
+                    headline:
+                        "Business performance is currently healthy. Continue monitoring key financial indicators.",
+
+                    assessment:
+                        "The business currently appears healthy based on the available financial intelligence.",
+
+                    keyIssues:
+                        [],
+
+                    opportunities:
+                        [],
+
+                    recommendedActions:
+                        [],
+
+                    confidence:
+                        65,
+
+                    sourceData: {
+
+                        risks:
+                            [],
+
+                        decisions:
+                            []
+
+                    }
+
+                });
+
+            }
+        );
+
+
+        // ====================================================
+        // TEST 10
         // ====================================================
 
         it(

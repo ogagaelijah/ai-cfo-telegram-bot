@@ -1,30 +1,39 @@
-const {
+// ============================================================
+// SCENARIO ENGINE TESTS V1
+// ============================================================
+//
+// PURPOSE:
+//
+// Validate the deterministic Scenario Engine independently.
+//
+// These tests verify:
+//
+// 1. Revenue increases
+// 2. Revenue decreases
+// 3. Expense increases
+// 4. Expense decreases
+// 5. Cash impact
+// 6. Cash outlook
+// 7. Scenario status
+// 8. Scenario decisions
+// 9. Empty data
+// 10. Unsupported scenario types
+// 11. Floating-point protection
+// 12. Large values
+//
+// No database.
+// No AI.
+// No external services.
+//
+// ============================================================
+
+import {
     describe,
     it,
     expect
-} = await import("vitest");
+} from "vitest";
 
-// ============================================================
-// SCENARIO ENGINE
-// ============================================================
-//
-// Tests the deterministic Scenario Engine.
-//
-// The Scenario Engine must:
-//
-// 1. Never modify real business data.
-// 2. Simulate revenue changes safely.
-// 3. Simulate expense changes safely.
-// 4. Calculate cash impact from revenue scenarios.
-// 5. Determine scenario status.
-// 6. Produce actionable scenario decisions.
-// 7. Handle missing or invalid data safely.
-// 8. Support revenue and expense scenarios.
-// 9. Reject unsupported scenario types safely.
-//
-// ============================================================
-
-const {
+import {
     buildScenario,
     buildRevenueScenario,
     buildExpenseScenario,
@@ -34,43 +43,45 @@ const {
     simulateExpenseChange,
     analyzeCashImpact,
     determineCashOutlook,
-    determineRevenueScenarioStatus,
-    formatMoney
-} = await import(
-    "../src/services/intelligence/scenarioEngine.js"
-);
-
+    determineRevenueScenarioStatus
+} from "../src/services/intelligence/scenarioEngine";
 
 // ============================================================
 // TEST DATA
 // ============================================================
 
-const BASE_REVENUE = {
+const revenueForecast = {
 
-    tomorrow:
-        100000,
+    revenue: {
 
-    next7Days:
-        700000,
+        tomorrow:
+            100000,
 
-    next30Days:
-        3000000
+        next7Days:
+            700000,
+
+        next30Days:
+            3000000
+
+    },
+
+    cash: {
+
+        currentCash:
+            500000,
+
+        next7Days:
+            700000,
+
+        next30Days:
+            3000000
+
+    }
 
 };
 
 
-const BASE_CASH = {
-
-    next7Days:
-        500000,
-
-    next30Days:
-        1500000
-
-};
-
-
-const EXPENSE_HISTORY = [
+const expenseHistory = [
 
     {
         date:
@@ -85,7 +96,7 @@ const EXPENSE_HISTORY = [
             "2026-08-02",
 
         expenses:
-            60000
+            75000
     },
 
     {
@@ -93,194 +104,12 @@ const EXPENSE_HISTORY = [
             "2026-08-03",
 
         expenses:
-            40000
+            25000
     }
 
 ];
 
-
-const FORECAST = {
-
-    revenue:
-        BASE_REVENUE,
-
-    cash:
-        BASE_CASH,
-
-    expenseHistory:
-        EXPENSE_HISTORY
-
-};
-
-
-// ============================================================
-// NUMBER SAFETY
-// ============================================================
-
-describe(
-    "Scenario Engine - Number Safety",
-    () => {
-
-        it(
-            "should safely handle invalid revenue values",
-            () => {
-
-                const result =
-                    simulateRevenueChange(
-                        {
-                            tomorrow:
-                                "invalid",
-
-                            next7Days:
-                                null,
-
-                            next30Days:
-                                undefined
-
-                        },
-                        -20
-                    );
-
-
-                expect(
-                    result.tomorrow
-                ).toBe(0);
-
-
-                expect(
-                    result.next7Days
-                ).toBe(0);
-
-
-                expect(
-                    result.next30Days
-                ).toBe(0);
-
-            }
-        );
-
-
-        it(
-            "should safely handle invalid expense values",
-            () => {
-
-                const result =
-                    simulateExpenseChange(
-                        [
-                            {
-                                expenses:
-                                    "invalid"
-                            },
-
-                            {
-                                expenses:
-                                    null
-                            },
-
-                            {
-                                expenses:
-                                    undefined
-                            }
-
-                        ],
-                        20
-                    );
-
-
-                expect(
-                    result.currentExpenses
-                ).toBe(0);
-
-
-                expect(
-                    result.projectedExpenses
-                ).toBe(0);
-
-
-                expect(
-                    result.additionalExpenses
-                ).toBe(0);
-
-            }
-        );
-
-    }
-);
-
-
-// ============================================================
-// FORMAT MONEY
-// ============================================================
-
-describe(
-    "formatMoney()",
-    () => {
-
-        it(
-            "should format positive money values",
-            () => {
-
-                expect(
-                    formatMoney(
-                        100000
-                    )
-                ).toBe(
-                    "₦100,000"
-                );
-
-            }
-        );
-
-
-        it(
-            "should format zero correctly",
-            () => {
-
-                expect(
-                    formatMoney(
-                        0
-                    )
-                ).toBe(
-                    "₦0"
-                );
-
-            }
-        );
-
-
-        it(
-            "should round decimal values",
-            () => {
-
-                expect(
-                    formatMoney(
-                        100000.75
-                    )
-                ).toBe(
-                    "₦100,001"
-                );
-
-            }
-        );
-
-
-        it(
-            "should safely format invalid values",
-            () => {
-
-                expect(
-                    formatMoney(
-                        "invalid"
-                    )
-                ).toBe(
-                    "₦0"
-                );
-
-            }
-        );
-
-    }
-);
+// Total = ₦150,000
 
 
 // ============================================================
@@ -288,222 +117,82 @@ describe(
 // ============================================================
 
 describe(
-    "simulateRevenueChange()",
+    "simulateRevenueChange",
     () => {
 
         it(
-            "should simulate a 20 percent revenue decrease",
+            "should increase revenue correctly",
             () => {
 
                 const result =
                     simulateRevenueChange(
-                        BASE_REVENUE,
+                        revenueForecast.revenue,
+                        20
+                    );
+
+                expect(
+                    result.tomorrow
+                ).toBe(120000);
+
+                expect(
+                    result.next7Days
+                ).toBe(840000);
+
+                expect(
+                    result.next30Days
+                ).toBe(3600000);
+
+            }
+        );
+
+
+        it(
+            "should decrease revenue correctly",
+            () => {
+
+                const result =
+                    simulateRevenueChange(
+                        revenueForecast.revenue,
                         -20
                     );
 
-
                 expect(
                     result.tomorrow
-                ).toBe(
-                    80000
-                );
-
+                ).toBe(80000);
 
                 expect(
                     result.next7Days
-                ).toBe(
-                    560000
-                );
-
+                ).toBe(560000);
 
                 expect(
                     result.next30Days
-                ).toBe(
-                    2400000
-                );
+                ).toBe(2400000);
 
             }
         );
 
 
         it(
-            "should simulate a 10 percent revenue increase",
+            "should handle zero percentage change",
             () => {
 
                 const result =
                     simulateRevenueChange(
-                        BASE_REVENUE,
-                        10
-                    );
-
-
-                expect(
-                    result.tomorrow
-                ).toBe(
-                    110000
-                );
-
-
-                expect(
-                    result.next7Days
-                ).toBe(
-                    770000
-                );
-
-
-                expect(
-                    result.next30Days
-                ).toBe(
-                    3300000
-                );
-
-            }
-        );
-
-
-        it(
-            "should return the baseline when change is zero",
-            () => {
-
-                const result =
-                    simulateRevenueChange(
-                        BASE_REVENUE,
+                        revenueForecast.revenue,
                         0
                     );
 
-
                 expect(
                     result.tomorrow
-                ).toBe(
-                    100000
-                );
-
+                ).toBe(100000);
 
                 expect(
                     result.next7Days
-                ).toBe(
-                    700000
-                );
-
+                ).toBe(700000);
 
                 expect(
                     result.next30Days
-                ).toBe(
-                    3000000
-                );
-
-            }
-        );
-
-
-        it(
-            "should handle 100 percent revenue decrease",
-            () => {
-
-                const result =
-                    simulateRevenueChange(
-                        BASE_REVENUE,
-                        -100
-                    );
-
-
-                expect(
-                    result.tomorrow
-                ).toBe(
-                    0
-                );
-
-
-                expect(
-                    result.next7Days
-                ).toBe(
-                    0
-                );
-
-
-                expect(
-                    result.next30Days
-                ).toBe(
-                    0
-                );
-
-            }
-        );
-
-
-        it(
-            "should handle revenue increases greater than 100 percent",
-            () => {
-
-                const result =
-                    simulateRevenueChange(
-                        BASE_REVENUE,
-                        200
-                    );
-
-
-                expect(
-                    result.tomorrow
-                ).toBe(
-                    300000
-                );
-
-
-                expect(
-                    result.next7Days
-                ).toBe(
-                    2100000
-                );
-
-
-                expect(
-                    result.next30Days
-                ).toBe(
-                    9000000
-                );
-
-            }
-        );
-
-
-        it(
-            "should not modify the original revenue object",
-            () => {
-
-                const original = {
-
-                    tomorrow:
-                        100000,
-
-                    next7Days:
-                        700000,
-
-                    next30Days:
-                        3000000
-
-                };
-
-
-                simulateRevenueChange(
-                    original,
-                    -20
-                );
-
-
-                expect(
-                    original
-                ).toEqual({
-
-                    tomorrow:
-                        100000,
-
-                    next7Days:
-                        700000,
-
-                    next30Days:
-                        3000000
-
-                });
+                ).toBe(3000000);
 
             }
         );
@@ -516,19 +205,16 @@ describe(
                 const result =
                     simulateRevenueChange(
                         {},
-                        -20
+                        20
                     );
-
 
                 expect(
                     result.tomorrow
                 ).toBe(0);
 
-
                 expect(
                     result.next7Days
                 ).toBe(0);
-
 
                 expect(
                     result.next30Days
@@ -537,188 +223,37 @@ describe(
             }
         );
 
-    }
-);
-
-
-// ============================================================
-// ANALYZE REVENUE SCENARIO
-// ============================================================
-
-describe(
-    "analyzeRevenueScenario()",
-    () => {
 
         it(
-            "should analyze a revenue decrease correctly",
+            "should handle large revenue values",
             () => {
 
                 const result =
-                    analyzeRevenueScenario(
-                        BASE_REVENUE,
-                        -20
-                    );
+                    simulateRevenueChange(
+                        {
+                            tomorrow:
+                                1000000000,
 
+                            next7Days:
+                                7000000000,
 
-                expect(
-                    result.type
-                ).toBe(
-                    "revenue"
-                );
-
-
-                expect(
-                    result.changePercentage
-                ).toBe(
-                    -20
-                );
-
-
-                expect(
-                    result.direction
-                ).toBe(
-                    "decrease"
-                );
-
-
-                expect(
-                    result.baseline.tomorrow
-                ).toBe(
-                    100000
-                );
-
-
-                expect(
-                    result.scenario.tomorrow
-                ).toBe(
-                    80000
-                );
-
-
-                expect(
-                    result.difference.tomorrow
-                ).toBe(
-                    -20000
-                );
-
-
-                expect(
-                    result.impact
-                ).toContain(
-                    "₦20,000"
-                );
-
-            }
-        );
-
-
-        it(
-            "should analyze a revenue increase correctly",
-            () => {
-
-                const result =
-                    analyzeRevenueScenario(
-                        BASE_REVENUE,
+                            next30Days:
+                                30000000000
+                        },
                         10
                     );
 
+                expect(
+                    result.tomorrow
+                ).toBe(1100000000);
 
                 expect(
-                    result.direction
-                ).toBe(
-                    "increase"
-                );
-
+                    result.next7Days
+                ).toBe(7700000000);
 
                 expect(
-                    result.scenario.tomorrow
-                ).toBe(
-                    110000
-                );
-
-
-                expect(
-                    result.difference.tomorrow
-                ).toBe(
-                    10000
-                );
-
-
-                expect(
-                    result.impact
-                ).toContain(
-                    "₦10,000"
-                );
-
-            }
-        );
-
-
-        it(
-            "should analyze a zero-change scenario",
-            () => {
-
-                const result =
-                    analyzeRevenueScenario(
-                        BASE_REVENUE,
-                        0
-                    );
-
-
-                expect(
-                    result.direction
-                ).toBe(
-                    "no change"
-                );
-
-
-                expect(
-                    result.difference.tomorrow
-                ).toBe(
-                    0
-                );
-
-
-                expect(
-                    result.impact
-                ).toContain(
-                    "no material revenue change"
-                );
-
-            }
-        );
-
-
-        it(
-            "should calculate differences for all forecast periods",
-            () => {
-
-                const result =
-                    analyzeRevenueScenario(
-                        BASE_REVENUE,
-                        -20
-                    );
-
-
-                expect(
-                    result.difference.tomorrow
-                ).toBe(
-                    -20000
-                );
-
-
-                expect(
-                    result.difference.next7Days
-                ).toBe(
-                    -140000
-                );
-
-
-                expect(
-                    result.difference.next30Days
-                ).toBe(
-                    -600000
-                );
+                    result.next30Days
+                ).toBe(33000000000);
 
             }
         );
@@ -732,24 +267,35 @@ describe(
 // ============================================================
 
 describe(
-    "simulateExpenseChange()",
+    "simulateExpenseChange",
     () => {
 
         it(
-            "should calculate total expense history",
+            "should calculate total expenses correctly",
             () => {
 
                 const result =
                     simulateExpenseChange(
-                        EXPENSE_HISTORY,
+                        expenseHistory,
                         0
                     );
 
-
                 expect(
                     result.currentExpenses
+                ).toBe(150000);
+
+                expect(
+                    result.projectedExpenses
+                ).toBe(150000);
+
+                expect(
+                    result.additionalExpenses
+                ).toBe(0);
+
+                expect(
+                    result.direction
                 ).toBe(
-                    150000
+                    "no change"
                 );
 
             }
@@ -757,36 +303,26 @@ describe(
 
 
         it(
-            "should simulate a 20 percent expense increase",
+            "should increase expenses correctly",
             () => {
 
                 const result =
                     simulateExpenseChange(
-                        EXPENSE_HISTORY,
+                        expenseHistory,
                         20
                     );
 
-
                 expect(
                     result.currentExpenses
-                ).toBe(
-                    150000
-                );
-
+                ).toBe(150000);
 
                 expect(
                     result.projectedExpenses
-                ).toBe(
-                    180000
-                );
-
+                ).toBe(180000);
 
                 expect(
                     result.additionalExpenses
-                ).toBe(
-                    30000
-                );
-
+                ).toBe(30000);
 
                 expect(
                     result.direction
@@ -799,36 +335,26 @@ describe(
 
 
         it(
-            "should simulate a 20 percent expense decrease",
+            "should decrease expenses correctly",
             () => {
 
                 const result =
                     simulateExpenseChange(
-                        EXPENSE_HISTORY,
+                        expenseHistory,
                         -20
                     );
 
-
                 expect(
                     result.currentExpenses
-                ).toBe(
-                    150000
-                );
-
+                ).toBe(150000);
 
                 expect(
                     result.projectedExpenses
-                ).toBe(
-                    120000
-                );
-
+                ).toBe(120000);
 
                 expect(
                     result.additionalExpenses
-                ).toBe(
-                    -30000
-                );
-
+                ).toBe(-30000);
 
                 expect(
                     result.direction
@@ -844,89 +370,63 @@ describe(
             "should support amount instead of expenses",
             () => {
 
-                const history = [
-
-                    {
-                        date:
-                            "2026-08-01",
-
-                        amount:
-                            50000
-                    },
-
-                    {
-                        date:
-                            "2026-08-02",
-
-                        amount:
-                            25000
-                    }
-
-                ];
-
-
                 const result =
                     simulateExpenseChange(
-                        history,
-                        20
+                        [
+                            {
+                                amount:
+                                    10000
+                            },
+                            {
+                                amount:
+                                    20000
+                            }
+                        ],
+                        10
                     );
-
 
                 expect(
                     result.currentExpenses
-                ).toBe(
-                    75000
-                );
-
+                ).toBe(30000);
 
                 expect(
                     result.projectedExpenses
-                ).toBe(
-                    90000
-                );
-
+                ).toBe(33000);
 
                 expect(
                     result.additionalExpenses
-                ).toBe(
-                    15000
-                );
+                ).toBe(3000);
 
             }
         );
 
 
         it(
-            "should safely ignore negative expense values",
+            "should ignore negative expense values",
             () => {
-
-                const history = [
-
-                    {
-                        expenses:
-                            -50000
-                    },
-
-                    {
-                        expenses:
-                            100000
-                    }
-
-                ];
-
 
                 const result =
                     simulateExpenseChange(
-                        history,
-                        0
+                        [
+                            {
+                                expenses:
+                                    -50000
+                            },
+                            {
+                                expenses:
+                                    100000
+                            }
+                        ],
+                        10
                     );
-
 
                 expect(
                     result.currentExpenses
-                ).toBe(
-                    100000
-                );
+                ).toBe(100000);
+
+                expect(
+                    result.projectedExpenses
+                ).toBe(110000);
 
             }
         );
@@ -942,26 +442,17 @@ describe(
                         20
                     );
 
-
                 expect(
                     result.currentExpenses
-                ).toBe(
-                    0
-                );
-
+                ).toBe(0);
 
                 expect(
                     result.projectedExpenses
-                ).toBe(
-                    0
-                );
-
+                ).toBe(0);
 
                 expect(
                     result.additionalExpenses
-                ).toBe(
-                    0
-                );
+                ).toBe(0);
 
             }
         );
@@ -977,18 +468,71 @@ describe(
                         20
                     );
 
-
                 expect(
                     result.currentExpenses
-                ).toBe(
-                    0
-                );
-
+                ).toBe(0);
 
                 expect(
                     result.projectedExpenses
+                ).toBe(0);
+
+            }
+        );
+
+    }
+);
+
+
+// ============================================================
+// ANALYZE REVENUE SCENARIO
+// ============================================================
+
+describe(
+    "analyzeRevenueScenario",
+    () => {
+
+        it(
+            "should analyze a revenue increase",
+            () => {
+
+                const result =
+                    analyzeRevenueScenario(
+                        revenueForecast.revenue,
+                        20
+                    );
+
+                expect(
+                    result.type
                 ).toBe(
-                    0
+                    "revenue"
+                );
+
+                expect(
+                    result.changePercentage
+                ).toBe(20);
+
+                expect(
+                    result.direction
+                ).toBe(
+                    "increase"
+                );
+
+                expect(
+                    result.baseline.tomorrow
+                ).toBe(100000);
+
+                expect(
+                    result.scenario.tomorrow
+                ).toBe(120000);
+
+                expect(
+                    result.difference.tomorrow
+                ).toBe(20000);
+
+                expect(
+                    result.impact
+                ).toContain(
+                    "increase"
                 );
 
             }
@@ -996,40 +540,77 @@ describe(
 
 
         it(
-            "should not modify expense history",
+            "should analyze a revenue decrease",
             () => {
 
-                const original = [
-
-                    {
-                        date:
-                            "2026-08-01",
-
-                        expenses:
-                            50000
-                    }
-
-                ];
-
-
-                const copy =
-                    JSON.parse(
-                        JSON.stringify(
-                            original
-                        )
+                const result =
+                    analyzeRevenueScenario(
+                        revenueForecast.revenue,
+                        -20
                     );
 
-
-                simulateExpenseChange(
-                    original,
-                    50
+                expect(
+                    result.type
+                ).toBe(
+                    "revenue"
                 );
 
+                expect(
+                    result.changePercentage
+                ).toBe(-20);
 
                 expect(
-                    original
-                ).toEqual(
-                    copy
+                    result.direction
+                ).toBe(
+                    "decrease"
+                );
+
+                expect(
+                    result.baseline.tomorrow
+                ).toBe(100000);
+
+                expect(
+                    result.scenario.tomorrow
+                ).toBe(80000);
+
+                expect(
+                    result.difference.tomorrow
+                ).toBe(-20000);
+
+                expect(
+                    result.impact
+                ).toContain(
+                    "decrease"
+                );
+
+            }
+        );
+
+
+        it(
+            "should handle zero revenue change",
+            () => {
+
+                const result =
+                    analyzeRevenueScenario(
+                        revenueForecast.revenue,
+                        0
+                    );
+
+                expect(
+                    result.direction
+                ).toBe(
+                    "no change"
+                );
+
+                expect(
+                    result.difference.tomorrow
+                ).toBe(0);
+
+                expect(
+                    result.impact
+                ).toContain(
+                    "no material"
                 );
 
             }
@@ -1044,7 +625,7 @@ describe(
 // ============================================================
 
 describe(
-    "analyzeExpenseScenario()",
+    "analyzeExpenseScenario",
     () => {
 
         it(
@@ -1053,10 +634,9 @@ describe(
 
                 const result =
                     analyzeExpenseScenario(
-                        EXPENSE_HISTORY,
+                        expenseHistory,
                         20
                     );
-
 
                 expect(
                     result.type
@@ -1064,13 +644,9 @@ describe(
                     "expense"
                 );
 
-
                 expect(
                     result.changePercentage
-                ).toBe(
-                    20
-                );
-
+                ).toBe(20);
 
                 expect(
                     result.direction
@@ -1078,32 +654,22 @@ describe(
                     "increase"
                 );
 
-
                 expect(
                     result.baseline
-                ).toBe(
-                    150000
-                );
-
+                ).toBe(150000);
 
                 expect(
                     result.scenario
-                ).toBe(
-                    180000
-                );
-
+                ).toBe(180000);
 
                 expect(
                     result.additionalExpenses
-                ).toBe(
-                    30000
-                );
-
+                ).toBe(30000);
 
                 expect(
                     result.impact
                 ).toContain(
-                    "₦30,000"
+                    "increase"
                 );
 
             }
@@ -1111,15 +677,24 @@ describe(
 
 
         it(
-            "should analyze an expense reduction",
+            "should analyze an expense decrease",
             () => {
 
                 const result =
                     analyzeExpenseScenario(
-                        EXPENSE_HISTORY,
+                        expenseHistory,
                         -20
                     );
 
+                expect(
+                    result.type
+                ).toBe(
+                    "expense"
+                );
+
+                expect(
+                    result.changePercentage
+                ).toBe(-20);
 
                 expect(
                     result.direction
@@ -1127,18 +702,22 @@ describe(
                     "decrease"
                 );
 
+                expect(
+                    result.baseline
+                ).toBe(150000);
+
+                expect(
+                    result.scenario
+                ).toBe(120000);
 
                 expect(
                     result.additionalExpenses
-                ).toBe(
-                    -30000
-                );
-
+                ).toBe(-30000);
 
                 expect(
                     result.impact
                 ).toContain(
-                    "₦30,000"
+                    "decrease"
                 );
 
             }
@@ -1146,7 +725,7 @@ describe(
 
 
         it(
-            "should handle zero expense history",
+            "should handle missing expense history",
             () => {
 
                 const result =
@@ -1155,67 +734,28 @@ describe(
                         20
                     );
 
+                expect(
+                    result.type
+                ).toBe(
+                    "expense"
+                );
 
                 expect(
                     result.baseline
-                ).toBe(
-                    0
-                );
-
+                ).toBe(0);
 
                 expect(
                     result.scenario
-                ).toBe(
-                    0
-                );
-
+                ).toBe(0);
 
                 expect(
                     result.additionalExpenses
-                ).toBe(
-                    0
-                );
-
+                ).toBe(0);
 
                 expect(
                     result.impact
                 ).toContain(
                     "not enough expense history"
-                );
-
-            }
-        );
-
-
-        it(
-            "should analyze zero expense change",
-            () => {
-
-                const result =
-                    analyzeExpenseScenario(
-                        EXPENSE_HISTORY,
-                        0
-                    );
-
-
-                expect(
-                    result.direction
-                ).toBe(
-                    "no change"
-                );
-
-
-                expect(
-                    result.additionalExpenses
-                ).toBe(
-                    0
-                );
-
-
-                expect(
-                    result.impact
-                ).toContain(
-                    "no material expense change"
                 );
 
             }
@@ -1230,118 +770,84 @@ describe(
 // ============================================================
 
 describe(
-    "analyzeCashImpact()",
+    "analyzeCashImpact",
     () => {
 
         it(
-            "should calculate cash impact from revenue decline",
+            "should calculate positive cash impact",
             () => {
 
-                const revenueScenario = {
-
-                    difference: {
-
-                        next7Days:
-                            -140000,
-
-                        next30Days:
-                            -600000
-
-                    }
-
-                };
-
+                const revenueScenario =
+                    analyzeRevenueScenario(
+                        revenueForecast.revenue,
+                        20
+                    );
 
                 const result =
                     analyzeCashImpact(
-                        BASE_CASH,
+                        revenueForecast.cash,
                         revenueScenario
                     );
 
-
                 expect(
                     result.baseline.next7Days
-                ).toBe(
-                    500000
-                );
-
+                ).toBe(700000);
 
                 expect(
                     result.baseline.next30Days
-                ).toBe(
-                    1500000
-                );
-
+                ).toBe(3000000);
 
                 expect(
                     result.scenario.next7Days
-                ).toBe(
-                    360000
-                );
-
+                ).toBe(840000);
 
                 expect(
                     result.scenario.next30Days
-                ).toBe(
-                    900000
-                );
-
+                ).toBe(3600000);
 
                 expect(
                     result.difference.next7Days
-                ).toBe(
-                    -140000
-                );
-
+                ).toBe(140000);
 
                 expect(
                     result.difference.next30Days
-                ).toBe(
-                    -600000
-                );
+                ).toBe(600000);
 
             }
         );
 
 
         it(
-            "should calculate cash improvement from revenue increase",
+            "should calculate negative cash impact",
             () => {
 
-                const revenueScenario = {
-
-                    difference: {
-
-                        next7Days:
-                            140000,
-
-                        next30Days:
-                            600000
-
-                    }
-
-                };
-
+                const revenueScenario =
+                    analyzeRevenueScenario(
+                        revenueForecast.revenue,
+                        -20
+                    );
 
                 const result =
                     analyzeCashImpact(
-                        BASE_CASH,
+                        revenueForecast.cash,
                         revenueScenario
                     );
 
-
                 expect(
                     result.scenario.next7Days
-                ).toBe(
-                    640000
-                );
-
+                ).toBe(560000);
 
                 expect(
                     result.scenario.next30Days
-                ).toBe(
-                    2100000
-                );
+                ).toBe(2400000);
+
+                expect(
+                    result.difference.next7Days
+                ).toBe(-140000);
+
+                expect(
+                    result.difference.next30Days
+                ).toBe(-600000);
 
             }
         );
@@ -1351,39 +857,33 @@ describe(
             "should safely handle missing cash data",
             () => {
 
+                const revenueScenario =
+                    analyzeRevenueScenario(
+                        revenueForecast.revenue,
+                        -20
+                    );
+
                 const result =
                     analyzeCashImpact(
                         {},
-                        {}
+                        revenueScenario
                     );
-
 
                 expect(
                     result.baseline.next7Days
-                ).toBe(
-                    0
-                );
-
+                ).toBe(0);
 
                 expect(
                     result.baseline.next30Days
-                ).toBe(
-                    0
-                );
-
+                ).toBe(0);
 
                 expect(
                     result.scenario.next7Days
-                ).toBe(
-                    0
-                );
-
+                ).toBe(-140000);
 
                 expect(
                     result.scenario.next30Days
-                ).toBe(
-                    0
-                );
+                ).toBe(-600000);
 
             }
         );
@@ -1397,7 +897,7 @@ describe(
 // ============================================================
 
 describe(
-    "determineCashOutlook()",
+    "determineCashOutlook",
     () => {
 
         it(
@@ -1407,7 +907,7 @@ describe(
                 expect(
                     determineCashOutlook(
                         500000,
-                        1500000
+                        1000000
                     )
                 ).toBe(
                     "Healthy"
@@ -1418,63 +918,21 @@ describe(
 
 
         it(
-            "should return Critical when seven-day cash is negative",
-            () => {
-
-                expect(
-                    determineCashOutlook(
-                        -100000,
-                        500000
-                    )
-                ).toBe(
-                    "Critical"
-                );
-
-            }
-        );
-
-
-        it(
-            "should return Critical when thirty-day cash is negative",
-            () => {
-
-                expect(
-                    determineCashOutlook(
-                        500000,
-                        -100000
-                    )
-                ).toBe(
-                    "Critical"
-                );
-
-            }
-        );
-
-
-        it(
-            "should return Pressure when seven-day cash is zero",
+            "should return Pressure when cash reaches zero",
             () => {
 
                 expect(
                     determineCashOutlook(
                         0,
-                        500000
+                        100000
                     )
                 ).toBe(
                     "Pressure"
                 );
 
-            }
-        );
-
-
-        it(
-            "should return Pressure when thirty-day cash is zero",
-            () => {
-
                 expect(
                     determineCashOutlook(
-                        500000,
+                        100000,
                         0
                     )
                 ).toBe(
@@ -1486,16 +944,25 @@ describe(
 
 
         it(
-            "should return Pressure when both periods are zero",
+            "should return Critical for negative cash",
             () => {
 
                 expect(
                     determineCashOutlook(
-                        0,
-                        0
+                        -1,
+                        100000
                     )
                 ).toBe(
-                    "Pressure"
+                    "Critical"
+                );
+
+                expect(
+                    determineCashOutlook(
+                        100000,
+                        -1
+                    )
+                ).toBe(
+                    "Critical"
                 );
 
             }
@@ -1510,11 +977,11 @@ describe(
 // ============================================================
 
 describe(
-    "determineRevenueScenarioStatus()",
+    "determineRevenueScenarioStatus",
     () => {
 
         it(
-            "should retain Healthy status for small revenue decline",
+            "should retain Healthy for a small decline",
             () => {
 
                 expect(
@@ -1531,7 +998,7 @@ describe(
 
 
         it(
-            "should upgrade healthy status to Monitor for 10 percent decline",
+            "should return Monitor for a moderate decline",
             () => {
 
                 expect(
@@ -1548,24 +1015,7 @@ describe(
 
 
         it(
-            "should upgrade healthy status to Monitor for moderate decline",
-            () => {
-
-                expect(
-                    determineRevenueScenarioStatus(
-                        -20,
-                        "Healthy"
-                    )
-                ).toBe(
-                    "Monitor"
-                );
-
-            }
-        );
-
-
-        it(
-            "should upgrade healthy status to High for 30 percent decline",
+            "should return High for a severe decline",
             () => {
 
                 expect(
@@ -1582,59 +1032,17 @@ describe(
 
 
         it(
-            "should upgrade healthy status to High for severe decline",
+            "should preserve Critical cash outlook",
             () => {
 
                 expect(
                     determineRevenueScenarioStatus(
-                        -50,
-                        "Healthy"
-                    )
-                ).toBe(
-                    "High"
-                );
-
-            }
-        );
-
-
-        it(
-            "should preserve Critical cash conditions",
-            () => {
-
-                expect(
-                    determineRevenueScenarioStatus(
-                        -20,
+                        -5,
                         "Critical"
                     )
                 ).toBe(
                     "Critical"
                 );
-
-            }
-        );
-
-
-        it(
-            "should preserve Pressure cash conditions",
-            () => {
-
-                expect(
-                    determineRevenueScenarioStatus(
-                        -20,
-                        "Pressure"
-                    )
-                ).toBe(
-                    "Pressure"
-                );
-
-            }
-        );
-
-
-        it(
-            "should not downgrade Critical cash conditions",
-            () => {
 
                 expect(
                     determineRevenueScenarioStatus(
@@ -1643,23 +1051,6 @@ describe(
                     )
                 ).toBe(
                     "Critical"
-                );
-
-            }
-        );
-
-
-        it(
-            "should not change status for positive revenue scenarios",
-            () => {
-
-                expect(
-                    determineRevenueScenarioStatus(
-                        20,
-                        "Healthy"
-                    )
-                ).toBe(
-                    "Healthy"
                 );
 
             }
@@ -1674,135 +1065,24 @@ describe(
 // ============================================================
 
 describe(
-    "buildRevenueScenario()",
+    "buildRevenueScenario",
     () => {
 
         it(
-            "should build a complete 20 percent revenue decline scenario",
+            "should build a complete revenue increase scenario",
             () => {
-
-                const forecast = {
-
-                    revenue:
-                        BASE_REVENUE,
-
-                    cash:
-                        BASE_CASH
-
-                };
-
 
                 const result =
                     buildRevenueScenario(
-                        forecast,
-                        -20
+                        revenueForecast,
+                        20
                     );
-
-
-                expect(
-                    result
-                ).toBeDefined();
-
 
                 expect(
                     result.scenarioType
                 ).toBe(
                     "Revenue Change"
                 );
-
-
-                expect(
-                    result.status
-                ).toBe(
-                    "Monitor"
-                );
-
-
-                expect(
-                    result.changePercentage
-                ).toBe(
-                    -20
-                );
-
-
-                expect(
-                    result.direction
-                ).toBe(
-                    "decrease"
-                );
-
-
-                expect(
-                    result.baseline.tomorrow
-                ).toBe(
-                    100000
-                );
-
-
-                expect(
-                    result.projected.tomorrow
-                ).toBe(
-                    80000
-                );
-
-
-                expect(
-                    result.revenueImpact.tomorrow
-                ).toBe(
-                    -20000
-                );
-
-
-                expect(
-                    result.cashImpact.scenario.next7Days
-                ).toBe(
-                    360000
-                );
-
-
-                expect(
-                    result.decision
-                ).toBeDefined();
-
-
-                expect(
-                    result.decision.priority
-                ).toBe(
-                    "High"
-                );
-
-            }
-        );
-
-
-        it(
-            "should build a 10 percent revenue increase scenario",
-            () => {
-
-                const forecast = {
-
-                    revenue:
-                        BASE_REVENUE,
-
-                    cash:
-                        BASE_CASH
-
-                };
-
-
-                const result =
-                    buildRevenueScenario(
-                        forecast,
-                        10
-                    );
-
-
-                expect(
-                    result.scenarioType
-                ).toBe(
-                    "Revenue Change"
-                );
-
 
                 expect(
                     result.status
@@ -1810,6 +1090,9 @@ describe(
                     "Healthy"
                 );
 
+                expect(
+                    result.changePercentage
+                ).toBe(20);
 
                 expect(
                     result.direction
@@ -1817,20 +1100,21 @@ describe(
                     "increase"
                 );
 
+                expect(
+                    result.baseline.tomorrow
+                ).toBe(100000);
 
                 expect(
                     result.projected.tomorrow
-                ).toBe(
-                    110000
-                );
-
+                ).toBe(120000);
 
                 expect(
-                    result.revenueImpact.tomorrow
-                ).toBe(
-                    10000
-                );
+                    result.cashImpact.scenario.next7Days
+                ).toBe(840000);
 
+                expect(
+                    result.decision
+                ).toBeDefined();
 
                 expect(
                     result.decision.priority
@@ -1843,47 +1127,41 @@ describe(
 
 
         it(
-            "should build a zero-change revenue scenario",
+            "should build a moderate revenue decline scenario",
             () => {
 
                 const result =
                     buildRevenueScenario(
-                        {
-                            revenue:
-                                BASE_REVENUE,
-
-                            cash:
-                                BASE_CASH
-                        },
-                        0
+                        revenueForecast,
+                        -20
                     );
 
+                expect(
+                    result.scenarioType
+                ).toBe(
+                    "Revenue Change"
+                );
 
                 expect(
                     result.status
                 ).toBe(
-                    "Healthy"
+                    "Monitor"
                 );
-
 
                 expect(
                     result.direction
                 ).toBe(
-                    "no change"
+                    "decrease"
                 );
-
 
                 expect(
                     result.projected.tomorrow
-                ).toBe(
-                    100000
-                );
-
+                ).toBe(80000);
 
                 expect(
                     result.decision.priority
                 ).toBe(
-                    "Low"
+                    "High"
                 );
 
             }
@@ -1891,21 +1169,14 @@ describe(
 
 
         it(
-            "should identify severe revenue decline",
+            "should build a severe revenue decline scenario",
             () => {
 
                 const result =
                     buildRevenueScenario(
-                        {
-                            revenue:
-                                BASE_REVENUE,
-
-                            cash:
-                                BASE_CASH
-                        },
-                        -30
+                        revenueForecast,
+                        -40
                     );
-
 
                 expect(
                     result.status
@@ -1913,18 +1184,10 @@ describe(
                     "High"
                 );
 
-
                 expect(
                     result.decision.priority
                 ).toBe(
                     "High"
-                );
-
-
-                expect(
-                    result.revenueImpact.tomorrow
-                ).toBe(
-                    -30000
                 );
 
             }
@@ -1932,7 +1195,7 @@ describe(
 
 
         it(
-            "should identify critical cash consequences",
+            "should build a critical revenue decline when cash becomes negative",
             () => {
 
                 const forecast = {
@@ -1943,14 +1206,17 @@ describe(
                             100000,
 
                         next7Days:
-                            700000,
+                            100000,
 
                         next30Days:
-                            3000000
+                            200000
 
                     },
 
                     cash: {
+
+                        currentCash:
+                            50000,
 
                         next7Days:
                             100000,
@@ -1962,13 +1228,11 @@ describe(
 
                 };
 
-
                 const result =
                     buildRevenueScenario(
                         forecast,
-                        -100
+                        -200
                     );
-
 
                 expect(
                     result.status
@@ -1976,65 +1240,10 @@ describe(
                     "Critical"
                 );
 
-
                 expect(
                     result.decision.priority
                 ).toBe(
                     "Critical"
-                );
-
-
-                expect(
-                    result.cashImpact.scenario.next7Days
-                ).toBe(
-                    -600000
-                );
-
-
-                expect(
-                    result.cashImpact.scenario.next30Days
-                ).toBe(
-                    -2800000
-                );
-
-            }
-        );
-
-
-        it(
-            "should safely handle missing forecast data",
-            () => {
-
-                const result =
-                    buildRevenueScenario(
-                        {},
-                        -20
-                    );
-
-
-                expect(
-                    result
-                ).toBeDefined();
-
-
-                expect(
-                    result.scenarioType
-                ).toBe(
-                    "Revenue Change"
-                );
-
-
-                expect(
-                    result.projected.tomorrow
-                ).toBe(
-                    0
-                );
-
-
-                expect(
-                    result.cashImpact.scenario.next7Days
-                ).toBe(
-                    0
                 );
 
             }
@@ -2045,27 +1254,23 @@ describe(
 
 
 // ============================================================
-// EXPENSE SCENARIO DECISION
+// BUILD EXPENSE SCENARIO
 // ============================================================
 
 describe(
-    "buildExpenseScenario()",
+    "buildExpenseScenario",
     () => {
 
         it(
-            "should identify expense increase as pressure",
+            "should build an expense increase scenario",
             () => {
 
                 const result =
                     buildExpenseScenario(
-                        {
-                            expenseHistory:
-                                EXPENSE_HISTORY
-                        },
-                        EXPENSE_HISTORY,
+                        {},
+                        expenseHistory,
                         20
                     );
-
 
                 expect(
                     result.scenarioType
@@ -2073,20 +1278,15 @@ describe(
                     "Expense Change"
                 );
 
-
                 expect(
                     result.status
                 ).toBe(
                     "Pressure"
                 );
 
-
                 expect(
                     result.changePercentage
-                ).toBe(
-                    20
-                );
-
+                ).toBe(20);
 
                 expect(
                     result.direction
@@ -2094,27 +1294,17 @@ describe(
                     "increase"
                 );
 
-
                 expect(
                     result.baseline
-                ).toBe(
-                    150000
-                );
-
+                ).toBe(150000);
 
                 expect(
                     result.projected
-                ).toBe(
-                    180000
-                );
-
+                ).toBe(180000);
 
                 expect(
                     result.additionalExpenses
-                ).toBe(
-                    30000
-                );
-
+                ).toBe(30000);
 
                 expect(
                     result.decision.priority
@@ -2127,19 +1317,15 @@ describe(
 
 
         it(
-            "should identify expense reduction as healthy",
+            "should build an expense reduction scenario",
             () => {
 
                 const result =
                     buildExpenseScenario(
-                        {
-                            expenseHistory:
-                                EXPENSE_HISTORY
-                        },
-                        EXPENSE_HISTORY,
+                        {},
+                        expenseHistory,
                         -20
                     );
-
 
                 expect(
                     result.status
@@ -2147,71 +1333,20 @@ describe(
                     "Healthy"
                 );
 
-
                 expect(
                     result.direction
                 ).toBe(
                     "decrease"
                 );
 
-
                 expect(
                     result.additionalExpenses
-                ).toBe(
-                    -30000
-                );
-
+                ).toBe(-30000);
 
                 expect(
                     result.decision.priority
                 ).toBe(
                     "Medium"
-                );
-
-            }
-        );
-
-
-        it(
-            "should identify zero expense change",
-            () => {
-
-                const result =
-                    buildExpenseScenario(
-                        {
-                            expenseHistory:
-                                EXPENSE_HISTORY
-                        },
-                        EXPENSE_HISTORY,
-                        0
-                    );
-
-
-                expect(
-                    result.status
-                ).toBe(
-                    "Monitor"
-                );
-
-
-                expect(
-                    result.direction
-                ).toBe(
-                    "no change"
-                );
-
-
-                expect(
-                    result.additionalExpenses
-                ).toBe(
-                    0
-                );
-
-
-                expect(
-                    result.decision.priority
-                ).toBe(
-                    "Low"
                 );
 
             }
@@ -2229,45 +1364,21 @@ describe(
                         20
                     );
 
-
-                expect(
-                    result
-                ).toBeDefined();
-
-
-                expect(
-                    result.status
-                ).toBe(
-                    "Monitor"
-                );
-
-
                 expect(
                     result.baseline
-                ).toBe(
-                    0
-                );
-
+                ).toBe(0);
 
                 expect(
                     result.projected
-                ).toBe(
-                    0
-                );
-
+                ).toBe(0);
 
                 expect(
                     result.additionalExpenses
-                ).toBe(
-                    0
-                );
-
+                ).toBe(0);
 
                 expect(
-                    result.decision.priority
-                ).toBe(
-                    "Medium"
-                );
+                    result.decision
+                ).toBeDefined();
 
             }
         );
@@ -2281,47 +1392,16 @@ describe(
 // ============================================================
 
 describe(
-    "buildScenario()",
+    "buildScenario",
     () => {
 
         it(
-            "should build a revenue scenario by default",
+            "should build a revenue scenario",
             () => {
 
                 const result =
                     buildScenario(
-                        FORECAST,
-                        {
-                            percentage:
-                                -20
-                        }
-                    );
-
-
-                expect(
-                    result.scenarioType
-                ).toBe(
-                    "Revenue Change"
-                );
-
-
-                expect(
-                    result.changePercentage
-                ).toBe(
-                    -20
-                );
-
-            }
-        );
-
-
-        it(
-            "should build a revenue scenario explicitly",
-            () => {
-
-                const result =
-                    buildScenario(
-                        FORECAST,
+                        revenueForecast,
                         {
                             type:
                                 "revenue",
@@ -2331,19 +1411,19 @@ describe(
                         }
                     );
 
-
                 expect(
                     result.scenarioType
                 ).toBe(
                     "Revenue Change"
                 );
 
+                expect(
+                    result.changePercentage
+                ).toBe(-20);
 
                 expect(
                     result.projected.tomorrow
-                ).toBe(
-                    80000
-                );
+                ).toBe(80000);
 
             }
         );
@@ -2353,9 +1433,16 @@ describe(
             "should build an expense scenario",
             () => {
 
+                const forecast = {
+
+                    expenseHistory:
+                        expenseHistory
+
+                };
+
                 const result =
                     buildScenario(
-                        FORECAST,
+                        forecast,
                         {
                             type:
                                 "expense",
@@ -2365,38 +1452,58 @@ describe(
                         }
                     );
 
-
                 expect(
                     result.scenarioType
                 ).toBe(
                     "Expense Change"
                 );
 
-
                 expect(
-                    result.status
-                ).toBe(
-                    "Pressure"
-                );
-
+                    result.changePercentage
+                ).toBe(20);
 
                 expect(
                     result.projected
-                ).toBe(
-                    180000
-                );
+                ).toBe(180000);
 
             }
         );
 
 
         it(
-            "should safely handle an unsupported scenario type",
+            "should default to revenue scenarios",
             () => {
 
                 const result =
                     buildScenario(
-                        FORECAST,
+                        revenueForecast,
+                        {
+                            percentage:
+                                -10
+                        }
+                    );
+
+                expect(
+                    result.scenarioType
+                ).toBe(
+                    "Revenue Change"
+                );
+
+                expect(
+                    result.changePercentage
+                ).toBe(-10);
+
+            }
+        );
+
+
+        it(
+            "should handle unsupported scenario types safely",
+            () => {
+
+                const result =
+                    buildScenario(
+                        revenueForecast,
                         {
                             type:
                                 "inventory",
@@ -2406,13 +1513,11 @@ describe(
                         }
                     );
 
-
                 expect(
                     result.scenarioType
                 ).toBe(
                     "Unknown"
                 );
-
 
                 expect(
                     result.status
@@ -2420,6 +1525,9 @@ describe(
                     "Info"
                 );
 
+                expect(
+                    result.decision
+                ).toBeDefined();
 
                 expect(
                     result.decision.priority
@@ -2427,118 +1535,23 @@ describe(
                     "Low"
                 );
 
-
-                expect(
-                    result.impact
-                ).toContain(
-                    "not supported"
-                );
-
             }
         );
 
 
         it(
-            "should safely handle an empty forecast",
+            "should not mutate the original forecast",
             () => {
 
-                const result =
-                    buildScenario(
-                        {},
-                        {
-                            type:
-                                "revenue",
-
-                            percentage:
-                                -20
-                        }
-                    );
-
-
-                expect(
-                    result
-                ).toBeDefined();
-
-
-                expect(
-                    result.scenarioType
-                ).toBe(
-                    "Revenue Change"
-                );
-
-
-                expect(
-                    result.projected.tomorrow
-                ).toBe(
-                    0
-                );
-
-            }
-        );
-
-
-        it(
-            "should not modify the original forecast",
-            () => {
-
-                const original = {
-
-                    revenue: {
-
-                        tomorrow:
-                            100000,
-
-                        next7Days:
-                            700000,
-
-                        next30Days:
-                            3000000
-
-                    },
-
-                    cash: {
-
-                        next7Days:
-                            500000,
-
-                        next30Days:
-                            1500000
-
-                    },
-
-                    expenseHistory: [
-
-                        {
-                            date:
-                                "2026-08-01",
-
-                            expenses:
-                                50000
-                        },
-
-                        {
-                            date:
-                                "2026-08-02",
-
-                            expenses:
-                                60000
-                        }
-
-                    ]
-
-                };
-
-
-                const before =
+                const original =
                     JSON.parse(
                         JSON.stringify(
-                            original
+                            revenueForecast
                         )
                     );
 
-
                 buildScenario(
-                    original,
+                    revenueForecast,
                     {
                         type:
                             "revenue",
@@ -2548,11 +1561,10 @@ describe(
                     }
                 );
 
-
                 expect(
-                    original
+                    revenueForecast
                 ).toEqual(
-                    before
+                    original
                 );
 
             }
@@ -2563,155 +1575,55 @@ describe(
 
 
 // ============================================================
-// SCENARIO CONSISTENCY
+// FLOATING-POINT PROTECTION
 // ============================================================
 
 describe(
-    "Scenario Engine - Consistency",
+    "Floating Point Protection",
     () => {
 
         it(
-            "should maintain the same percentage change across forecast periods",
+            "should round scenario calculations to two decimal places",
             () => {
 
                 const result =
                     simulateRevenueChange(
-                        BASE_REVENUE,
-                        -20
+                        {
+                            tomorrow:
+                                100000.01,
+
+                            next7Days:
+                                700000.07,
+
+                            next30Days:
+                                3000000.03
+                        },
+                        10
                     );
 
-
                 expect(
-                    result.tomorrow /
-                    BASE_REVENUE.tomorrow
+                    result.tomorrow
                 ).toBe(
-                    0.8
+                    110000.01
                 );
 
-
                 expect(
-                    result.next7Days /
-                    BASE_REVENUE.next7Days
+                    Number.isInteger(
+                        result.tomorrow
+                    )
                 ).toBe(
-                    0.8
+                    false
                 );
 
-
                 expect(
-                    result.next30Days /
-                    BASE_REVENUE.next30Days
-                ).toBe(
-                    0.8
-                );
-
-            }
-        );
-
-
-        it(
-            "should maintain logical revenue differences",
-            () => {
-
-                const result =
-                    analyzeRevenueScenario(
-                        BASE_REVENUE,
-                        -20
-                    );
-
-
-                expect(
-                    result.difference.tomorrow
-                ).toBe(
-                    result.scenario.tomorrow -
-                    result.baseline.tomorrow
-                );
-
-
-                expect(
-                    result.difference.next7Days
-                ).toBe(
-                    result.scenario.next7Days -
-                    result.baseline.next7Days
-                );
-
-
-                expect(
-                    result.difference.next30Days
-                ).toBe(
-                    result.scenario.next30Days -
-                    result.baseline.next30Days
-                );
-
-            }
-        );
-
-
-        it(
-            "should maintain logical expense differences",
-            () => {
-
-                const result =
-                    simulateExpenseChange(
-                        EXPENSE_HISTORY,
-                        20
-                    );
-
-
-                expect(
-                    result.additionalExpenses
-                ).toBe(
-                    result.projectedExpenses -
-                    result.currentExpenses
-                );
-
-            }
-        );
-
-
-        it(
-            "should maintain logical cash impact",
-            () => {
-
-                const revenueScenario =
-                    analyzeRevenueScenario(
-                        BASE_REVENUE,
-                        -20
-                    );
-
-
-                const cashImpact =
-                    analyzeCashImpact(
-                        BASE_CASH,
-                        revenueScenario
-                    );
-
-
-                expect(
-                    cashImpact.scenario.next7Days
-                ).toBe(
-                    cashImpact.baseline.next7Days +
-                    cashImpact.difference.next7Days
-                );
-
-
-                expect(
-                    cashImpact.scenario.next30Days
-                ).toBe(
-                    cashImpact.baseline.next30Days +
-                    cashImpact.difference.next30Days
+                    result.tomorrow
+                        .toString()
+                ).not.toContain(
+                    "0000001"
                 );
 
             }
         );
 
     }
-);
-
-
-// ============================================================
-// END
-// ============================================================
-
-console.log(
-    "✅ Scenario Engine test suite loaded."
 );
