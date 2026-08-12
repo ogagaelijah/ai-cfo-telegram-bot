@@ -1,31 +1,46 @@
 const db = require("../database/database");
 
-// ==========================
-// GET INTERNAL USER
-// ==========================
-function getUserId(telegramId) {
-
-    const user = db.prepare(`
-        SELECT id
-        FROM users
-        WHERE telegram_id = ?
-    `).get(telegramId);
-
-    if (!user) {
-
-        throw new Error("User not found.");
-
-    }
-
-    return user.id;
-}
-
-
-// ==========================
-// TOTAL RECOGNIZED SALES
-// ==========================
+// ============================================================
+// FINANCIAL ANALYTICS REPOSITORY
+// ============================================================
+//
+// ACCOUNT-BASED DATA ACCESS LAYER
 //
 // IMPORTANT:
+//
+// Financial/business data belongs to an ACCOUNT.
+//
+// This repository intentionally does NOT know about:
+//
+// - Telegram
+// - Web
+// - Mobile
+// - HTTP
+// - Sessions
+// - Interface users
+//
+// It receives accountId directly.
+//
+// Architecture:
+//
+// Interface
+//     ↓
+// Application Layer
+//     ↓
+// Account Context
+//     ↓
+// Financial Analytics Service
+//     ↓
+// THIS REPOSITORY
+//     ↓
+// SQLite
+//
+// ============================================================
+
+
+// ============================================================
+// TOTAL RECOGNIZED SALES
+// ============================================================
 //
 // Use recognized revenue, not raw transaction total.
 //
@@ -40,86 +55,101 @@ function getUserId(telegramId) {
 //
 //     revenue > 0
 //
-// Therefore financial analytics should use
-// SUM(revenue), not SUM(total).
+// Therefore financial analytics use:
 //
-// Example:
+//     SUM(revenue)
 //
-// Raw transaction total:
-//     ₦164,400
-//
-// Recognized revenue:
-//     ₦92,400
-//
-// The ₦72,000 difference comes from incomplete
-// sales records with revenue = 0.
-//
+// ============================================================
 
-function getTotalSales(userId) {
+function getTotalSales(accountId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(SUM(revenue), 0) AS total
+            COALESCE(
+                SUM(revenue),
+                0
+            ) AS total
+
         FROM sales
-        WHERE user_id = ?
-    `).get(userId);
 
-    return result.total;
+        WHERE account_id = ?
+    `).get(accountId);
+
+    return Number(result.total) || 0;
 }
 
 
-// ==========================
+// ============================================================
 // TOTAL PURCHASES
-// ==========================
-function getTotalPurchases(userId) {
+// ============================================================
+
+function getTotalPurchases(accountId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(SUM(total_amount), 0) AS total
+            COALESCE(
+                SUM(total_amount),
+                0
+            ) AS total
+
         FROM purchases
-        WHERE user_id = ?
-    `).get(userId);
 
-    return result.total;
+        WHERE account_id = ?
+    `).get(accountId);
+
+    return Number(result.total) || 0;
 }
 
 
-// ==========================
+// ============================================================
 // TOTAL EXPENSES
-// ==========================
-function getTotalExpenses(userId) {
+// ============================================================
+
+function getTotalExpenses(accountId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(SUM(amount), 0) AS total
+            COALESCE(
+                SUM(amount),
+                0
+            ) AS total
+
         FROM expenses
-        WHERE user_id = ?
-    `).get(userId);
 
-    return result.total;
+        WHERE account_id = ?
+    `).get(accountId);
+
+    return Number(result.total) || 0;
 }
 
 
-// ==========================
+// ============================================================
 // TOTAL OTHER INCOME
-// ==========================
-function getTotalIncome(userId) {
+// ============================================================
+
+function getTotalIncome(accountId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(SUM(amount), 0) AS total
-        FROM income
-        WHERE user_id = ?
-    `).get(userId);
+            COALESCE(
+                SUM(amount),
+                0
+            ) AS total
 
-    return result.total;
+        FROM income
+
+        WHERE account_id = ?
+    `).get(accountId);
+
+    return Number(result.total) || 0;
 }
 
 
-// ==========================
+// ============================================================
 // INVENTORY VALUE
-// ==========================
-function getInventoryValue(userId) {
+// ============================================================
+
+function getInventoryValue(accountId) {
 
     const result = db.prepare(`
         SELECT
@@ -129,81 +159,99 @@ function getInventoryValue(userId) {
                 ),
                 0
             ) AS total
-        FROM inventory
-        WHERE user_id = ?
-    `).get(userId);
 
-    return result.total;
+        FROM inventory
+
+        WHERE account_id = ?
+    `).get(accountId);
+
+    return Number(result.total) || 0;
 }
 
 
-// ==========================
+// ============================================================
 // TOTAL PRODUCTS
-// ==========================
-function getProductCount(userId) {
+// ============================================================
+
+function getProductCount(accountId) {
 
     const result = db.prepare(`
         SELECT
             COUNT(*) AS total
+
         FROM inventory
-        WHERE user_id = ?
-    `).get(userId);
 
-    return result.total;
+        WHERE account_id = ?
+    `).get(accountId);
+
+    return Number(result.total) || 0;
 }
 
 
-// ==========================
+// ============================================================
 // OUTSTANDING DEBTORS
-// ==========================
-function getOutstandingDebtors(userId) {
+// ============================================================
+
+function getOutstandingDebtors(accountId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(SUM(balance), 0) AS total
+            COALESCE(
+                SUM(balance),
+                0
+            ) AS total
+
         FROM debtors
-        WHERE user_id = ?
-        AND balance > 0
-    `).get(userId);
 
-    return result.total;
+        WHERE account_id = ?
+
+        AND balance > 0
+    `).get(accountId);
+
+    return Number(result.total) || 0;
 }
 
 
-// ==========================
+// ============================================================
 // OUTSTANDING CREDITORS
-// ==========================
-function getOutstandingCreditors(userId) {
+// ============================================================
+
+function getOutstandingCreditors(accountId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(SUM(balance), 0) AS total
-        FROM creditors
-        WHERE user_id = ?
-        AND balance > 0
-    `).get(userId);
+            COALESCE(
+                SUM(balance),
+                0
+            ) AS total
 
-    return result.total;
+        FROM creditors
+
+        WHERE account_id = ?
+
+        AND balance > 0
+    `).get(accountId);
+
+    return Number(result.total) || 0;
 }
 
 
-// ==========================
-// COST OF GOODS SOLD (COGS)
-// ==========================
+// ============================================================
+// COST OF GOODS SOLD
+// ============================================================
 //
-// COGS is already stored only against
-// recognized/completed sales in the current
-// sales structure.
+// COGS is stored against recognized/completed sales.
 //
 // Incomplete legacy sales have:
 //
 //     cost_of_goods = 0
 //
-// Therefore summing cost_of_goods naturally
-// excludes those incomplete records.
+// Therefore summing cost_of_goods naturally excludes
+// those incomplete records.
 //
+// ============================================================
 
-function getCostOfGoodsSold(userId) {
+function getCostOfGoodsSold(accountId) {
 
     const result = db.prepare(`
         SELECT
@@ -211,61 +259,72 @@ function getCostOfGoodsSold(userId) {
                 SUM(cost_of_goods),
                 0
             ) AS total
+
         FROM sales
-        WHERE user_id = ?
-    `).get(userId);
 
-    return result.total;
+        WHERE account_id = ?
+    `).get(accountId);
+
+    return Number(result.total) || 0;
 }
 
 
-// ==========================
+// ============================================================
 // OPERATING EXPENSES
-// ==========================
-function getOperatingExpenses(userId) {
+// ============================================================
 
-    return getTotalExpenses(userId);
+function getOperatingExpenses(accountId) {
 
+    return getTotalExpenses(
+        accountId
+    );
 }
 
 
-// ==========================
+// ============================================================
 // TOTAL SUPPLIERS
-// ==========================
-function getSupplierCount(userId) {
+// ============================================================
+
+function getSupplierCount(accountId) {
 
     const result = db.prepare(`
         SELECT
             COUNT(*) AS total
-        FROM suppliers
-        WHERE user_id = ?
-    `).get(userId);
 
-    return result.total;
+        FROM suppliers
+
+        WHERE account_id = ?
+    `).get(accountId);
+
+    return Number(result.total) || 0;
 }
 
 
-// ==========================
+// ============================================================
 // INVENTORY TURNOVER
-// ==========================
+// ============================================================
 //
 // Inventory turnover uses recognized revenue.
 //
-// This keeps the calculation consistent with
-// the financial analytics revenue definition.
-//
 // Incomplete sales with revenue = 0 are excluded.
 //
+// ============================================================
 
-function getInventoryTurnover(userId) {
+function getInventoryTurnover(accountId) {
 
     const sales =
-        getTotalSales(userId);
+        getTotalSales(
+            accountId
+        );
 
     const inventory =
-        getInventoryValue(userId);
+        getInventoryValue(
+            accountId
+        );
 
-    if (inventory === 0) {
+    if (
+        inventory === 0
+    ) {
 
         return 0;
 
@@ -275,13 +334,11 @@ function getInventoryTurnover(userId) {
 }
 
 
-// ==========================
+// ============================================================
 // EXPORTS
-// ==========================
+// ============================================================
 
 module.exports = {
-
-    getUserId,
 
     getTotalSales,
 

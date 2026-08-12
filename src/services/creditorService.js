@@ -1,32 +1,19 @@
 const creditorRepository = require("../repositories/creditorRepository");
 const supplierService = require("./supplierService");
-const userRepository = require("../repositories/userRepository");
-
-// ==========================
-// GET INTERNAL USER ID
-// ==========================
-function getUserId(telegramId) {
-
-    const user =
-        userRepository.findByTelegramId(telegramId);
-
-    if (!user) {
-
-        throw new Error("User not found.");
-
-    }
-
-    return user.id;
-
-}
+const accountContext = require("./accountContext");
 
 // ==========================
 // CREATE CREDITOR
 // ==========================
 function createCreditor(telegramId, creditor) {
 
-    const userId =
-        getUserId(telegramId);
+    const account =
+        accountContext.requireAccount(
+            telegramId
+        );
+
+    const accountId =
+        account.accountId;
 
     const supplier =
         supplierService.findOrCreateSupplier(
@@ -36,19 +23,25 @@ function createCreditor(telegramId, creditor) {
 
     return creditorRepository.create({
 
-        userId,
+        accountId,
 
-        supplierId: supplier.id,
+        supplierId:
+            supplier.id,
 
-        purchaseId: creditor.purchaseId || null,
+        purchaseId:
+            creditor.purchaseId || null,
 
-        totalAmount: creditor.totalAmount,
+        totalAmount:
+            creditor.totalAmount,
 
-        amountPaid: creditor.amountPaid,
+        amountPaid:
+            creditor.amountPaid,
 
-        balance: creditor.balance,
+        balance:
+            creditor.balance,
 
-        status: creditor.status
+        status:
+            creditor.status
 
     });
 
@@ -59,32 +52,47 @@ function createCreditor(telegramId, creditor) {
 // ==========================
 function getCreditors(telegramId) {
 
-    const userId =
-        getUserId(telegramId);
+    const account =
+        accountContext.requireAccount(
+            telegramId
+        );
 
-    return creditorRepository.findAll(userId);
+    return creditorRepository.findAll(
+        account.accountId
+    );
 
 }
 
 // ==========================
 // GET OUTSTANDING CREDITORS
 // ==========================
-function getOutstandingCreditors(telegramId) {
+function getOutstandingCreditors(
+    telegramId
+) {
 
-    const userId =
-        getUserId(telegramId);
+    const account =
+        accountContext.requireAccount(
+            telegramId
+        );
 
-    return creditorRepository.findOutstanding(userId);
+    return creditorRepository.findOutstanding(
+        account.accountId
+    );
 
 }
 
 // ==========================
 // FIND SUPPLIER DEBT
 // ==========================
-function findSupplierDebt(telegramId, supplierName) {
+function findSupplierDebt(
+    telegramId,
+    supplierName
+) {
 
-    const userId =
-        getUserId(telegramId);
+    const account =
+        accountContext.requireAccount(
+            telegramId
+        );
 
     const supplier =
         supplierService.findSupplierByName(
@@ -94,13 +102,15 @@ function findSupplierDebt(telegramId, supplierName) {
 
     if (!supplier) {
 
-        throw new Error("Supplier not found.");
+        throw new Error(
+            "Supplier not found."
+        );
 
     }
 
     return creditorRepository.findBySupplier(
 
-        userId,
+        account.accountId,
 
         supplier.id
 
@@ -125,25 +135,45 @@ function recordPayment(
 
     if (!debt) {
 
-        throw new Error("No outstanding balance.");
+        throw new Error(
+            "No outstanding balance."
+        );
 
     }
 
-    if (payment > debt.balance) {
+    const paymentAmount =
+        Number(payment);
 
-        throw new Error("Payment exceeds outstanding balance.");
+    if (paymentAmount <= 0) {
+
+        throw new Error(
+            "Payment must be greater than zero."
+        );
+
+    }
+
+    if (
+        paymentAmount >
+        Number(debt.balance)
+    ) {
+
+        throw new Error(
+            "Payment exceeds outstanding balance."
+        );
 
     }
 
     const amountPaid =
-        debt.amount_paid + payment;
+        Number(debt.amount_paid) +
+        paymentAmount;
 
     const balance =
-        debt.balance - payment;
+        Number(debt.balance) -
+        paymentAmount;
 
     let status;
 
-    if (balance === 0) {
+    if (balance <= 0) {
 
         status = "PAID";
 
@@ -163,7 +193,9 @@ function recordPayment(
 
         amountPaid,
 
-        balance,
+        balance <= 0
+            ? 0
+            : balance,
 
         status
 
@@ -174,12 +206,18 @@ function recordPayment(
 // ==========================
 // GET OUTSTANDING TOTAL
 // ==========================
-function getOutstandingTotal(telegramId) {
+function getOutstandingTotal(
+    telegramId
+) {
 
-    const userId =
-        getUserId(telegramId);
+    const account =
+        accountContext.requireAccount(
+            telegramId
+        );
 
-    return creditorRepository.getOutstandingTotal(userId);
+    return creditorRepository.getOutstandingTotal(
+        account.accountId
+    );
 
 }
 

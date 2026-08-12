@@ -4,73 +4,153 @@ const {
     getDebtMetrics
 } = require("./financialAnalyticsService");
 
-// ==========================
-// BUSINESS KPIs
-// ==========================
-function getBusinessKPIs(telegramId) {
+
+// ============================================================
+// BUSINESS KPI SERVICE
+// ============================================================
+//
+// ACCOUNT-BASED DOMAIN SERVICE
+//
+// Interface-independent.
+//
+// Receives:
+//
+//     accountId
+//
+// Does NOT receive:
+//
+//     Telegram ID
+//     HTTP request
+//     Web session
+//     Mobile session
+//
+// ============================================================
+
+
+function getBusinessKPIs(accountId) {
+
+    // ========================================================
+    // BUSINESS SNAPSHOT
+    // ========================================================
 
     const snapshot =
-        getBusinessSnapshot(telegramId);
+        getBusinessSnapshot(
+            accountId
+        );
+
+
+    // ========================================================
+    // CASH
+    // ========================================================
 
     const cash =
-        getCashMetrics(telegramId);
+        getCashMetrics(
+            accountId
+        );
+
+
+    // ========================================================
+    // DEBT
+    // ========================================================
 
     const debt =
-        getDebtMetrics(telegramId);
+        getDebtMetrics(
+            accountId
+        );
 
-    // ==========================
-    // Gross Margin %
-    // ==========================
+
+    // ========================================================
+    // GROSS MARGIN %
+    // ========================================================
+
     const grossMargin =
         snapshot.grossMargin;
 
-    // ==========================
-    // Net Margin %
-    // ==========================
+
+    // ========================================================
+    // NET MARGIN %
+    // ========================================================
+
     const netMargin =
         snapshot.sales > 0
-            ? (snapshot.netProfit / snapshot.sales) * 100
+            ? (
+                snapshot.netProfit /
+                snapshot.sales
+            ) * 100
             : 0;
 
-    // ==========================
-    // Expense Ratio
-    // ==========================
+
+    // ========================================================
+    // EXPENSE RATIO
+    // ========================================================
+
     const expenseRatio =
         snapshot.sales > 0
-            ? (snapshot.expenses / snapshot.sales) * 100
+            ? (
+                snapshot.expenses /
+                snapshot.sales
+            ) * 100
             : 0;
 
-    // ==========================
-    // Debt Ratio
-    // ==========================
+
+    // ========================================================
+    // DEBT RATIO
+    // ========================================================
+
     const debtRatio =
         snapshot.sales > 0
-            ? ((debt.debtors + debt.creditors) / snapshot.sales) * 100
+            ? (
+                (
+                    debt.debtors +
+                    debt.creditors
+                ) /
+                snapshot.sales
+            ) * 100
             : 0;
 
-    // ==========================
-    // Cash Ratio
-    // ==========================
+
+    // ========================================================
+    // CASH RATIO
+    // ========================================================
+
     const cashRatio =
         snapshot.sales > 0
-            ? (cash.cashPosition / snapshot.sales) * 100
+            ? (
+                cash.cashPosition /
+                snapshot.sales
+            ) * 100
             : 0;
 
-    // ==========================
-    // Inventory Turnover
-    // ==========================
+
+    // ========================================================
+    // INVENTORY TURNOVER
+    // ========================================================
+
     const inventoryTurnover =
         snapshot.inventoryValue > 0
-            ? snapshot.costOfGoods / snapshot.inventoryValue
+            ? (
+                snapshot.costOfGoods /
+                snapshot.inventoryValue
+            )
             : 0;
 
-    // ==========================
-    // Average Revenue Per Product
-    // ==========================
+
+    // ========================================================
+    // AVERAGE REVENUE PER PRODUCT
+    // ========================================================
+
     const revenuePerProduct =
         snapshot.productCount > 0
-            ? snapshot.sales / snapshot.productCount
+            ? (
+                snapshot.sales /
+                snapshot.productCount
+            )
             : 0;
+
+
+    // ========================================================
+    // RETURN KPIs
+    // ========================================================
 
     return {
 
@@ -91,6 +171,11 @@ function getBusinessKPIs(telegramId) {
     };
 
 }
+
+
+// ============================================================
+// EXPORT
+// ============================================================
 
 module.exports = {
 

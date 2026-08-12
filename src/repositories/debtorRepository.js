@@ -1,14 +1,15 @@
 const db = require("../database/database");
 
-// ==========================
-// CREATE DEBT RECORD
-// ==========================
-function create(debt) {
+// ======================================================
+// CREATE DEBTOR
+// ======================================================
+
+function create(debtor) {
 
     const result = db.prepare(`
         INSERT INTO debtors
         (
-            user_id,
+            account_id,
             customer_id,
             sale_id,
             total_amount,
@@ -16,6 +17,7 @@ function create(debt) {
             balance,
             status
         )
+
         VALUES
         (
             ?,
@@ -28,87 +30,111 @@ function create(debt) {
         )
     `).run(
 
-        debt.userId,
+        debtor.accountId,
 
-        debt.customerId,
+        debtor.customerId,
 
-        debt.saleId,
+        debtor.saleId,
 
-        debt.totalAmount,
+        debtor.totalAmount,
 
-        debt.amountPaid,
+        debtor.amountPaid || 0,
 
-        debt.balance,
+        debtor.balance,
 
-        debt.status
+        debtor.status || "UNPAID"
 
     );
 
-    return findById(result.lastInsertRowid);
+    return findById(
+        result.lastInsertRowid
+    );
 
 }
 
-// ==========================
-// FIND DEBT BY ID
-// ==========================
+
+// ======================================================
+// FIND DEBTOR BY ID
+// ======================================================
+
 function findById(id) {
-
-    return db.prepare(`
-        SELECT *
-        FROM debtors
-        WHERE id = ?
-    `).get(id);
-
-}
-
-// ==========================
-// GET ACTIVE DEBTORS
-// ==========================
-function findAll(userId) {
 
     return db.prepare(`
         SELECT
             d.*,
-            c.name AS customer_name,
-            s.item,
-            s.quantity,
-            s.unit_price
+
+            c.name AS customer_name
+
         FROM debtors d
 
         LEFT JOIN customers c
             ON c.id = d.customer_id
 
-        LEFT JOIN sales s
-            ON s.id = d.sale_id
-
         WHERE
-            d.user_id = ?
-        AND
-            d.status = 'UNPAID'
+            d.id = ?
 
-        ORDER BY d.created_at DESC
-    `).all(userId);
+        LIMIT 1
+    `).get(id);
 
 }
 
-// ==========================
-// FIND CUSTOMER'S UNPAID DEBT
-// ==========================
-function findByCustomer(userId, customerId) {
+
+// ======================================================
+// GET ALL DEBTORS FOR ACCOUNT
+// ======================================================
+
+function findAll(accountId) {
+
+    return db.prepare(`
+        SELECT
+            d.*,
+
+            c.name AS customer_name
+
+        FROM debtors d
+
+        LEFT JOIN customers c
+            ON c.id = d.customer_id
+
+        WHERE
+            d.account_id = ?
+
+        ORDER BY
+            d.created_at DESC
+
+    `).all(accountId);
+
+}
+
+
+// ======================================================
+// FIND CUSTOMER'S OUTSTANDING DEBT
+// ======================================================
+
+function findByCustomer(
+    accountId,
+    customerId
+) {
 
     return db.prepare(`
         SELECT *
         FROM debtors
+
         WHERE
-            user_id = ?
-        AND
-            customer_id = ?
-        AND
-            status = 'UNPAID'
+            account_id = ?
+
+            AND customer_id = ?
+
+            AND balance > 0
+
+        ORDER BY
+            created_at ASC
+
         LIMIT 1
+
     `).get(
 
-        userId,
+        accountId,
 
         customerId
 
@@ -116,18 +142,31 @@ function findByCustomer(userId, customerId) {
 
 }
 
-// ==========================
+
+// ======================================================
 // UPDATE PAYMENT
-// ==========================
-function updatePayment(id, amountPaid, balance, status) {
+// ======================================================
+
+function updatePayment(
+    id,
+    amountPaid,
+    balance,
+    status
+) {
 
     db.prepare(`
         UPDATE debtors
+
         SET
             amount_paid = ?,
+
             balance = ?,
+
             status = ?
-        WHERE id = ?
+
+        WHERE
+            id = ?
+
     `).run(
 
         amountPaid,
@@ -144,24 +183,69 @@ function updatePayment(id, amountPaid, balance, status) {
 
 }
 
-// ==========================
+
+// ======================================================
 // TOTAL OUTSTANDING BALANCE
-// ==========================
-function getOutstandingTotal(userId) {
+// ======================================================
+
+function getOutstandingTotal(accountId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(SUM(balance), 0) AS total
-        FROM debtors
-        WHERE
-            user_id = ?
-        AND
-            status = 'UNPAID'
-    `).get(userId);
+            COALESCE(
+                SUM(balance),
+                0
+            ) AS total
 
-    return Number(result.total) || 0;
+        FROM debtors
+
+        WHERE
+            account_id = ?
+
+            AND balance > 0
+
+    `).get(accountId);
+
+    return Number(
+        result.total
+    ) || 0;
 
 }
+
+
+// ======================================================
+// GET OUTSTANDING DEBTORS
+// ======================================================
+
+function findOutstanding(accountId) {
+
+    return db.prepare(`
+        SELECT
+            d.*,
+
+            c.name AS customer_name
+
+        FROM debtors d
+
+        LEFT JOIN customers c
+            ON c.id = d.customer_id
+
+        WHERE
+            d.account_id = ?
+
+            AND d.balance > 0
+
+        ORDER BY
+            d.created_at DESC
+
+    `).all(accountId);
+
+}
+
+
+// ======================================================
+// EXPORT
+// ======================================================
 
 module.exports = {
 
@@ -175,6 +259,8 @@ module.exports = {
 
     updatePayment,
 
-    getOutstandingTotal
+    getOutstandingTotal,
+
+    findOutstanding
 
 };

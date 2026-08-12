@@ -1,94 +1,177 @@
 const db = require("../database/database");
 
-// ==========================
-// GET INTERNAL USER ID
-// ==========================
-function getUserId(telegramId) {
+// ============================================================
+// BUSINESS TRENDS REPOSITORY
+// ============================================================
+//
+// ACCOUNT-BASED DATA ACCESS LAYER
+//
+// IMPORTANT:
+//
+// Business data belongs to an ACCOUNT.
+//
+// This repository does NOT know about:
+//
+// - Telegram
+// - Web
+// - Mobile
+// - HTTP
+// - Sessions
+// - Interface users
+//
+// It receives accountId directly.
+//
+// Architecture:
+//
+// Interface
+//     ↓
+// Application Layer
+//     ↓
+// Account Context
+//     ↓
+// Business Trends Service
+//     ↓
+// THIS REPOSITORY
+//     ↓
+// SQLite
+//
+// ============================================================
 
-    const user = db.prepare(`
-        SELECT id
-        FROM users
-        WHERE telegram_id = ?
-    `).get(telegramId);
 
-    if (!user) {
-        throw new Error("User not found.");
-    }
-
-    return user.id;
-}
-
-
-// ==========================
+// ============================================================
 // TODAY SALES
-// ==========================
-function getTodaySales(userId) {
+// ============================================================
+//
+// Uses recognized revenue.
+//
+// ============================================================
+
+function getTodaySales(accountId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(SUM(total), 0) AS total
+            COALESCE(
+                SUM(revenue),
+                0
+            ) AS total
+
         FROM sales
-        WHERE user_id = ?
-        AND DATE(created_at, 'localtime') =
-            DATE('now', 'localtime')
-    `).get(userId);
+
+        WHERE account_id = ?
+
+        AND DATE(
+            created_at,
+            'localtime'
+        ) =
+        DATE(
+            'now',
+            'localtime'
+        )
+    `).get(accountId);
 
     return Number(result.total) || 0;
 }
 
 
-// ==========================
+// ============================================================
 // YESTERDAY SALES
-// ==========================
-function getYesterdaySales(userId) {
+// ============================================================
+
+function getYesterdaySales(accountId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(SUM(total), 0) AS total
+            COALESCE(
+                SUM(revenue),
+                0
+            ) AS total
+
         FROM sales
-        WHERE user_id = ?
-        AND DATE(created_at, 'localtime') =
-            DATE('now', '-1 day', 'localtime')
-    `).get(userId);
+
+        WHERE account_id = ?
+
+        AND DATE(
+            created_at,
+            'localtime'
+        ) =
+        DATE(
+            'now',
+            '-1 day',
+            'localtime'
+        )
+    `).get(accountId);
 
     return Number(result.total) || 0;
 }
 
 
-// ==========================
+// ============================================================
 // THIS WEEK SALES
-// ==========================
-function getThisWeekSales(userId) {
+// ============================================================
+//
+// Current week:
+//
+// Sunday → Saturday
+//
+// Uses recognized revenue.
+//
+// ============================================================
+
+function getThisWeekSales(accountId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(SUM(total), 0) AS total
+            COALESCE(
+                SUM(revenue),
+                0
+            ) AS total
+
         FROM sales
-        WHERE user_id = ?
-        AND DATE(created_at, 'localtime')
-            >= DATE(
-                'now',
-                'localtime',
-                'weekday 0',
-                '-6 days'
-            )
-    `).get(userId);
+
+        WHERE account_id = ?
+
+        AND DATE(
+            created_at,
+            'localtime'
+        )
+        >=
+        DATE(
+            'now',
+            'localtime',
+            'weekday 0',
+            '-6 days'
+        )
+    `).get(accountId);
 
     return Number(result.total) || 0;
 }
 
 
-// ==========================
+// ============================================================
 // LAST WEEK SALES
-// ==========================
-function getLastWeekSales(userId) {
+// ============================================================
+//
+// Uses recognized revenue.
+//
+// ============================================================
+
+function getLastWeekSales(accountId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(SUM(total), 0) AS total
+            COALESCE(
+                SUM(revenue),
+                0
+            ) AS total
+
         FROM sales
-        WHERE user_id = ?
-        AND DATE(created_at, 'localtime')
+
+        WHERE account_id = ?
+
+        AND DATE(
+            created_at,
+            'localtime'
+        )
         BETWEEN
             DATE(
                 'now',
@@ -103,22 +186,29 @@ function getLastWeekSales(userId) {
                 'weekday 0',
                 '-7 days'
             )
-    `).get(userId);
+    `).get(accountId);
 
     return Number(result.total) || 0;
 }
 
 
-// ==========================
+// ============================================================
 // THIS MONTH SALES
-// ==========================
-function getThisMonthSales(userId) {
+// ============================================================
+
+function getThisMonthSales(accountId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(SUM(total), 0) AS total
+            COALESCE(
+                SUM(revenue),
+                0
+            ) AS total
+
         FROM sales
-        WHERE user_id = ?
+
+        WHERE account_id = ?
+
         AND strftime(
             '%Y-%m',
             created_at,
@@ -130,22 +220,29 @@ function getThisMonthSales(userId) {
             'now',
             'localtime'
         )
-    `).get(userId);
+    `).get(accountId);
 
     return Number(result.total) || 0;
 }
 
 
-// ==========================
+// ============================================================
 // LAST MONTH SALES
-// ==========================
-function getLastMonthSales(userId) {
+// ============================================================
+
+function getLastMonthSales(accountId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(SUM(total), 0) AS total
+            COALESCE(
+                SUM(revenue),
+                0
+            ) AS total
+
         FROM sales
-        WHERE user_id = ?
+
+        WHERE account_id = ?
+
         AND strftime(
             '%Y-%m',
             created_at,
@@ -158,19 +255,26 @@ function getLastMonthSales(userId) {
             'localtime',
             '-1 month'
         )
-    `).get(userId);
+    `).get(accountId);
 
     return Number(result.total) || 0;
 }
 
 
-// ==========================
+// ============================================================
 // AVERAGE DAILY SALES
-// ==========================
-function getAverageDailySales(telegramId) {
+// ============================================================
+//
+// Calculates average recognized revenue
+// across days where recognized sales
+// actually occurred.
+//
+// Zero-sales days are intentionally
+// excluded.
+//
+// ============================================================
 
-    const userId =
-        getUserId(telegramId);
+function getAverageDailySales(accountId) {
 
     const result = db.prepare(`
         SELECT
@@ -180,6 +284,7 @@ function getAverageDailySales(telegramId) {
             ) AS average
 
         FROM (
+
             SELECT
 
                 DATE(
@@ -190,14 +295,14 @@ function getAverageDailySales(telegramId) {
                 SUM(
                     CASE
                         WHEN revenue > 0
-                            THEN revenue
+                        THEN revenue
                         ELSE 0
                     END
                 ) AS daily_total
 
             FROM sales
 
-            WHERE user_id = ?
+            WHERE account_id = ?
 
             GROUP BY
                 DATE(
@@ -208,145 +313,133 @@ function getAverageDailySales(telegramId) {
             HAVING
                 daily_total > 0
         )
-    `).get(userId);
+    `).get(accountId);
 
-    return Number(
-        result.average
-    ) || 0;
+    return Number(result.average) || 0;
 }
 
 
-// ==========================
+// ============================================================
 // AVERAGE DAILY EXPENSES
-// ==========================
+// ============================================================
 //
 // Calculates average expenses across
 // all calendar days in the recorded
 // expense history.
 //
 // Zero-expense days are included.
-// ==========================
+//
+// ============================================================
 
-function getAverageDailyExpenses(telegramId) {
+function getAverageDailyExpenses(accountId) {
 
-    const userId =
-        getUserId(telegramId);
+    const result = db.prepare(`
+        WITH RECURSIVE calendar(date) AS (
 
-    const result =
-        db.prepare(`
-            WITH RECURSIVE calendar(date) AS (
-
-                SELECT
-                    MIN(
-                        DATE(
-                            created_at,
-                            'localtime'
-                        )
-                    )
-
-                FROM expenses
-
-                WHERE user_id = ?
-
-
-                UNION ALL
-
-
-                SELECT
+            SELECT
+                MIN(
                     DATE(
-                        date,
-                        '+1 day'
-                    )
-
-                FROM calendar
-
-                WHERE date <
-                    DATE(
-                        'now',
+                        created_at,
                         'localtime'
                     )
+                )
 
-            )
+            FROM expenses
+
+            WHERE account_id = ?
+
+
+            UNION ALL
 
 
             SELECT
+                DATE(
+                    date,
+                    '+1 day'
+                )
 
-                COALESCE(
-                    AVG(
-                        daily_total
-                    ),
-                    0
-                ) AS average
+            FROM calendar
 
-            FROM (
-
-                SELECT
-
-                    calendar.date,
-
-                    COALESCE(
-                        SUM(
-                            expenses.amount
-                        ),
-                        0
-                    ) AS daily_total
-
-                FROM calendar
-
-                LEFT JOIN expenses
-
-                    ON DATE(
-                        expenses.created_at,
-                        'localtime'
-                    )
-                    =
-                    calendar.date
-
-                    AND expenses.user_id = ?
-
-                GROUP BY
-                    calendar.date
-
-            )
-
-        `).get(
-            userId,
-            userId
-        );
-
-    return Number(
-        result.average
-    ) || 0;
-}
+            WHERE date <
+                DATE(
+                    'now',
+                    'localtime'
+                )
+        )
 
 
-// ==========================
-// AVERAGE DAILY PURCHASES
-// ==========================
-//
-// Calculates the average cash paid
-// on days where purchase payments
-// actually occurred.
-//
-// This metric is intentionally kept
-// separate from the calendar-day
-// purchase cash-outflow metric below.
-//
-// ==========================
-
-function getAverageDailyPurchases(telegramId) {
-
-    const userId =
-        getUserId(telegramId);
-
-    const result = db.prepare(`
         SELECT
+
             COALESCE(
-                AVG(daily_cash_paid),
+                AVG(
+                    daily_total
+                ),
                 0
             ) AS average
 
         FROM (
+
+            SELECT
+
+                calendar.date,
+
+                COALESCE(
+                    SUM(
+                        expenses.amount
+                    ),
+                    0
+                ) AS daily_total
+
+            FROM calendar
+
+            LEFT JOIN expenses
+
+                ON DATE(
+                    expenses.created_at,
+                    'localtime'
+                )
+                =
+                calendar.date
+
+                AND expenses.account_id = ?
+
+            GROUP BY
+                calendar.date
+        )
+
+    `).get(
+        accountId,
+        accountId
+    );
+
+    return Number(result.average) || 0;
+}
+
+
+// ============================================================
+// AVERAGE DAILY PURCHASES
+// ============================================================
+//
+// Calculates average cash paid on
+// days where purchase payments
+// actually occurred.
+//
+// ============================================================
+
+function getAverageDailyPurchases(accountId) {
+
+    const result = db.prepare(`
+        SELECT
+
+            COALESCE(
+                AVG(
+                    daily_cash_paid
+                ),
+                0
+            ) AS average
+
+        FROM (
+
             SELECT
 
                 DATE(
@@ -360,7 +453,7 @@ function getAverageDailyPurchases(telegramId) {
 
             FROM purchases
 
-            WHERE user_id = ?
+            WHERE account_id = ?
 
             GROUP BY
                 DATE(
@@ -369,46 +462,20 @@ function getAverageDailyPurchases(telegramId) {
                 )
         )
 
-    `).get(
-        userId
-    );
+    `).get(accountId);
 
-    return Number(
-        result.average
-    ) || 0;
+    return Number(result.average) || 0;
 }
 
 
-// ==========================
+// ============================================================
 // AVERAGE DAILY PURCHASE CASH OUTFLOW
-// ==========================
+// ============================================================
 //
-// Measures actual supplier cash
-// payments across the complete
-// calendar forecasting period.
+// Measures actual supplier cash payments
+// across the complete forecasting period.
 //
-// Unlike getAverageDailyPurchases(),
-// this metric does NOT ignore days
-// where no purchase payment occurred.
-//
-// Example:
-//
-// 30-day period:
-//
-// Total cash paid to suppliers
-// = ₦238,000
-//
-// Average daily purchase cash
-// outflow:
-//
-// ₦238,000 / 30
-//
-// = ₦7,933.33
-//
-// This metric is specifically
-// intended for CASH FLOW forecasting.
-//
-// It is different from:
+// This is different from:
 //
 // PURCHASE VALUE
 //     → total_amount
@@ -422,54 +489,48 @@ function getAverageDailyPurchases(telegramId) {
 // SUPPLIER BALANCE
 //     → outstanding amount owed
 //
-// ==========================
+// ============================================================
 
 function getAverageDailyPurchaseCashOutflow(
-    telegramId,
+    accountId,
     days = 30
 ) {
 
-    const userId =
-        getUserId(telegramId);
-
-
     const safeDays =
         Number(days) > 0
-            ? Math.floor(
-                Number(days)
-            )
+            ? Math.floor(Number(days))
             : 30;
 
 
-    const result =
-        db.prepare(`
+    const result = db.prepare(`
+        SELECT
 
-            SELECT
+            COALESCE(
+                SUM(
+                    amount_paid
+                ),
+                0
+            ) AS total_cash_paid
 
-                COALESCE(
-                    SUM(
-                        amount_paid
-                    ),
-                    0
-                ) AS total_cash_paid
+        FROM purchases
 
-            FROM purchases
+        WHERE account_id = ?
 
-            WHERE user_id = ?
+        AND DATE(
+            created_at,
+            'localtime'
+        )
+        >=
+        DATE(
+            'now',
+            'localtime',
+            ?
+        )
 
-                AND DATE(
-                    created_at,
-                    'localtime'
-                ) >= DATE(
-                    'now',
-                    'localtime',
-                    ?
-                )
-
-        `).get(
-            userId,
-            `-${safeDays} days`
-        );
+    `).get(
+        accountId,
+        `-${safeDays} days`
+    );
 
 
     const totalCashPaid =
@@ -485,13 +546,20 @@ function getAverageDailyPurchaseCashOutflow(
 }
 
 
-// ==========================
+// ============================================================
 // DAILY PURCHASE HISTORY
-// ==========================
+// ============================================================
+
 function getDailyPurchases(
-    userId,
+    accountId,
     days = 30
 ) {
+
+    const safeDays =
+        Number(days) > 0
+            ? Math.floor(Number(days))
+            : 30;
+
 
     const rows = db.prepare(`
         SELECT
@@ -508,7 +576,7 @@ function getDailyPurchases(
 
         FROM purchases
 
-        WHERE user_id = ?
+        WHERE account_id = ?
 
         GROUP BY
             DATE(
@@ -523,11 +591,11 @@ function getDailyPurchases(
             ) DESC
 
         LIMIT ?
-
     `).all(
-        userId,
-        days
+        accountId,
+        safeDays
     );
+
 
     return rows.map(
         row => ({
@@ -545,13 +613,25 @@ function getDailyPurchases(
 }
 
 
-// ==========================
+// ============================================================
 // DAILY SALES HISTORY
-// ==========================
+// ============================================================
+//
+// Uses recognized revenue rather than
+// raw transaction total.
+//
+// ============================================================
+
 function getDailySales(
-    userId,
+    accountId,
     days = 30
 ) {
+
+    const safeDays =
+        Number(days) > 0
+            ? Math.floor(Number(days))
+            : 30;
+
 
     const rows = db.prepare(`
         SELECT
@@ -562,13 +642,13 @@ function getDailySales(
             ) AS date,
 
             COALESCE(
-                SUM(total),
+                SUM(revenue),
                 0
             ) AS sales
 
         FROM sales
 
-        WHERE user_id = ?
+        WHERE account_id = ?
 
         GROUP BY
             DATE(
@@ -583,11 +663,11 @@ function getDailySales(
             ) DESC
 
         LIMIT ?
-
     `).all(
-        userId,
-        days
+        accountId,
+        safeDays
     );
+
 
     return rows.map(
         row => ({
@@ -605,13 +685,20 @@ function getDailySales(
 }
 
 
-// ==========================
+// ============================================================
 // DAILY EXPENSE HISTORY
-// ==========================
+// ============================================================
+
 function getDailyExpenses(
-    userId,
+    accountId,
     days = 30
 ) {
+
+    const safeDays =
+        Number(days) > 0
+            ? Math.floor(Number(days))
+            : 30;
+
 
     const rows = db.prepare(`
         SELECT
@@ -628,7 +715,7 @@ function getDailyExpenses(
 
         FROM expenses
 
-        WHERE user_id = ?
+        WHERE account_id = ?
 
         GROUP BY
             DATE(
@@ -643,11 +730,11 @@ function getDailyExpenses(
             ) DESC
 
         LIMIT ?
-
     `).all(
-        userId,
-        days
+        accountId,
+        safeDays
     );
+
 
     return rows.map(
         row => ({
@@ -665,9 +752,9 @@ function getDailyExpenses(
 }
 
 
-// ==========================
+// ============================================================
 // PRODUCT DAILY DEMAND HISTORY
-// ==========================
+// ============================================================
 //
 // Returns product-level daily
 // quantities sold.
@@ -676,82 +763,91 @@ function getDailyExpenses(
 // inventory_id.
 //
 // Therefore:
+//
 // 1. LEFT JOIN is used.
 // 2. inventory.product_name is preferred.
 // 3. sales.item is used as fallback.
 //
-// ==========================
+// ============================================================
 
 function getProductDailyDemand(
-    telegramId,
+    accountId,
     days = 30
 ) {
 
-    const userId =
-        getUserId(telegramId);
+    const safeDays =
+        Number(days) > 0
+            ? Math.floor(Number(days))
+            : 30;
 
-    const rows =
-        db.prepare(`
-            SELECT
 
-                COALESCE(
-                    inventory.product_name,
-                    sales.item
-                ) AS product_name,
+    const rows = db.prepare(`
+        SELECT
 
-                DATE(
-                    sales.created_at,
-                    'localtime'
-                ) AS date,
+            COALESCE(
+                inventory.product_name,
+                sales.item
+            ) AS product_name,
 
-                COALESCE(
-                    SUM(sales.quantity),
-                    0
-                ) AS quantity
-
-            FROM sales
-
-            LEFT JOIN inventory
-                ON inventory.id =
-                   sales.inventory_id
-
-            WHERE sales.user_id = ?
-
-            AND DATE(
+            DATE(
                 sales.created_at,
                 'localtime'
-            ) >= DATE(
-                'now',
-                'localtime',
-                '-29 days'
+            ) AS date,
+
+            COALESCE(
+                SUM(
+                    sales.quantity
+                ),
+                0
+            ) AS quantity
+
+        FROM sales
+
+        LEFT JOIN inventory
+
+            ON inventory.id =
+               sales.inventory_id
+
+            AND inventory.account_id = ?
+
+        WHERE sales.account_id = ?
+
+        AND DATE(
+            sales.created_at,
+            'localtime'
+        )
+        >=
+        DATE(
+            'now',
+            'localtime',
+            '-29 days'
+        )
+
+        GROUP BY
+
+            COALESCE(
+                inventory.product_name,
+                sales.item
+            ),
+
+            DATE(
+                sales.created_at,
+                'localtime'
             )
 
-            GROUP BY
+        ORDER BY
 
-                COALESCE(
-                    inventory.product_name,
-                    sales.item
-                ),
+            date ASC,
 
-                DATE(
-                    sales.created_at,
-                    'localtime'
-                )
+            product_name ASC
 
-            ORDER BY
+        LIMIT ?
+    `).all(
+        accountId,
+        accountId,
+        safeDays * 100
+    );
 
-                date ASC,
-
-                product_name ASC
-
-            LIMIT ?
-
-        `).all(
-
-            userId,
-
-            days * 100
-        );
 
     return rows.map(
         row => ({
@@ -772,35 +868,27 @@ function getProductDailyDemand(
 }
 
 
-// ==========================
+// ============================================================
 // DAILY COGS HISTORY
-// ==========================
+// ============================================================
 //
-// IMPORTANT:
-//
-// This function receives the
-// TELEGRAM ID, just like the other
-// higher-level repository functions
-// that use getUserId().
-//
-// It converts the Telegram ID into
-// the internal database user ID before
-// querying the sales table.
-//
-// COGS represents the cost of
-// inventory actually sold.
+// COGS represents the cost of inventory
+// actually sold.
 //
 // It does NOT represent purchases.
 //
-// ==========================
+// ============================================================
 
 function getDailyCOGS(
-    telegramId,
+    accountId,
     days = 30
 ) {
 
-    const userId =
-        getUserId(telegramId);
+    const safeDays =
+        Number(days) > 0
+            ? Math.floor(Number(days))
+            : 30;
+
 
     const rows = db.prepare(`
         SELECT
@@ -822,12 +910,14 @@ function getDailyCOGS(
 
         FROM sales
 
-        WHERE user_id = ?
+        WHERE account_id = ?
 
         AND DATE(
             created_at,
             'localtime'
-        ) >= DATE(
+        )
+        >=
+        DATE(
             'now',
             'localtime',
             '-29 days'
@@ -846,11 +936,11 @@ function getDailyCOGS(
             ) ASC
 
         LIMIT ?
-
     `).all(
-        userId,
-        days
+        accountId,
+        safeDays
     );
+
 
     return rows.map(
         row => ({
@@ -873,12 +963,11 @@ function getDailyCOGS(
 }
 
 
-// ==========================
-// EXPORT
-// ==========================
-module.exports = {
+// ============================================================
+// EXPORTS
+// ============================================================
 
-    getUserId,
+module.exports = {
 
     getTodaySales,
 

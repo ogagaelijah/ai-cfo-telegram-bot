@@ -1,21 +1,59 @@
 const analytics =
-require("../financialAnalyticsService");
+    require("../financialAnalyticsService");
 
-// ==========================
+// ============================================================
 // EXPENSE TREND ENGINE
-// ==========================
-function getExpenseTrend(telegramId) {
+// ============================================================
+//
+// ACCOUNT-BASED INTELLIGENCE
+//
+// Receives accountId directly.
+//
+// It does NOT know about:
+//
+// - Telegram
+// - Web
+// - Mobile
+// - HTTP
+// - Sessions
+//
+// ============================================================
 
-    const snapshot =
-        analytics.getBusinessSnapshot(telegramId);
+function getExpenseTrend(accountId) {
 
-    let direction = "Stable";
+    if (
+        accountId === undefined ||
+        accountId === null ||
+        accountId === ""
+    ) {
 
-    if (snapshot.expenses > snapshot.sales * 0.50) {
-
-        direction = "High";
+        throw new Error(
+            "Account ID is required."
+        );
 
     }
+
+
+    const snapshot =
+        analytics.getBusinessSnapshot(
+            accountId
+        );
+
+
+    let direction =
+        "Stable";
+
+
+    if (
+        snapshot.expenses >
+        snapshot.sales * 0.50
+    ) {
+
+        direction =
+            "High";
+
+    }
+
 
     return {
 
@@ -27,6 +65,11 @@ function getExpenseTrend(telegramId) {
     };
 
 }
+
+
+// ============================================================
+// EXPORTS
+// ============================================================
 
 module.exports = {
 

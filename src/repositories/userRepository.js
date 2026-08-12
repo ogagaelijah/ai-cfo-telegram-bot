@@ -1,21 +1,35 @@
 const db = require("../database/database");
 
-// ==========================
+// ======================================================
 // FIND USER BY TELEGRAM ID
-// ==========================
+// ======================================================
+
 function findByTelegramId(telegramId) {
 
     return db.prepare(`
-        SELECT *
+        SELECT
+            id,
+            telegram_id,
+            full_name,
+            username,
+            created_at
+
         FROM users
-        WHERE telegram_id = ?
+
+        WHERE
+            telegram_id = ?
+
+        LIMIT 1
+
     `).get(telegramId);
 
 }
 
-// ==========================
+
+// ======================================================
 // CREATE USER
-// ==========================
+// ======================================================
+
 function createUser(user) {
 
     const result = db.prepare(`
@@ -25,19 +39,21 @@ function createUser(user) {
             full_name,
             username
         )
+
         VALUES
         (
             ?,
             ?,
             ?
         )
+
     `).run(
 
         user.telegramId,
 
         user.fullName,
 
-        user.username
+        user.username || null
 
     );
 
@@ -45,26 +61,36 @@ function createUser(user) {
 
 }
 
-// ==========================
-// UPDATE BUSINESS NAME
-// ==========================
-function updateBusinessName(userId, businessName) {
 
-    const result = db.prepare(`
-        UPDATE users
-        SET business_name = ?
-        WHERE id = ?
-    `).run(
+// ======================================================
+// GET USER BY INTERNAL ID
+// ======================================================
 
-        businessName,
+function findById(userId) {
 
-        userId
+    return db.prepare(`
+        SELECT
+            id,
+            telegram_id,
+            full_name,
+            username,
+            created_at
 
-    );
+        FROM users
 
-    return result.changes > 0;
+        WHERE
+            id = ?
+
+        LIMIT 1
+
+    `).get(userId);
 
 }
+
+
+// ======================================================
+// EXPORT
+// ======================================================
 
 module.exports = {
 
@@ -72,6 +98,6 @@ module.exports = {
 
     createUser,
 
-    updateBusinessName
+    findById
 
 };

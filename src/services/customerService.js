@@ -1,77 +1,121 @@
+const accountContext = require("./accountContext");
 const customerRepository = require("../repositories/customerRepository");
-const userRepository = require("../repositories/userRepository");
 
-// ==========================
-// GET INTERNAL USER ID
-// ==========================
-function getUserId(telegramId) {
+// ======================================================
+// GET CURRENT ACCOUNT
+// ======================================================
 
-    const user =
-        userRepository.findByTelegramId(telegramId);
+function getAccount(telegramId) {
 
-    if (!user) {
-
-        throw new Error("User not found.");
-
-    }
-
-    return user.id;
+    return accountContext.requireAccount(
+        telegramId
+    );
 
 }
 
-// ==========================
+// ======================================================
 // SAVE CUSTOMER
-// ==========================
-function saveCustomer(telegramId, customer) {
+// ======================================================
 
-    const userId =
-        getUserId(telegramId);
+function saveCustomer(
+    telegramId,
+    customer
+) {
+
+    const account =
+        getAccount(telegramId);
 
     return customerRepository.create({
 
-        userId,
+        accountId:
+            account.accountId,
 
-        name: customer.name,
+        name:
+            customer.name,
 
-        phone: customer.phone,
+        phone:
+            customer.phone,
 
-        email: customer.email,
+        email:
+            customer.email,
 
-        address: customer.address
+        address:
+            customer.address
 
     });
 
 }
 
-// ==========================
+// ======================================================
 // FIND OR CREATE CUSTOMER
-// ==========================
-function findOrCreateCustomer(telegramId, customerName) {
+// ======================================================
 
-    const userId =
-        getUserId(telegramId);
+function findOrCreateCustomer(
+    telegramId,
+    customerName
+) {
 
-    return customerRepository.findOrCreate(
+    const account =
+        getAccount(telegramId);
 
-        userId,
+    const name =
+        String(customerName || "").trim();
 
-        customerName
+    if (!name) {
 
-    );
+        throw new Error(
+            "Customer name is required."
+        );
+
+    }
+
+    const existing =
+        customerRepository.findByName(
+
+            account.accountId,
+
+            name
+
+        );
+
+    if (existing) {
+
+        return existing;
+
+    }
+
+    return customerRepository.create({
+
+        accountId:
+            account.accountId,
+
+        name,
+
+        phone: null,
+
+        email: null,
+
+        address: null
+
+    });
 
 }
 
-// ==========================
+// ======================================================
 // SEARCH CUSTOMERS
-// ==========================
-function searchCustomers(telegramId, keyword) {
+// ======================================================
 
-    const userId =
-        getUserId(telegramId);
+function searchCustomers(
+    telegramId,
+    keyword
+) {
+
+    const account =
+        getAccount(telegramId);
 
     return customerRepository.search(
 
-        userId,
+        account.accountId,
 
         keyword
 
@@ -79,17 +123,26 @@ function searchCustomers(telegramId, keyword) {
 
 }
 
-// ==========================
+// ======================================================
 // GET ALL CUSTOMERS
-// ==========================
-function getCustomers(telegramId) {
+// ======================================================
 
-    const userId =
-        getUserId(telegramId);
+function getCustomers(
+    telegramId
+) {
 
-    return customerRepository.findAll(userId);
+    const account =
+        getAccount(telegramId);
+
+    return customerRepository.findAll(
+        account.accountId
+    );
 
 }
+
+// ======================================================
+// EXPORT
+// ======================================================
 
 module.exports = {
 

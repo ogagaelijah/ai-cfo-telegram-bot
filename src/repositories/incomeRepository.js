@@ -1,38 +1,15 @@
 const db = require("../database/database");
 
-// ==========================
-// GET INTERNAL USER ID
-// ==========================
-function getUserId(telegramId) {
-
-    const user = db.prepare(`
-        SELECT id
-        FROM users
-        WHERE telegram_id = ?
-    `).get(telegramId);
-
-    if (!user) {
-
-        throw new Error("User not found.");
-
-    }
-
-    return user.id;
-
-}
-
-// ==========================
+// ======================================================
 // CREATE INCOME
-// ==========================
-function create(telegramId, income) {
+// ======================================================
 
-    const userId =
-        getUserId(telegramId);
+function create(accountId, income) {
 
     const result = db.prepare(`
         INSERT INTO income
         (
-            user_id,
+            account_id,
             source,
             amount,
             notes
@@ -46,7 +23,7 @@ function create(telegramId, income) {
         )
     `).run(
 
-        userId,
+        accountId,
 
         income.source,
 
@@ -56,13 +33,16 @@ function create(telegramId, income) {
 
     );
 
-    return findById(result.lastInsertRowid);
-
+    return findById(
+        result.lastInsertRowid
+    );
 }
 
-// ==========================
+
+// ======================================================
 // FIND BY ID
-// ==========================
+// ======================================================
+
 function findById(id) {
 
     return db.prepare(`
@@ -73,64 +53,104 @@ function findById(id) {
 
 }
 
-// ==========================
+
+// ======================================================
 // TODAY TOTAL
-// ==========================
-function getTodayTotal(telegramId) {
+// ======================================================
 
-    const userId =
-        getUserId(telegramId);
+function getTodayTotal(accountId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(SUM(amount),0) AS total
-        FROM income
-        WHERE user_id = ?
-        AND DATE(created_at,'localtime')
-            = DATE('now','localtime')
-    `).get(userId);
+            COALESCE(
+                SUM(amount),
+                0
+            ) AS total
 
-    return Number(result.total) || 0;
+        FROM income
+
+        WHERE
+            account_id = ?
+
+            AND DATE(
+                created_at,
+                'localtime'
+            )
+            =
+            DATE(
+                'now',
+                'localtime'
+            )
+    `).get(accountId);
+
+    return Number(
+        result.total
+    ) || 0;
 
 }
 
-// ==========================
+
+// ======================================================
 // MONTHLY TOTAL
-// ==========================
-function getMonthlyTotal(telegramId) {
+// ======================================================
 
-    const userId =
-        getUserId(telegramId);
+function getMonthlyTotal(accountId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(SUM(amount),0) AS total
-        FROM income
-        WHERE user_id = ?
-        AND strftime('%Y-%m', created_at, 'localtime')
-            = strftime('%Y-%m', 'now', 'localtime')
-    `).get(userId);
+            COALESCE(
+                SUM(amount),
+                0
+            ) AS total
 
-    return Number(result.total) || 0;
+        FROM income
+
+        WHERE
+            account_id = ?
+
+            AND strftime(
+                '%Y-%m',
+                created_at,
+                'localtime'
+            )
+            =
+            strftime(
+                '%Y-%m',
+                'now',
+                'localtime'
+            )
+    `).get(accountId);
+
+    return Number(
+        result.total
+    ) || 0;
 
 }
 
-// ==========================
-// ALL INCOME
-// ==========================
-function findAll(telegramId) {
 
-    const userId =
-        getUserId(telegramId);
+// ======================================================
+// ALL INCOME
+// ======================================================
+
+function findAll(accountId) {
 
     return db.prepare(`
         SELECT *
         FROM income
-        WHERE user_id = ?
-        ORDER BY created_at DESC
-    `).all(userId);
+
+        WHERE
+            account_id = ?
+
+        ORDER BY
+            created_at DESC
+    `).all(accountId);
 
 }
+
+
+// ======================================================
+// EXPORT
+// ======================================================
 
 module.exports = {
 

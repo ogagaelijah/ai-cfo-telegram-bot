@@ -1,65 +1,77 @@
+const accountContext = require("./accountContext");
 const supplierRepository = require("../repositories/supplierRepository");
-const userRepository = require("../repositories/userRepository");
 
-/**
- * Get internal user ID
- */
-function getUserId(telegramId) {
+// ==========================
+// GET CURRENT ACCOUNT
+// ==========================
+function getAccount(telegramId) {
 
-    const user = userRepository.findByTelegramId(telegramId);
-
-    if (!user) {
-        throw new Error("User not found.");
-    }
-
-    return user.id;
+    return accountContext.requireAccount(
+        telegramId
+    );
 
 }
 
-/**
- * Save supplier
- */
-function saveSupplier(telegramId, supplier) {
+// ==========================
+// SAVE SUPPLIER
+// ==========================
+function saveSupplier(
+    telegramId,
+    supplier
+) {
 
-    const userId = getUserId(telegramId);
+    const account =
+        getAccount(telegramId);
 
     return supplierRepository.create({
 
-        userId,
+        accountId:
+            account.accountId,
 
-        name: supplier.name,
+        name:
+            supplier.name,
 
-        phone: supplier.phone,
+        phone:
+            supplier.phone,
 
-        email: supplier.email,
+        email:
+            supplier.email,
 
-        address: supplier.address
+        address:
+            supplier.address
 
     });
 
 }
 
-/**
- * Get all suppliers
- */
+// ==========================
+// GET ALL SUPPLIERS
+// ==========================
 function getSuppliers(telegramId) {
 
-    const userId = getUserId(telegramId);
+    const account =
+        getAccount(telegramId);
 
-    return supplierRepository.findAll(userId);
+    return supplierRepository.findAll(
+        account.accountId
+    );
 
 }
 
-/**
- * Search suppliers
- */
-function searchSuppliers(telegramId, keyword) {
+// ==========================
+// SEARCH SUPPLIERS
+// ==========================
+function searchSuppliers(
+    telegramId,
+    keyword
+) {
 
-    const userId = getUserId(telegramId);
+    const account =
+        getAccount(telegramId);
 
     return supplierRepository.search(
 
-        userId,
+        account.accountId,
 
         keyword
 
@@ -67,16 +79,20 @@ function searchSuppliers(telegramId, keyword) {
 
 }
 
-/**
- * Find supplier by name
- */
-function findSupplierByName(telegramId, name) {
+// ==========================
+// FIND SUPPLIER BY NAME
+// ==========================
+function findSupplierByName(
+    telegramId,
+    name
+) {
 
-    const userId = getUserId(telegramId);
+    const account =
+        getAccount(telegramId);
 
     return supplierRepository.findByName(
 
-        userId,
+        account.accountId,
 
         name
 
@@ -84,18 +100,19 @@ function findSupplierByName(telegramId, name) {
 
 }
 
-/**
- * Find existing supplier or create one
- */
-function findOrCreateSupplier(telegramId, name) {
+// ==========================
+// FIND OR CREATE SUPPLIER
+// ==========================
+function findOrCreateSupplier(
+    telegramId,
+    name
+) {
 
-    let supplier = findSupplierByName(
-
-        telegramId,
-
-        name
-
-    );
+    const supplier =
+        findSupplierByName(
+            telegramId,
+            name
+        );
 
     if (supplier) {
 
@@ -103,17 +120,20 @@ function findOrCreateSupplier(telegramId, name) {
 
     }
 
-    return saveSupplier(telegramId, {
+    return saveSupplier(
+        telegramId,
+        {
 
-        name,
+            name,
 
-        phone: "",
+            phone: "",
 
-        email: "",
+            email: "",
 
-        address: ""
+            address: ""
 
-    });
+        }
+    );
 
 }
 

@@ -1,56 +1,129 @@
-const analyticsRepository = require("../repositories/financialAnalyticsRepository");
+const analyticsRepository =
+    require("../repositories/financialAnalyticsRepository");
 
-// ==========================
+// ============================================================
+// FINANCIAL ANALYTICS SERVICE
+// ============================================================
+//
+// ACCOUNT-BASED DOMAIN SERVICE
+//
+// This service is completely interface-independent.
+//
+// It does NOT know about:
+//
+// - Telegram
+// - Web
+// - Mobile
+// - HTTP
+// - API
+//
+// It receives an internal accountId.
+//
+// Interface adapters are responsible for resolving:
+//
+// User / Session
+//       ↓
+// Current Account
+//       ↓
+// accountId
+//
+// ============================================================
+
+
+// ============================================================
 // BUSINESS SNAPSHOT
-// ==========================
-function getBusinessSnapshot(telegramId) {
+// ============================================================
 
-    const userId =
-        analyticsRepository.getUserId(telegramId);
+function getBusinessSnapshot(accountId) {
+
+    if (
+        accountId === undefined ||
+        accountId === null ||
+        accountId === ""
+    ) {
+
+        throw new Error(
+            "Account ID is required."
+        );
+
+    }
+
 
     const sales =
-        analyticsRepository.getTotalSales(userId);
+        analyticsRepository.getTotalSales(
+            accountId
+        );
+
 
     const purchases =
-        analyticsRepository.getTotalPurchases(userId);
+        analyticsRepository.getTotalPurchases(
+            accountId
+        );
+
 
     const costOfGoods =
-        analyticsRepository.getCostOfGoodsSold(userId);
+        analyticsRepository.getCostOfGoodsSold(
+            accountId
+        );
+
 
     const expenses =
-        analyticsRepository.getTotalExpenses(userId);
+        analyticsRepository.getTotalExpenses(
+            accountId
+        );
+
 
     const income =
-        analyticsRepository.getTotalIncome(userId);
+        analyticsRepository.getTotalIncome(
+            accountId
+        );
+
 
     const inventoryValue =
-        analyticsRepository.getInventoryValue(userId);
+        analyticsRepository.getInventoryValue(
+            accountId
+        );
+
 
     const productCount =
-        analyticsRepository.getProductCount(userId);
+        analyticsRepository.getProductCount(
+            accountId
+        );
+
 
     const supplierCount =
-    analyticsRepository.getSupplierCount(userId);
+        analyticsRepository.getSupplierCount(
+            accountId
+        );
 
-    // ==========================
+
+    // ========================================================
     // ACCOUNTING CALCULATIONS
-    // ==========================
+    // ========================================================
 
     // Revenue - Cost of Goods Sold
+
     const grossProfit =
         sales - costOfGoods;
 
+
     // Gross Profit Margin
+
     const grossMargin =
         sales > 0
             ? (grossProfit / sales) * 100
             : 0;
 
-    // Net Profit
-    const netProfit =
-        grossProfit - expenses + income;
 
-        return {
+    // Net Profit
+
+    const netProfit =
+        grossProfit -
+        expenses +
+        income;
+
+
+    return {
 
         sales,
 
@@ -78,51 +151,71 @@ function getBusinessSnapshot(telegramId) {
 
 }
 
-// ==========================
-// REVENUE
-// ==========================
-function getRevenueMetrics(telegramId) {
+
+// ============================================================
+// REVENUE METRICS
+// ============================================================
+
+function getRevenueMetrics(accountId) {
 
     const snapshot =
-        getBusinessSnapshot(telegramId);
+        getBusinessSnapshot(
+            accountId
+        );
+
 
     return {
 
-        sales: snapshot.sales,
+        sales:
+            snapshot.sales,
 
-        purchases: snapshot.purchases,
+        purchases:
+            snapshot.purchases,
 
-        income: snapshot.income
+        income:
+            snapshot.income
 
     };
 
 }
 
-// ==========================
-// PROFITS
-// ==========================
-function getProfitMetrics(telegramId) {
+
+// ============================================================
+// PROFIT METRICS
+// ============================================================
+
+function getProfitMetrics(accountId) {
 
     const snapshot =
-        getBusinessSnapshot(telegramId);
+        getBusinessSnapshot(
+            accountId
+        );
+
 
     return {
 
-        grossProfit: snapshot.grossProfit,
+        grossProfit:
+            snapshot.grossProfit,
 
-        netProfit: snapshot.netProfit
+        netProfit:
+            snapshot.netProfit
 
     };
 
 }
 
-// ==========================
-// CASH
-// ==========================
-function getCashMetrics(telegramId) {
+
+// ============================================================
+// CASH METRICS
+// ============================================================
+
+function getCashMetrics(accountId) {
 
     const snapshot =
-        getBusinessSnapshot(telegramId);
+        getBusinessSnapshot(
+            accountId
+        );
+
 
     return {
 
@@ -130,82 +223,118 @@ function getCashMetrics(telegramId) {
             snapshot.sales +
             snapshot.income,
 
+
         cashOut:
             snapshot.purchases +
             snapshot.expenses,
 
+
         cashPosition:
-            (snapshot.sales + snapshot.income) -
-            (snapshot.purchases + snapshot.expenses)
+            (
+                snapshot.sales +
+                snapshot.income
+            ) -
+            (
+                snapshot.purchases +
+                snapshot.expenses
+            )
 
     };
 
 }
 
-// ==========================
-// INVENTORY
-// ==========================
-function getInventoryMetrics(telegramId) {
+
+// ============================================================
+// INVENTORY METRICS
+// ============================================================
+
+function getInventoryMetrics(accountId) {
 
     const snapshot =
-        getBusinessSnapshot(telegramId);
+        getBusinessSnapshot(
+            accountId
+        );
+
 
     return {
 
-        inventoryValue: snapshot.inventoryValue,
+        inventoryValue:
+            snapshot.inventoryValue,
 
-        productCount: snapshot.productCount
+        productCount:
+            snapshot.productCount
 
     };
 
 }
 
-// ==========================
-// DEBTS
-// ==========================
-function getDebtMetrics(telegramId) {
 
-    const userId =
-        analyticsRepository.getUserId(telegramId);
+// ============================================================
+// DEBT METRICS
+// ============================================================
+
+function getDebtMetrics(accountId) {
 
     return {
 
         debtors:
-            analyticsRepository.getOutstandingDebtors(userId),
+            analyticsRepository.getOutstandingDebtors(
+                accountId
+            ),
 
         creditors:
-            analyticsRepository.getOutstandingCreditors(userId)
+            analyticsRepository.getOutstandingCreditors(
+                accountId
+            )
 
     };
 
 }
 
-// ==========================
+
+// ============================================================
 // BUSINESS HEALTH
-// ==========================
-function getBusinessHealth(telegramId) {
+// ============================================================
+
+function getBusinessHealth(accountId) {
 
     const snapshot =
-        getBusinessSnapshot(telegramId);
+        getBusinessSnapshot(
+            accountId
+        );
+
 
     const debt =
-        getDebtMetrics(telegramId);
+        getDebtMetrics(
+            accountId
+        );
+
 
     const cash =
-        getCashMetrics(telegramId);
+        getCashMetrics(
+            accountId
+        );
+
 
     const inventory =
-        getInventoryMetrics(telegramId);
+        getInventoryMetrics(
+            accountId
+        );
+
 
     let score = 100;
 
+
     const strengths = [];
+
 
     const risks = [];
 
-    // ==========================
+
+    // ========================================================
     // PROFITABILITY
-    // ==========================
+    // ========================================================
+
     if (snapshot.netProfit > 0) {
 
         strengths.push(
@@ -222,16 +351,19 @@ function getBusinessHealth(telegramId) {
 
     }
 
-    // ==========================
+
+    // ========================================================
     // GROSS MARGIN
-    // ==========================
+    // ========================================================
+
     if (snapshot.grossMargin >= 40) {
 
         strengths.push(
             "Healthy gross profit margin."
         );
 
-    } else if (snapshot.grossMargin < 20) {
+    }
+    else if (snapshot.grossMargin < 20) {
 
         score -= 10;
 
@@ -241,13 +373,19 @@ function getBusinessHealth(telegramId) {
 
     }
 
-    // ==========================
+
+    // ========================================================
     // EXPENSE CONTROL
-    // ==========================
+    // ========================================================
+
     if (snapshot.sales > 0) {
 
         const expenseRate =
-            (snapshot.expenses / snapshot.sales) * 100;
+            (
+                snapshot.expenses /
+                snapshot.sales
+            ) * 100;
+
 
         if (expenseRate > 60) {
 
@@ -257,7 +395,8 @@ function getBusinessHealth(telegramId) {
                 "Operating expenses are high."
             );
 
-        } else {
+        }
+        else {
 
             strengths.push(
                 "Expenses are under control."
@@ -267,16 +406,19 @@ function getBusinessHealth(telegramId) {
 
     }
 
-    // ==========================
+
+    // ========================================================
     // CASH POSITION
-    // ==========================
+    // ========================================================
+
     if (cash.cashPosition >= 0) {
 
         strengths.push(
             "Positive cash position."
         );
 
-    } else {
+    }
+    else {
 
         score -= 15;
 
@@ -286,9 +428,11 @@ function getBusinessHealth(telegramId) {
 
     }
 
-    // ==========================
+
+    // ========================================================
     // CREDITORS VS DEBTORS
-    // ==========================
+    // ========================================================
+
     if (debt.creditors > debt.debtors) {
 
         score -= 10;
@@ -297,7 +441,8 @@ function getBusinessHealth(telegramId) {
             "Supplier debt exceeds customer debt."
         );
 
-    } else {
+    }
+    else {
 
         strengths.push(
             "Debt levels are balanced."
@@ -305,9 +450,11 @@ function getBusinessHealth(telegramId) {
 
     }
 
-    // ==========================
+
+    // ========================================================
     // INVENTORY
-    // ==========================
+    // ========================================================
+
     if (inventory.inventoryValue === 0) {
 
         score -= 10;
@@ -316,7 +463,8 @@ function getBusinessHealth(telegramId) {
             "Inventory is empty."
         );
 
-    } else {
+    }
+    else {
 
         strengths.push(
             "Inventory available for sales."
@@ -324,29 +472,64 @@ function getBusinessHealth(telegramId) {
 
     }
 
-    // ==========================
+
+    // ========================================================
     // SCORE LIMITS
-    // ==========================
-    if (score < 0) score = 0;
+    // ========================================================
 
-    if (score > 100) score = 100;
+    if (score < 0) {
 
-    // ==========================
+        score = 0;
+
+    }
+
+
+    if (score > 100) {
+
+        score = 100;
+
+    }
+
+
+    // ========================================================
     // STATUS
-    // ==========================
-    let status = "🟢 Excellent";
+    // ========================================================
 
-    if (score < 90)
-        status = "🟢 Good";
+    let status =
+        "🟢 Excellent";
 
-    if (score < 75)
-        status = "🟡 Fair";
 
-    if (score < 60)
-        status = "🟠 Poor";
+    if (score < 90) {
 
-    if (score < 40)
-        status = "🔴 Critical";
+        status =
+            "🟢 Good";
+
+    }
+
+
+    if (score < 75) {
+
+        status =
+            "🟡 Fair";
+
+    }
+
+
+    if (score < 60) {
+
+        status =
+            "🟠 Poor";
+
+    }
+
+
+    if (score < 40) {
+
+        status =
+            "🔴 Critical";
+
+    }
+
 
     return {
 
@@ -362,31 +545,10 @@ function getBusinessHealth(telegramId) {
 
 }
 
-// ==========================
-// KPIs
-// ==========================
-function getBusinessKPIs(telegramId) {
 
-    const {
-        getBusinessKPIs
-    } = require("./businessKPIService");
-
-    return getBusinessKPIs(telegramId);
-
-}
-
-// ==========================
-// BUSINESS FORECAST
-// ==========================
-function getBusinessForecast(telegramId) {
-
-    const {
-        getBusinessForecast
-    } = require("./businessForecastService");
-
-    return getBusinessForecast(telegramId);
-
-}
+// ============================================================
+// EXPORTS
+// ============================================================
 
 module.exports = {
 
@@ -402,10 +564,6 @@ module.exports = {
 
     getDebtMetrics,
 
-    getBusinessHealth,
-
-    getBusinessKPIs,
-
-    getBusinessForecast
+    getBusinessHealth
 
 };

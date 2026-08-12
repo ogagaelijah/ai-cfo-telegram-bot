@@ -1,73 +1,148 @@
 const trendEngine =
-require("./trendEngines/trendEngine");
+    require("./trendEngines/trendEngine");
 
 const trendsRepository =
-require("../repositories/businessTrendsRepository");
+    require("../repositories/businessTrendsRepository");
 
-// ==========================
+// ============================================================
 // CALCULATE PERCENTAGE CHANGE
-// ==========================
-function calculatePercentageChange(current, previous) {
+// ============================================================
+
+function calculatePercentageChange(
+    current,
+    previous
+) {
 
     if (previous === 0) {
 
-        return current === 0 ? 0 : 100;
+        return current === 0
+            ? 0
+            : 100;
 
     }
 
-    return ((current - previous) / previous) * 100;
-
+    return (
+        (current - previous) /
+        previous
+    ) * 100;
 }
 
-// ==========================
+
+// ============================================================
 // BUSINESS TRENDS SERVICE
-// ==========================
-function getBusinessTrends(telegramId) {
+// ============================================================
+//
+// ACCOUNT-BASED DOMAIN SERVICE
+//
+// Receives accountId directly.
+//
+// It does NOT know about:
+//
+// - Telegram
+// - Web
+// - Mobile
+// - HTTP
+// - Sessions
+//
+// ============================================================
 
-    const userId =
-        trendsRepository.getUserId(telegramId);
+function getBusinessTrends(accountId) {
 
-    // ==========================
+    if (
+        accountId === undefined ||
+        accountId === null ||
+        accountId === ""
+    ) {
+
+        throw new Error(
+            "Account ID is required."
+        );
+
+    }
+
+
+    // ========================================================
     // HISTORICAL SALES
-    // ==========================
+    // ========================================================
+
     const today =
-        trendsRepository.getTodaySales(userId);
+        trendsRepository.getTodaySales(
+            accountId
+        );
+
 
     const yesterday =
-        trendsRepository.getYesterdaySales(userId);
+        trendsRepository.getYesterdaySales(
+            accountId
+        );
+
 
     const thisWeek =
-        trendsRepository.getThisWeekSales(userId);
+        trendsRepository.getThisWeekSales(
+            accountId
+        );
+
 
     const lastWeek =
-        trendsRepository.getLastWeekSales(userId);
+        trendsRepository.getLastWeekSales(
+            accountId
+        );
+
 
     const thisMonth =
-        trendsRepository.getThisMonthSales(userId);
+        trendsRepository.getThisMonthSales(
+            accountId
+        );
+
 
     const lastMonth =
-        trendsRepository.getLastMonthSales(userId);
+        trendsRepository.getLastMonthSales(
+            accountId
+        );
+
+
+    // ========================================================
+    // GROWTH CALCULATIONS
+    // ========================================================
 
     const dailyGrowth =
-        calculatePercentageChange(today, yesterday);
+        calculatePercentageChange(
+            today,
+            yesterday
+        );
+
 
     const weeklyGrowth =
-        calculatePercentageChange(thisWeek, lastWeek);
+        calculatePercentageChange(
+            thisWeek,
+            lastWeek
+        );
+
 
     const monthlyGrowth =
-        calculatePercentageChange(thisMonth, lastMonth);
+        calculatePercentageChange(
+            thisMonth,
+            lastMonth
+        );
 
-    // ==========================
+
+    // ========================================================
     // TREND ENGINE
-    // ==========================
-    const trends =
-        trendEngine.getBusinessTrends(telegramId);
+    // ========================================================
 
-    // ==========================
+    const trends =
+        trendEngine.getBusinessTrends(
+            accountId
+        );
+
+
+    // ========================================================
     // SUMMARY
-    // ==========================
+    // ========================================================
+
     let summary =
         "Business performance is stable.";
+
 
     if (
         dailyGrowth > 0 &&
@@ -89,70 +164,99 @@ function getBusinessTrends(telegramId) {
             "📉 Sales are declining consistently. Consider reviewing pricing, marketing or customer retention.";
 
     }
-    else if (monthlyGrowth > 0) {
+    else if (
+        monthlyGrowth > 0
+    ) {
 
         summary =
             "✅ Long-term business performance remains positive despite short-term fluctuations.";
 
     }
 
+
+    // ========================================================
+    // RESULT
+    // ========================================================
+
     return {
 
-        // Existing reports
         daily: {
 
             today,
+
             yesterday,
-            growth: dailyGrowth
+
+            growth:
+                dailyGrowth
 
         },
+
 
         weekly: {
 
             thisWeek,
+
             lastWeek,
-            growth: weeklyGrowth
+
+            growth:
+                weeklyGrowth
 
         },
+
 
         monthly: {
 
             thisMonth,
+
             lastMonth,
-            growth: monthlyGrowth
+
+            growth:
+                monthlyGrowth
 
         },
 
-        // New AI Trend Engine
+
         revenueTrend:
             trends.revenue.direction,
 
         revenueGrowth:
             trends.revenue.percentage,
 
+
         profitTrend:
             trends.profit.direction,
+
 
         cashTrend:
             trends.cash.direction,
 
+
         expenseTrend:
             trends.expenses.direction,
+
 
         inventoryTrend:
             trends.inventory.direction,
 
+
         customerTrend:
             trends.customers.direction,
 
+
         details:
             trends,
+
 
         summary
 
     };
 
 }
+
+
+// ============================================================
+// EXPORTS
+// ============================================================
 
 module.exports = {
 

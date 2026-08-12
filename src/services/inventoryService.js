@@ -1,69 +1,106 @@
-const inventoryRepository = require("../repositories/inventoryRepository");
-const userRepository = require("../repositories/userRepository");
+const inventoryRepository =
+    require("../repositories/inventoryRepository");
 
-// ==========================
-// GET INTERNAL USER ID
-// ==========================
-function getUserId(telegramId) {
+// ============================================================
+// INVENTORY SERVICE
+// ============================================================
+//
+// ACCOUNT-BASED DOMAIN SERVICE
+//
+// This service does NOT know about:
+//
+// - Telegram
+// - Web
+// - Mobile
+// - HTTP
+// - Sessions
+// - Interface users
+//
+// It receives accountId directly.
+//
+// ============================================================
 
-    const user =
-        userRepository.findByTelegramId(telegramId);
 
-    if (!user) {
-
-        throw new Error("User not found.");
-
-    }
-
-    return user.id;
-
-}
-
-// ==========================
+// ============================================================
 // ADD OR RESTOCK PRODUCT
-// ==========================
-function addStock(telegramId, item) {
+// ============================================================
 
-    if (Number(item.quantity) <= 0) {
+function addStock(
+    accountId,
+    item
+) {
 
-        throw new Error("Quantity must be greater than zero.");
+    if (
+        accountId === undefined ||
+        accountId === null ||
+        accountId === ""
+    ) {
+
+        throw new Error(
+            "Account ID is required."
+        );
 
     }
 
-    const userId =
-        getUserId(telegramId);
+
+    if (
+        Number(item.quantity) <= 0
+    ) {
+
+        throw new Error(
+            "Quantity must be greater than zero."
+        );
+
+    }
+
 
     const productName =
         item.productName.trim();
 
+
     let product =
         inventoryRepository.findByProductName(
 
-            userId,
+            accountId,
 
             productName
 
         );
 
+
+    // ========================================================
+    // CREATE NEW PRODUCT
+    // ========================================================
+
     if (!product) {
 
         return inventoryRepository.create({
 
-            userId,
+            accountId,
 
             productName,
 
-            quantity: Number(item.quantity),
+            quantity:
+                Number(item.quantity),
 
-            costPrice: Number(item.costPrice),
+            costPrice:
+                Number(item.costPrice),
 
-            sellingPrice: Number(item.sellingPrice)
+            sellingPrice:
+                Number(item.sellingPrice)
 
         });
 
     }
 
+
+    // ========================================================
+    // UPDATE EXISTING PRODUCT PRICES
+    // ========================================================
+
     inventoryRepository.updatePrices(
+
+        accountId,
 
         product.id,
 
@@ -73,7 +110,14 @@ function addStock(telegramId, item) {
 
     );
 
+
+    // ========================================================
+    // ADD STOCK
+    // ========================================================
+
     return inventoryRepository.increaseStock(
+
+        accountId,
 
         product.id,
 
@@ -83,32 +127,50 @@ function addStock(telegramId, item) {
 
 }
 
-// ==========================
+
+// ============================================================
 // REDUCE STOCK
-// ==========================
+// ============================================================
+
 function reduceStock(
-    telegramId,
+    accountId,
     productName,
     quantity
 ) {
 
-    if (Number(quantity) <= 0) {
+    if (
+        accountId === undefined ||
+        accountId === null ||
+        accountId === ""
+    ) {
 
-        throw new Error("Quantity must be greater than zero.");
+        throw new Error(
+            "Account ID is required."
+        );
 
     }
 
-    const userId =
-        getUserId(telegramId);
+
+    if (
+        Number(quantity) <= 0
+    ) {
+
+        throw new Error(
+            "Quantity must be greater than zero."
+        );
+
+    }
+
 
     const product =
         inventoryRepository.findByProductName(
 
-            userId,
+            accountId,
 
             productName.trim()
 
         );
+
 
     if (!product) {
 
@@ -118,7 +180,11 @@ function reduceStock(
 
     }
 
-    if (product.quantity < quantity) {
+
+    if (
+        Number(product.quantity) <
+        Number(quantity)
+    ) {
 
         throw new Error(
             "Insufficient stock."
@@ -126,7 +192,10 @@ function reduceStock(
 
     }
 
+
     return inventoryRepository.decreaseStock(
+
+        accountId,
 
         product.id,
 
@@ -136,30 +205,60 @@ function reduceStock(
 
 }
 
-// ==========================
+
+// ============================================================
 // GET INVENTORY
-// ==========================
-function getInventory(telegramId) {
+// ============================================================
+
+function getInventory(accountId) {
+
+    if (
+        accountId === undefined ||
+        accountId === null ||
+        accountId === ""
+    ) {
+
+        throw new Error(
+            "Account ID is required."
+        );
+
+    }
+
 
     return inventoryRepository.findAll(
 
-        getUserId(telegramId)
+        accountId
 
     );
 
 }
 
-// ==========================
+
+// ============================================================
 // LOW STOCK
-// ==========================
+// ============================================================
+
 function getLowStock(
-    telegramId,
+    accountId,
     threshold = 5
 ) {
 
+    if (
+        accountId === undefined ||
+        accountId === null ||
+        accountId === ""
+    ) {
+
+        throw new Error(
+            "Account ID is required."
+        );
+
+    }
+
+
     return inventoryRepository.findLowStock(
 
-        getUserId(telegramId),
+        accountId,
 
         threshold
 
@@ -167,23 +266,43 @@ function getLowStock(
 
 }
 
-// ==========================
+
+// ============================================================
 // FIND PRODUCT
-// ==========================
+// ============================================================
+
 function findProduct(
-    telegramId,
+    accountId,
     productName
 ) {
 
+    if (
+        accountId === undefined ||
+        accountId === null ||
+        accountId === ""
+    ) {
+
+        throw new Error(
+            "Account ID is required."
+        );
+
+    }
+
+
     return inventoryRepository.findByProductName(
 
-        getUserId(telegramId),
+        accountId,
 
         productName.trim()
 
     );
 
 }
+
+
+// ============================================================
+// EXPORTS
+// ============================================================
 
 module.exports = {
 

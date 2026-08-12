@@ -1,27 +1,68 @@
 const analytics =
-require("../financialAnalyticsService");
+    require("../financialAnalyticsService");
 
-// ==========================
+// ============================================================
 // PROFIT TREND ENGINE
-// ==========================
-function getProfitTrend(telegramId) {
+// ============================================================
+//
+// ACCOUNT-BASED INTELLIGENCE
+//
+// Receives accountId directly.
+//
+// It does NOT know about:
+//
+// - Telegram
+// - Web
+// - Mobile
+// - HTTP
+// - Sessions
+//
+// ============================================================
+
+function getProfitTrend(accountId) {
+
+    if (
+        accountId === undefined ||
+        accountId === null ||
+        accountId === ""
+    ) {
+
+        throw new Error(
+            "Account ID is required."
+        );
+
+    }
+
 
     const snapshot =
-        analytics.getBusinessSnapshot(telegramId);
+        analytics.getBusinessSnapshot(
+            accountId
+        );
 
-    let direction = "Stable";
 
-    if (snapshot.netProfit > 0) {
+    let direction =
+        "Stable";
 
-        direction = "Profitable";
+
+    if (
+        snapshot.netProfit > 0
+    ) {
+
+        direction =
+            "Profitable";
 
     }
 
-    if (snapshot.netProfit < 0) {
 
-        direction = "Loss";
+    if (
+        snapshot.netProfit < 0
+    ) {
+
+        direction =
+            "Loss";
 
     }
+
 
     return {
 
@@ -33,6 +74,11 @@ function getProfitTrend(telegramId) {
     };
 
 }
+
+
+// ============================================================
+// EXPORTS
+// ============================================================
 
 module.exports = {
 

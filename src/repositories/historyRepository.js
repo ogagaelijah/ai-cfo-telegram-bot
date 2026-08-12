@@ -1,11 +1,10 @@
-const db =
-    require("../database/database");
+const db = require("../database/database");
 
 // ============================================================
 // DAILY SALES HISTORY
 // ============================================================
 //
-// Revenue history must include ALL valid sales.
+// Revenue history includes all valid sales.
 //
 // COMPLETE SALE
 //     revenue > 0
@@ -19,15 +18,10 @@ const db =
 //     total <= 0 AND revenue <= 0
 //     → contributes 0
 //
-// IMPORTANT:
-//
-// We DO NOT reconstruct COGS or profit for legacy sales.
-// Their revenue is known, but their historical cost is not.
-//
 // ============================================================
 
 function getDailySales(
-    userId,
+    accountId,
     days = 30
 ) {
 
@@ -37,10 +31,8 @@ function getDailySales(
             1
         );
 
-
     const startOffset =
         `-${safeDays - 1} days`;
-
 
     const rows =
         db.prepare(`
@@ -76,7 +68,6 @@ function getDailySales(
 
                 dates.date AS date,
 
-
                 COALESCE(
 
                     SUM(
@@ -92,7 +83,6 @@ function getDailySales(
                             THEN
                                 sales.revenue
 
-
                             WHEN
                                 COALESCE(
                                     sales.total,
@@ -101,7 +91,6 @@ function getDailySales(
 
                             THEN
                                 sales.total
-
 
                             ELSE
                                 0
@@ -114,32 +103,27 @@ function getDailySales(
 
                 ) AS sales
 
-
             FROM dates
-
 
             LEFT JOIN sales
 
-                ON sales.user_id = ?
+                ON sales.account_id = ?
 
                 AND DATE(
                     sales.created_at,
                     'localtime'
                 ) = dates.date
 
-
             GROUP BY
                 dates.date
-
 
             ORDER BY
                 dates.date DESC
 
         `).all(
             startOffset,
-            userId
+            accountId
         );
-
 
     return rows.map(
         row => ({
@@ -160,24 +144,9 @@ function getDailySales(
 // ============================================================
 // DAILY PROFITS
 // ============================================================
-//
-// IMPORTANT:
-//
-// Profit is NOT reconstructed for legacy sales.
-//
-// If an older sale has:
-//
-//     profit = 0
-//
-// we leave it as 0 because we do not know its historical
-// cost of goods.
-//
-// This prevents the system from inventing financial data.
-//
-// ============================================================
 
 function getDailyProfit(
-    userId,
+    accountId,
     days = 30
 ) {
 
@@ -187,10 +156,8 @@ function getDailyProfit(
             1
         );
 
-
     const startOffset =
         `-${safeDays - 1} days`;
-
 
     const rows =
         db.prepare(`
@@ -226,7 +193,6 @@ function getDailyProfit(
 
                 dates.date AS date,
 
-
                 COALESCE(
 
                     SUM(
@@ -237,32 +203,27 @@ function getDailyProfit(
 
                 ) AS profit
 
-
             FROM dates
-
 
             LEFT JOIN sales
 
-                ON sales.user_id = ?
+                ON sales.account_id = ?
 
                 AND DATE(
                     sales.created_at,
                     'localtime'
                 ) = dates.date
 
-
             GROUP BY
                 dates.date
-
 
             ORDER BY
                 dates.date DESC
 
         `).all(
             startOffset,
-            userId
+            accountId
         );
-
 
     return rows.map(
         row => ({
@@ -285,7 +246,7 @@ function getDailyProfit(
 // ============================================================
 
 function getDailyExpenses(
-    userId,
+    accountId,
     days = 30
 ) {
 
@@ -295,10 +256,8 @@ function getDailyExpenses(
             1
         );
 
-
     const startOffset =
         `-${safeDays - 1} days`;
-
 
     const rows =
         db.prepare(`
@@ -334,7 +293,6 @@ function getDailyExpenses(
 
                 dates.date AS date,
 
-
                 COALESCE(
 
                     SUM(
@@ -345,32 +303,27 @@ function getDailyExpenses(
 
                 ) AS expenses
 
-
             FROM dates
-
 
             LEFT JOIN expenses
 
-                ON expenses.user_id = ?
+                ON expenses.account_id = ?
 
                 AND DATE(
                     expenses.created_at,
                     'localtime'
                 ) = dates.date
 
-
             GROUP BY
                 dates.date
-
 
             ORDER BY
                 dates.date DESC
 
         `).all(
             startOffset,
-            userId
+            accountId
         );
-
 
     return rows.map(
         row => ({
@@ -392,21 +345,12 @@ function getDailyExpenses(
 // PRODUCT DAILY DEMAND HISTORY
 // ============================================================
 //
-// Returns the number of units sold for each product on each
-// calendar day.
-//
-// This is intentionally different from getDailySales().
-//
-// getDailySales():
-//     → business-level recognized revenue
-//
-// getProductDailyDemand():
-//     → product-level unit demand
+// Returns units sold for each product on each calendar day.
 //
 // ============================================================
 
 function getProductDailyDemand(
-    userId,
+    accountId,
     days = 30
 ) {
 
@@ -416,10 +360,8 @@ function getProductDailyDemand(
             1
         );
 
-
     const startOffset =
         `-${safeDays - 1} days`;
-
 
     const rows =
         db.prepare(`
@@ -431,16 +373,13 @@ function getProductDailyDemand(
                     'localtime'
                 ) AS date,
 
-
                 s.inventory_id
                     AS inventoryId,
-
 
                 COALESCE(
                     i.product_name,
                     s.item
                 ) AS productName,
-
 
                 SUM(
                     COALESCE(
@@ -449,23 +388,19 @@ function getProductDailyDemand(
                     )
                 ) AS unitsSold
 
-
             FROM sales s
-
 
             LEFT JOIN inventory i
 
                 ON i.id =
                     s.inventory_id
 
-                AND i.user_id =
-                    s.user_id
-
+                AND i.account_id =
+                    s.account_id
 
             WHERE
 
-                s.user_id = ?
-
+                s.account_id = ?
 
                 AND DATE(
                     s.created_at,
@@ -476,7 +411,6 @@ function getProductDailyDemand(
                     ?
                 )
 
-
             GROUP BY
 
                 DATE(
@@ -484,15 +418,12 @@ function getProductDailyDemand(
                     'localtime'
                 ),
 
-
                 s.inventory_id,
-
 
                 COALESCE(
                     i.product_name,
                     s.item
                 )
-
 
             ORDER BY
 
@@ -501,17 +432,15 @@ function getProductDailyDemand(
                 productName ASC
 
         `).all(
-            userId,
+            accountId,
             startOffset
         );
-
 
     return rows.map(
         row => ({
 
             date:
                 row.date,
-
 
             inventoryId:
 
@@ -523,12 +452,10 @@ function getProductDailyDemand(
 
                     : null,
 
-
             productName:
 
                 row.productName ||
                 "Unknown Product",
-
 
             unitsSold:
                 Number(

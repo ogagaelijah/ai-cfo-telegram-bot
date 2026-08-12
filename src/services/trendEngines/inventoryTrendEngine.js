@@ -1,29 +1,71 @@
 const inventoryRepository =
-require("../../repositories/inventoryRepository");
+    require("../../repositories/inventoryRepository");
 
-// ==========================
+// ============================================================
 // INVENTORY TREND ENGINE
-// ==========================
-function getInventoryTrend(userId) {
+// ============================================================
+//
+// ACCOUNT-BASED INTELLIGENCE
+//
+// Receives accountId directly.
+//
+// It does NOT know about:
+//
+// - Telegram
+// - Web
+// - Mobile
+// - HTTP
+// - Sessions
+//
+// ============================================================
+
+function getInventoryTrend(accountId) {
+
+    if (
+        accountId === undefined ||
+        accountId === null ||
+        accountId === ""
+    ) {
+
+        throw new Error(
+            "Account ID is required."
+        );
+
+    }
+
 
     const items =
-        inventoryRepository.findAll(userId);
+        inventoryRepository.findAll(
+            accountId
+        );
+
 
     let totalQuantity = 0;
 
-    for (const item of items) {
 
-        totalQuantity += item.quantity;
+    for (
+        const item of items
+    ) {
+
+        totalQuantity +=
+            Number(item.quantity) || 0;
+
+    }
+
+
+    let direction =
+        "Healthy";
+
+
+    if (
+        totalQuantity < 20
+    ) {
+
+        direction =
+            "Low Stock";
 
     }
 
-    let direction = "Healthy";
-
-    if (totalQuantity < 20) {
-
-        direction = "Low Stock";
-
-    }
 
     return {
 
@@ -34,6 +76,11 @@ function getInventoryTrend(userId) {
     };
 
 }
+
+
+// ============================================================
+// EXPORTS
+// ============================================================
 
 module.exports = {
 

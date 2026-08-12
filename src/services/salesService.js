@@ -1,119 +1,151 @@
-const userRepository = require("../repositories/userRepository");
+const accountContext = require("./accountContext");
 const salesRepository = require("../repositories/salesRepository");
 const customerService = require("./customerService");
 const inventoryService = require("./inventoryService");
 
 /**
- * Returns the internal database user ID
- */
-function getUserId(telegramId) {
-
-    const user =
-        userRepository.findByTelegramId(telegramId);
-
-    if (!user) {
-
-        throw new Error("User not found.");
-
-    }
-
-    return user.id;
-
-}
-
-/**
- * Save a sale
+ * Save a sale.
+ *
+ * Telegram remains the interface identifier.
+ * The service resolves it to the current account.
+ *
+ * Financial data belongs to the ACCOUNT, not directly
+ * to the Telegram user.
  */
 function saveSale(telegramId, sale) {
 
+    if (!sale) {
+        throw new Error("Sale data is required.");
+    }
+
     if (Number(sale.quantity) <= 0) {
-
-        throw new Error("Quantity must be greater than zero.");
-
+        throw new Error(
+            "Quantity must be greater than zero."
+        );
     }
 
     if (Number(sale.price) < 0) {
-
-        throw new Error("Price cannot be negative.");
-
+        throw new Error(
+            "Price cannot be negative."
+        );
     }
 
-    const userId =
-        getUserId(telegramId);
+    if (
+        !sale.customer ||
+        !String(sale.customer).trim()
+    ) {
+        throw new Error(
+            "Customer name is required."
+        );
+    }
 
-    // ==========================
-    // CUSTOMER
-    // ==========================
-    const customer =
-        customerService.findOrCreateCustomer(
+    if (
+        !sale.product ||
+        !String(sale.product).trim()
+    ) {
+        throw new Error(
+            "Product name is required."
+        );
+    }
 
-            telegramId,
+    // ======================================================
+    // CURRENT ACCOUNT
+    // ======================================================
 
-            sale.customer.trim()
-
+    const account =
+        accountContext.requireAccount(
+            telegramId
         );
 
-    // ==========================
+    const accountId =
+        account.accountId;
+
+    // ======================================================
+    // CUSTOMER
+    // ======================================================
+
+    const customer =
+        customerService.findOrCreateCustomer(
+            telegramId,
+            String(
+                sale.customer
+            ).trim()
+        );
+
+    // ======================================================
     // INVENTORY
-    // ==========================
+    // ======================================================
+
     const product =
         inventoryService.findProduct(
-
-            telegramId,
-
-            sale.product.trim()
-
+            accountId,
+            String(
+                sale.product
+            ).trim()
         );
 
     if (!product) {
-
         throw new Error(
             "Product not found in inventory."
         );
-
     }
 
-    if (product.quantity < Number(sale.quantity)) {
-
+    if (
+        Number(product.quantity) <
+        Number(sale.quantity)
+    ) {
         throw new Error(
             "Insufficient stock."
         );
-
     }
 
-    // ==========================
+    // ======================================================
     // CALCULATIONS
-    // ==========================
-    const revenue =
-        Number(sale.quantity) *
+    // ======================================================
+
+    const quantity =
+        Number(sale.quantity);
+
+    const unitPrice =
         Number(sale.price);
 
+    const costPrice =
+        Number(product.cost_price) || 0;
+
+    const revenue =
+        quantity *
+        unitPrice;
+
     const costOfGoods =
-        Number(sale.quantity) *
-        Number(product.cost_price);
+        quantity *
+        costPrice;
 
     const profit =
-        revenue - costOfGoods;
+        revenue -
+        costOfGoods;
 
-    // ==========================
+    // ======================================================
     // SAVE SALE
-    // ==========================
+    // ======================================================
+
     const savedSale =
         salesRepository.create({
+            accountId,
 
-            userId,
+            customerId:
+                customer.id,
 
-            customerId: customer.id,
+            inventoryId:
+                product.id,
 
-            inventoryId: product.id,
+            item:
+                product.product_name,
 
-            item: product.product_name,
+            quantity,
 
-            quantity: Number(sale.quantity),
+            unitPrice,
 
-            unitPrice: Number(sale.price),
-
-            costPrice: Number(product.cost_price),
+            costPrice,
 
             revenue,
 
@@ -121,35 +153,28 @@ function saveSale(telegramId, sale) {
 
             profit,
 
-            total: revenue
-
+            total:
+                revenue
         });
 
-    // ==========================
+    // ======================================================
     // REDUCE STOCK
-    // ==========================
+    // ======================================================
+
     inventoryService.reduceStock(
-
-        telegramId,
-
-        sale.product,
-
-        Number(sale.quantity)
-
+        accountId,
+        product.product_name,
+        quantity
     );
 
     return {
-
-        sale: savedSale,
+        sale:
+            savedSale,
 
         customer
-
     };
-
 }
 
 module.exports = {
-
     saveSale
-
 };

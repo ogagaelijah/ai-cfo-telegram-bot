@@ -1,3 +1,4 @@
+const accountContext = require("./accountContext");
 const incomeRepository = require("../repositories/incomeRepository");
 
 // ==========================
@@ -5,10 +6,14 @@ const incomeRepository = require("../repositories/incomeRepository");
 // ==========================
 function saveIncome(telegramId, income) {
 
-    return incomeRepository.create(
-        telegramId,
-        {
+    const account =
+        accountContext.requireAccount(
+            telegramId
+        );
 
+    return incomeRepository.create(
+        account.accountId,
+        {
             source:
                 income.source,
 
@@ -17,10 +22,8 @@ function saveIncome(telegramId, income) {
 
             notes:
                 income.notes || ""
-
         }
     );
-
 }
 
 // ==========================
@@ -28,10 +31,14 @@ function saveIncome(telegramId, income) {
 // ==========================
 function getTodayIncome(telegramId) {
 
-    return incomeRepository.getTodayTotal(
-        telegramId
-    );
+    const account =
+        accountContext.requireAccount(
+            telegramId
+        );
 
+    return incomeRepository.getTodayTotal(
+        account.accountId
+    );
 }
 
 // ==========================
@@ -39,10 +46,14 @@ function getTodayIncome(telegramId) {
 // ==========================
 function getMonthlyIncome(telegramId) {
 
-    return incomeRepository.getMonthlyTotal(
-        telegramId
-    );
+    const account =
+        accountContext.requireAccount(
+            telegramId
+        );
 
+    return incomeRepository.getMonthlyTotal(
+        account.accountId
+    );
 }
 
 // ==========================
@@ -50,20 +61,19 @@ function getMonthlyIncome(telegramId) {
 // ==========================
 function getIncome(telegramId) {
 
-    return incomeRepository.findAll(
-        telegramId
-    );
+    const account =
+        accountContext.requireAccount(
+            telegramId
+        );
 
+    return incomeRepository.findAll(
+        account.accountId
+    );
 }
 
 module.exports = {
-
     saveIncome,
-
     getTodayIncome,
-
     getMonthlyIncome,
-
     getIncome
-
 };

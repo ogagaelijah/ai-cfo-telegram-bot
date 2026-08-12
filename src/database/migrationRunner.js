@@ -3,7 +3,12 @@ const db = require("./database");
 const migrations = [
     require("./migrations/001_initial_schema"),
     require("./migrations/002_update_sales_table"),
-    require("./migrations/003_add_notification_settings")
+    require("./migrations/003_add_notification_settings"),
+    require("./migrations/004_add_account_type"),
+    require("./migrations/005_add_subscription_system"),
+    require("./migrations/006_enforce_account_subscription"),
+    require("./migrations/007_seed_plan_features"),
+    require("./migrations/008_feature_usage")
 ];
 
 function runMigrations() {

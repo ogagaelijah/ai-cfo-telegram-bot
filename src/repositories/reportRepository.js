@@ -1,186 +1,361 @@
 const db = require("../database/database");
 
-// ==========================
-// GET INTERNAL USER ID
-// ==========================
-function getUserId(telegramId) {
-
-    const user = db.prepare(`
-        SELECT id
-        FROM users
-        WHERE telegram_id = ?
-    `).get(telegramId);
-
-    if (!user) {
-
-        throw new Error("User not found.");
-
-    }
-
-    return user.id;
-
-}
-
-// ==========================
+// ======================================================
 // TODAY SALES
-// ==========================
-function getTodaySales(userId) {
+// ======================================================
+
+function getTodaySales(accountId) {
 
     const result = db.prepare(`
         SELECT
             COALESCE(SUM(total), 0) AS total
+
         FROM sales
-        WHERE user_id = ?
+
+        WHERE
+            account_id = ?
+
         AND DATE(created_at, 'localtime') =
             DATE('now', 'localtime')
-    `).get(userId);
+
+    `).get(accountId);
 
     return Number(result.total) || 0;
-
 }
 
-// ==========================
+
+// ======================================================
 // TODAY COST OF GOODS SOLD
-// ==========================
-function getTodayCostOfGoods(userId) {
+// ======================================================
+
+function getTodayCostOfGoods(accountId) {
 
     const result = db.prepare(`
         SELECT
             COALESCE(SUM(cost_of_goods), 0) AS total
+
         FROM sales
-        WHERE user_id = ?
+
+        WHERE
+            account_id = ?
+
         AND DATE(created_at, 'localtime') =
             DATE('now', 'localtime')
-    `).get(userId);
+
+    `).get(accountId);
 
     return Number(result.total) || 0;
-
 }
 
-// ==========================
+
+// ======================================================
 // TODAY PURCHASES
-// ==========================
-function getTodayPurchases(userId) {
+// ======================================================
+
+function getTodayPurchases(accountId) {
 
     const result = db.prepare(`
         SELECT
             COALESCE(SUM(total_amount), 0) AS total
+
         FROM purchases
-        WHERE user_id = ?
+
+        WHERE
+            account_id = ?
+
         AND DATE(created_at, 'localtime') =
             DATE('now', 'localtime')
-    `).get(userId);
+
+    `).get(accountId);
 
     return Number(result.total) || 0;
-
 }
 
-// ==========================
+
+// ======================================================
 // TODAY EXPENSES
-// ==========================
-function getTodayExpenses(userId) {
+// ======================================================
+
+function getTodayExpenses(accountId) {
 
     const result = db.prepare(`
         SELECT
             COALESCE(SUM(amount), 0) AS total
+
         FROM expenses
-        WHERE user_id = ?
+
+        WHERE
+            account_id = ?
+
         AND DATE(created_at, 'localtime') =
             DATE('now', 'localtime')
-    `).get(userId);
+
+    `).get(accountId);
 
     return Number(result.total) || 0;
-
 }
 
-// ==========================
+
+// ======================================================
 // TODAY INCOME
-// ==========================
-function getTodayIncome(userId) {
+// ======================================================
+
+function getTodayIncome(accountId) {
 
     const result = db.prepare(`
         SELECT
             COALESCE(SUM(amount), 0) AS total
+
         FROM income
-        WHERE user_id = ?
+
+        WHERE
+            account_id = ?
+
         AND DATE(created_at, 'localtime') =
             DATE('now', 'localtime')
-    `).get(userId);
+
+    `).get(accountId);
 
     return Number(result.total) || 0;
-
 }
 
-// ==========================
+
+// ======================================================
 // OUTSTANDING DEBTORS
-// ==========================
-function getOutstandingDebtors(userId) {
+// ======================================================
+
+function getOutstandingDebtors(accountId) {
 
     const result = db.prepare(`
         SELECT
             COALESCE(SUM(balance), 0) AS total
+
         FROM debtors
-        WHERE user_id = ?
+
+        WHERE
+            account_id = ?
+
         AND balance > 0
-    `).get(userId);
+
+    `).get(accountId);
 
     return Number(result.total) || 0;
-
 }
 
-// ==========================
+
+// ======================================================
 // OUTSTANDING CREDITORS
-// ==========================
-function getOutstandingCreditors(userId) {
+// ======================================================
+
+function getOutstandingCreditors(accountId) {
 
     const result = db.prepare(`
         SELECT
             COALESCE(SUM(balance), 0) AS total
+
         FROM creditors
-        WHERE user_id = ?
+
+        WHERE
+            account_id = ?
+
         AND balance > 0
-    `).get(userId);
+
+    `).get(accountId);
 
     return Number(result.total) || 0;
-
 }
 
-// ==========================
+
+// ======================================================
 // INVENTORY ITEMS
-// ==========================
-function getInventoryCount(userId) {
+// ======================================================
+
+function getInventoryCount(accountId) {
 
     const result = db.prepare(`
         SELECT
             COUNT(*) AS total
+
         FROM inventory
-        WHERE user_id = ?
-    `).get(userId);
+
+        WHERE
+            account_id = ?
+
+    `).get(accountId);
 
     return Number(result.total) || 0;
-
 }
 
-// ==========================
+
+// ======================================================
 // LOW STOCK ITEMS
-// ==========================
-function getLowStockCount(userId) {
+// ======================================================
+
+function getLowStockCount(accountId) {
 
     const result = db.prepare(`
         SELECT
             COUNT(*) AS total
+
         FROM inventory
-        WHERE user_id = ?
+
+        WHERE
+            account_id = ?
+
         AND quantity <= 5
-    `).get(userId);
+
+    `).get(accountId);
 
     return Number(result.total) || 0;
+}
+
+
+// ======================================================
+// TOTAL SALES
+// ======================================================
+
+function getTotalSales(accountId) {
+
+    const result = db.prepare(`
+        SELECT
+            COALESCE(SUM(total), 0) AS total
+
+        FROM sales
+
+        WHERE
+            account_id = ?
+
+    `).get(accountId);
+
+    return Number(result.total) || 0;
+}
+
+
+// ======================================================
+// TOTAL EXPENSES
+// ======================================================
+
+function getTotalExpenses(accountId) {
+
+    const result = db.prepare(`
+        SELECT
+            COALESCE(SUM(amount), 0) AS total
+
+        FROM expenses
+
+        WHERE
+            account_id = ?
+
+    `).get(accountId);
+
+    return Number(result.total) || 0;
+}
+
+
+// ======================================================
+// TOTAL INCOME
+// ======================================================
+
+function getTotalIncome(accountId) {
+
+    const result = db.prepare(`
+        SELECT
+            COALESCE(SUM(amount), 0) AS total
+
+        FROM income
+
+        WHERE
+            account_id = ?
+
+    `).get(accountId);
+
+    return Number(result.total) || 0;
+}
+
+
+// ======================================================
+// TOTAL PURCHASES
+// ======================================================
+
+function getTotalPurchases(accountId) {
+
+    const result = db.prepare(`
+        SELECT
+            COALESCE(SUM(total_amount), 0) AS total
+
+        FROM purchases
+
+        WHERE
+            account_id = ?
+
+    `).get(accountId);
+
+    return Number(result.total) || 0;
+}
+
+
+// ======================================================
+// REPORT SUMMARY
+// ======================================================
+
+function getSummary(accountId) {
+
+    const sales =
+        getTotalSales(accountId);
+
+    const expenses =
+        getTotalExpenses(accountId);
+
+    const income =
+        getTotalIncome(accountId);
+
+    const purchases =
+        getTotalPurchases(accountId);
+
+    const debtors =
+        getOutstandingDebtors(accountId);
+
+    const creditors =
+        getOutstandingCreditors(accountId);
+
+    const inventory =
+        getInventoryCount(accountId);
+
+    const lowStock =
+        getLowStockCount(accountId);
+
+    return {
+
+        sales,
+
+        expenses,
+
+        income,
+
+        purchases,
+
+        outstandingDebtors:
+            debtors,
+
+        outstandingCreditors:
+            creditors,
+
+        inventoryItems:
+            inventory,
+
+        lowStockItems:
+            lowStock
+
+    };
 
 }
+
+
+// ======================================================
+// EXPORT
+// ======================================================
 
 module.exports = {
-
-    getUserId,
 
     getTodaySales,
 
@@ -198,6 +373,16 @@ module.exports = {
 
     getInventoryCount,
 
-    getLowStockCount
+    getLowStockCount,
+
+    getTotalSales,
+
+    getTotalExpenses,
+
+    getTotalIncome,
+
+    getTotalPurchases,
+
+    getSummary
 
 };

@@ -1,27 +1,57 @@
-const trendsRepository = require("../repositories/businessTrendsRepository");
+const trendsRepository =
+    require("../repositories/businessTrendsRepository");
+
+const accountContext =
+    require("./accountContext");
 
 // ==========================
 // PERCENTAGE CHANGE
 // ==========================
-function percentageChange(current, previous) {
+
+function percentageChange(
+    current,
+    previous
+) {
 
     if (previous === 0) {
 
-        return current === 0 ? 0 : 100;
+        return current === 0
+            ? 0
+            : 100;
 
     }
 
-    return ((current - previous) / previous) * 100;
+    return (
+        (current - previous) /
+        previous
+    ) * 100;
 
 }
 
 // ==========================
 // GET REPORT BY PERIOD
 // ==========================
-function getPeriodReport(telegramId, period) {
 
-    const userId =
-        trendsRepository.getUserId(telegramId);
+function getPeriodReport(
+    telegramId,
+    period
+) {
+
+    // ==================================================
+    // CURRENT ACCOUNT
+    // ==================================================
+
+    const account =
+        accountContext.requireAccount(
+            telegramId
+        );
+
+    const accountId =
+        account.accountId;
+
+    // ==================================================
+    // REPORT DEFINITIONS
+    // ==================================================
 
     const reports = {
 
@@ -29,9 +59,15 @@ function getPeriodReport(telegramId, period) {
 
             title: "Daily",
 
-            current: () => trendsRepository.getTodaySales(userId),
+            current: () =>
+                trendsRepository.getTodaySales(
+                    accountId
+                ),
 
-            previous: () => trendsRepository.getYesterdaySales(userId)
+            previous: () =>
+                trendsRepository.getYesterdaySales(
+                    accountId
+                )
 
         },
 
@@ -39,9 +75,15 @@ function getPeriodReport(telegramId, period) {
 
             title: "Weekly",
 
-            current: () => trendsRepository.getThisWeekSales(userId),
+            current: () =>
+                trendsRepository.getThisWeekSales(
+                    accountId
+                ),
 
-            previous: () => trendsRepository.getLastWeekSales(userId)
+            previous: () =>
+                trendsRepository.getLastWeekSales(
+                    accountId
+                )
 
         },
 
@@ -49,21 +91,38 @@ function getPeriodReport(telegramId, period) {
 
             title: "Monthly",
 
-            current: () => trendsRepository.getThisMonthSales(userId),
+            current: () =>
+                trendsRepository.getThisMonthSales(
+                    accountId
+                ),
 
-            previous: () => trendsRepository.getLastMonthSales(userId)
+            previous: () =>
+                trendsRepository.getLastMonthSales(
+                    accountId
+                )
 
         }
 
     };
 
-    const report = reports[period];
+    // ==================================================
+    // VALIDATE PERIOD
+    // ==================================================
+
+    const report =
+        reports[period];
 
     if (!report) {
 
-        throw new Error("Invalid report period.");
+        throw new Error(
+            "Invalid report period."
+        );
 
     }
+
+    // ==================================================
+    // CALCULATE REPORT
+    // ==================================================
 
     const current =
         report.current();
@@ -81,11 +140,18 @@ function getPeriodReport(telegramId, period) {
         previous,
 
         growth:
-            percentageChange(current, previous)
+            percentageChange(
+                current,
+                previous
+            )
 
     };
 
 }
+
+// ==========================
+// EXPORTS
+// ==========================
 
 module.exports = {
 

@@ -1,3 +1,4 @@
+const accountContext = require("./accountContext");
 const expenseRepository = require("../repositories/expenseRepository");
 
 // ==========================
@@ -5,10 +6,14 @@ const expenseRepository = require("../repositories/expenseRepository");
 // ==========================
 function saveExpense(telegramId, expense) {
 
-    return expenseRepository.create(
-        telegramId,
-        {
+    const account =
+        accountContext.requireAccount(
+            telegramId
+        );
 
+    return expenseRepository.create(
+        account.accountId,
+        {
             item:
                 expense.description,
 
@@ -20,10 +25,8 @@ function saveExpense(telegramId, expense) {
 
             notes:
                 expense.notes || ""
-
         }
     );
-
 }
 
 // ==========================
@@ -31,10 +34,14 @@ function saveExpense(telegramId, expense) {
 // ==========================
 function getTodayExpenses(telegramId) {
 
-    return expenseRepository.getTodayTotal(
-        telegramId
-    );
+    const account =
+        accountContext.requireAccount(
+            telegramId
+        );
 
+    return expenseRepository.getTodayTotal(
+        account.accountId
+    );
 }
 
 // ==========================
@@ -42,10 +49,14 @@ function getTodayExpenses(telegramId) {
 // ==========================
 function getMonthlyExpenses(telegramId) {
 
-    return expenseRepository.getMonthlyTotal(
-        telegramId
-    );
+    const account =
+        accountContext.requireAccount(
+            telegramId
+        );
 
+    return expenseRepository.getMonthlyTotal(
+        account.accountId
+    );
 }
 
 // ==========================
@@ -53,10 +64,14 @@ function getMonthlyExpenses(telegramId) {
 // ==========================
 function getExpensesByCategory(telegramId) {
 
-    return expenseRepository.getByCategory(
-        telegramId
-    );
+    const account =
+        accountContext.requireAccount(
+            telegramId
+        );
 
+    return expenseRepository.getByCategory(
+        account.accountId
+    );
 }
 
 // ==========================
@@ -64,22 +79,20 @@ function getExpensesByCategory(telegramId) {
 // ==========================
 function getExpenses(telegramId) {
 
-    return expenseRepository.findAll(
-        telegramId
-    );
+    const account =
+        accountContext.requireAccount(
+            telegramId
+        );
 
+    return expenseRepository.findAll(
+        account.accountId
+    );
 }
 
 module.exports = {
-
     saveExpense,
-
     getTodayExpenses,
-
     getMonthlyExpenses,
-
     getExpensesByCategory,
-
     getExpenses
-
 };

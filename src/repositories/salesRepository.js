@@ -1,14 +1,15 @@
 const db = require("../database/database");
 
-/**
- * Create a new sale
- */
+// ======================================================
+// CREATE SALE
+// ======================================================
+
 function create(sale) {
 
     const result = db.prepare(`
         INSERT INTO sales
         (
-            user_id,
+            account_id,
             customer_id,
             inventory_id,
             item,
@@ -20,6 +21,7 @@ function create(sale) {
             profit,
             total
         )
+
         VALUES
         (
             ?,
@@ -36,11 +38,11 @@ function create(sale) {
         )
     `).run(
 
-        sale.userId,
+        sale.accountId,
 
-        sale.customerId,
+        sale.customerId || null,
 
-        sale.inventoryId,
+        sale.inventoryId || null,
 
         sale.item,
 
@@ -48,123 +50,220 @@ function create(sale) {
 
         sale.unitPrice,
 
-        sale.costPrice,
+        sale.costPrice || 0,
 
-        sale.revenue,
+        sale.revenue || sale.total || 0,
 
-        sale.costOfGoods,
+        sale.costOfGoods || 0,
 
-        sale.profit,
+        sale.profit || 0,
 
         sale.total
 
     );
 
-    return findById(result.lastInsertRowid);
+    return findById(
+        result.lastInsertRowid
+    );
 
 }
 
-/**
- * Find sale by ID
- */
+
+// ======================================================
+// FIND SALE BY ID
+// ======================================================
+
 function findById(id) {
 
     return db.prepare(`
         SELECT
             s.*,
+
             c.name AS customer_name
+
         FROM sales s
+
         LEFT JOIN customers c
             ON s.customer_id = c.id
-        WHERE s.id = ?
+
+        WHERE
+            s.id = ?
+
+        LIMIT 1
+
     `).get(id);
 
 }
 
-/**
- * Get all sales for a user
- */
-function findAll(userId) {
+
+// ======================================================
+// GET ALL SALES FOR ACCOUNT
+// ======================================================
+
+function findAll(accountId) {
 
     return db.prepare(`
         SELECT
             s.*,
+
             c.name AS customer_name
+
         FROM sales s
+
         LEFT JOIN customers c
             ON s.customer_id = c.id
-        WHERE s.user_id = ?
-        ORDER BY s.created_at DESC
-    `).all(userId);
+
+        WHERE
+            s.account_id = ?
+
+        ORDER BY
+            s.created_at DESC
+
+    `).all(accountId);
 
 }
 
-/**
- * Get today's sales
- */
-function findToday(userId) {
+
+// ======================================================
+// GET TODAY'S SALES
+// ======================================================
+
+function findToday(accountId) {
 
     return db.prepare(`
         SELECT
             s.*,
+
             c.name AS customer_name
+
         FROM sales s
+
         LEFT JOIN customers c
             ON s.customer_id = c.id
-        WHERE s.user_id = ?
-        AND DATE(s.created_at, 'localtime') =
-            DATE('now', 'localtime')
-        ORDER BY s.created_at DESC
-    `).all(userId);
+
+        WHERE
+            s.account_id = ?
+
+            AND DATE(
+                s.created_at,
+                'localtime'
+            )
+            =
+            DATE(
+                'now',
+                'localtime'
+            )
+
+        ORDER BY
+            s.created_at DESC
+
+    `).all(accountId);
 
 }
 
-/**
- * Get total sales amount
- */
-function getTotalSales(userId) {
+
+// ======================================================
+// GET TOTAL SALES AMOUNT
+// ======================================================
+
+function getTotalSales(accountId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(SUM(total), 0) AS totalSales
-        FROM sales
-        WHERE user_id = ?
-    `).get(userId);
+            COALESCE(
+                SUM(
+                    CASE
 
-    return Number(result.totalSales) || 0;
+                        WHEN COALESCE(
+                            revenue,
+                            0
+                        ) > 0
+
+                        THEN revenue
+
+                        WHEN COALESCE(
+                            total,
+                            0
+                        ) > 0
+
+                        THEN total
+
+                        ELSE 0
+
+                    END
+                ),
+                0
+            ) AS totalSales
+
+        FROM sales
+
+        WHERE
+            account_id = ?
+
+    `).get(accountId);
+
+    return Number(
+        result.totalSales
+    ) || 0;
 
 }
 
-/**
- * Get complete sales history
- */
-function getSalesHistory(userId) {
+
+// ======================================================
+// GET COMPLETE SALES HISTORY
+// ======================================================
+
+function getSalesHistory(accountId) {
 
     return db.prepare(`
-        SELECT
-            *
+        SELECT *
         FROM sales
-        WHERE user_id = ?
-        ORDER BY created_at ASC
-    `).all(userId);
+
+        WHERE
+            account_id = ?
+
+        ORDER BY
+            created_at ASC
+
+    `).all(accountId);
 
 }
 
-/**
- * Get last 30 days sales
- */
-function getLast30DaysSales(userId) {
+
+// ======================================================
+// GET LAST 30 DAYS SALES
+// ======================================================
+
+function getLast30DaysSales(accountId) {
 
     return db.prepare(`
-        SELECT
-            *
+        SELECT *
         FROM sales
-        WHERE user_id = ?
-        AND DATE(created_at) >= DATE('now', '-30 days')
-        ORDER BY created_at ASC
-    `).all(userId);
+
+        WHERE
+            account_id = ?
+
+            AND DATE(
+                created_at,
+                'localtime'
+            )
+            >= DATE(
+                'now',
+                'localtime',
+                '-30 days'
+            )
+
+        ORDER BY
+            created_at ASC
+
+    `).all(accountId);
 
 }
+
+
+// ======================================================
+// EXPORT
+// ======================================================
 
 module.exports = {
 

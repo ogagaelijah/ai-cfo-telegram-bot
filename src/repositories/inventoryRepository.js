@@ -1,48 +1,94 @@
 const db = require("../database/database");
 
-// ==========================
+// ============================================================
+// INVENTORY REPOSITORY
+// ============================================================
+//
+// ACCOUNT-BASED DATA ACCESS LAYER
+//
+// Inventory belongs to an ACCOUNT.
+//
+// This repository does NOT know about:
+//
+// - Telegram
+// - Web
+// - Mobile
+// - HTTP
+// - Sessions
+// - Interface users
+//
+// It receives accountId directly.
+//
+// ============================================================
+
+
+// ============================================================
 // CREATE INVENTORY ITEM
-// ==========================
+// ============================================================
+
 function create(item) {
 
-    const result = db.prepare(`
-        INSERT INTO inventory
-        (
-            user_id,
-            product_name,
-            quantity,
-            cost_price,
-            selling_price
-        )
-        VALUES
-        (
-            ?,
-            ?,
-            ?,
-            ?,
-            ?
-        )
-    `).run(
+    if (
+        item.accountId === undefined ||
+        item.accountId === null ||
+        item.accountId === ""
+    ) {
 
-        item.userId,
+        throw new Error(
+            "Account ID is required."
+        );
 
-        item.productName,
+    }
 
-        item.quantity,
 
-        item.costPrice,
+    const result =
+        db.prepare(`
+            INSERT INTO inventory
+            (
+                account_id,
+                product_name,
+                quantity,
+                cost_price,
+                selling_price
+            )
+            VALUES
+            (
+                ?,
+                ?,
+                ?,
+                ?,
+                ?
+            )
+        `).run(
 
-        item.sellingPrice
+            item.accountId,
 
+            item.productName,
+
+            item.quantity,
+
+            item.costPrice,
+
+            item.sellingPrice
+
+        );
+
+
+    return findById(
+        result.lastInsertRowid
     );
-
-    return findById(result.lastInsertRowid);
 
 }
 
-// ==========================
+
+// ============================================================
 // FIND INVENTORY ITEM BY ID
-// ==========================
+// ============================================================
+//
+// This is a general lookup by database ID.
+//
+// ============================================================
+
 function findById(id) {
 
     return db.prepare(`
@@ -53,22 +99,56 @@ function findById(id) {
 
 }
 
-// ==========================
-// FIND INVENTORY ITEM BY PRODUCT NAME
-// ==========================
-function findByProductName(userId, productName) {
+
+// ============================================================
+// FIND INVENTORY ITEM BY ID
+// WITH ACCOUNT SECURITY
+// ============================================================
+
+function findByIdForAccount(
+    accountId,
+    id
+) {
 
     return db.prepare(`
         SELECT *
         FROM inventory
         WHERE
-            user_id = ?
+            id = ?
         AND
-            LOWER(product_name) = LOWER(?)
+            account_id = ?
+    `).get(
+
+        id,
+
+        accountId
+
+    );
+
+}
+
+
+// ============================================================
+// FIND INVENTORY ITEM BY PRODUCT NAME
+// ============================================================
+
+function findByProductName(
+    accountId,
+    productName
+) {
+
+    return db.prepare(`
+        SELECT *
+        FROM inventory
+        WHERE
+            account_id = ?
+        AND
+            LOWER(product_name) =
+            LOWER(?)
         LIMIT 1
     `).get(
 
-        userId,
+        accountId,
 
         productName.trim()
 
@@ -76,13 +156,22 @@ function findByProductName(userId, productName) {
 
 }
 
-// ==========================
+
+// ============================================================
 // FIND EXISTING PRODUCT OR CREATE NEW
-// ==========================
-function findOrCreate(userId, productName) {
+// ============================================================
+
+function findOrCreate(
+    accountId,
+    productName
+) {
 
     const item =
-        findByProductName(userId, productName);
+        findByProductName(
+            accountId,
+            productName
+        );
+
 
     if (item) {
 
@@ -90,9 +179,10 @@ function findOrCreate(userId, productName) {
 
     }
 
+
     return create({
 
-        userId,
+        accountId,
 
         productName,
 
@@ -106,97 +196,204 @@ function findOrCreate(userId, productName) {
 
 }
 
-// ==========================
+
+// ============================================================
 // INCREASE STOCK
-// ==========================
-function increaseStock(id, quantity) {
+// ============================================================
+
+function increaseStock(
+    accountId,
+    id,
+    quantity
+) {
+
+    const item =
+        findByIdForAccount(
+            accountId,
+            id
+        );
+
+
+    if (!item) {
+
+        throw new Error(
+            "Inventory item not found."
+        );
+
+    }
+
 
     db.prepare(`
         UPDATE inventory
-        SET quantity = quantity + ?
-        WHERE id = ?
+        SET
+            quantity = quantity + ?
+        WHERE
+            id = ?
+        AND
+            account_id = ?
     `).run(
 
         quantity,
 
-        id
+        id,
+
+        accountId
 
     );
 
-    return findById(id);
+
+    return findByIdForAccount(
+        accountId,
+        id
+    );
 
 }
 
-// ==========================
+
+// ============================================================
 // DECREASE STOCK
-// ==========================
-function decreaseStock(id, quantity) {
+// ============================================================
+
+function decreaseStock(
+    accountId,
+    id,
+    quantity
+) {
+
+    const item =
+        findByIdForAccount(
+            accountId,
+            id
+        );
+
+
+    if (!item) {
+
+        throw new Error(
+            "Inventory item not found."
+        );
+
+    }
+
 
     db.prepare(`
         UPDATE inventory
-        SET quantity = MAX(quantity - ?, 0)
-        WHERE id = ?
+        SET
+            quantity =
+                MAX(
+                    quantity - ?,
+                    0
+                )
+        WHERE
+            id = ?
+        AND
+            account_id = ?
     `).run(
 
         quantity,
 
-        id
+        id,
+
+        accountId
 
     );
 
-    return findById(id);
+
+    return findByIdForAccount(
+        accountId,
+        id
+    );
 
 }
 
-// ==========================
+
+// ============================================================
 // UPDATE PRICES
-// ==========================
-function updatePrices(id, costPrice, sellingPrice) {
+// ============================================================
+
+function updatePrices(
+    accountId,
+    id,
+    costPrice,
+    sellingPrice
+) {
+
+    const item =
+        findByIdForAccount(
+            accountId,
+            id
+        );
+
+
+    if (!item) {
+
+        throw new Error(
+            "Inventory item not found."
+        );
+
+    }
+
 
     db.prepare(`
         UPDATE inventory
         SET
             cost_price = ?,
             selling_price = ?
-        WHERE id = ?
+        WHERE
+            id = ?
+        AND
+            account_id = ?
     `).run(
 
         costPrice,
 
         sellingPrice,
 
-        id
+        id,
+
+        accountId
 
     );
 
-    return findById(id);
+
+    return findByIdForAccount(
+        accountId,
+        id
+    );
 
 }
 
-// ==========================
+
+// ============================================================
 // GET ALL INVENTORY
-// ==========================
-function findAll(userId) {
+// ============================================================
+
+function findAll(accountId) {
 
     return db.prepare(`
         SELECT *
         FROM inventory
-        WHERE user_id = ?
+        WHERE account_id = ?
         ORDER BY product_name
-    `).all(userId);
+    `).all(accountId);
 
 }
 
-// ==========================
+
+// ============================================================
 // FIND LOW-STOCK ITEMS
-// ==========================
-function findLowStock(userId, threshold = 5) {
+// ============================================================
+
+function findLowStock(
+    accountId,
+    threshold = 5
+) {
 
     return db.prepare(`
         SELECT *
         FROM inventory
         WHERE
-            user_id = ?
+            account_id = ?
         AND
             quantity <= ?
         ORDER BY
@@ -204,7 +401,7 @@ function findLowStock(userId, threshold = 5) {
             product_name ASC
     `).all(
 
-        userId,
+        accountId,
 
         threshold
 
@@ -212,11 +409,18 @@ function findLowStock(userId, threshold = 5) {
 
 }
 
+
+// ============================================================
+// EXPORTS
+// ============================================================
+
 module.exports = {
 
     create,
 
     findById,
+
+    findByIdForAccount,
 
     findByProductName,
 

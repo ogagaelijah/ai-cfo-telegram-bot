@@ -1,38 +1,100 @@
-const revenueTrendEngine = require("./revenueTrendEngine");
-const profitTrendEngine = require("./profitTrendEngine");
-const cashTrendEngine = require("./cashTrendEngine");
-const expenseTrendEngine = require("./expenseTrendEngine");
-const inventoryTrendEngine = require("./inventoryTrendEngine");
-const customerTrendEngine = require("./customerTrendEngine");
+const revenueTrendEngine =
+    require("./revenueTrendEngine");
 
-// ==========================
+const profitTrendEngine =
+    require("./profitTrendEngine");
+
+const cashTrendEngine =
+    require("./cashTrendEngine");
+
+const expenseTrendEngine =
+    require("./expenseTrendEngine");
+
+const inventoryTrendEngine =
+    require("./inventoryTrendEngine");
+
+const customerTrendEngine =
+    require("./customerTrendEngine");
+
+
+// ============================================================
 // AI CFO TREND ENGINE
-// ==========================
-function getBusinessTrends(telegramId) {
+// ============================================================
+//
+// ACCOUNT-BASED INTELLIGENCE LAYER
+//
+// Receives accountId directly.
+//
+// It does NOT know about:
+//
+// - Telegram
+// - Web
+// - Mobile
+// - HTTP
+// - Sessions
+//
+// ============================================================
+
+function getBusinessTrends(accountId) {
+
+    if (
+        accountId === undefined ||
+        accountId === null ||
+        accountId === ""
+    ) {
+
+        throw new Error(
+            "Account ID is required."
+        );
+
+    }
+
 
     return {
 
         revenue:
-            revenueTrendEngine.getRevenueTrend(telegramId),
+            revenueTrendEngine.getRevenueTrend(
+                accountId
+            ),
+
 
         profit:
-            profitTrendEngine.getProfitTrend(telegramId),
+            profitTrendEngine.getProfitTrend(
+                accountId
+            ),
+
 
         cash:
-            cashTrendEngine.getCashTrend(telegramId),
+            cashTrendEngine.getCashTrend(
+                accountId
+            ),
+
 
         expenses:
-            expenseTrendEngine.getExpenseTrend(telegramId),
+            expenseTrendEngine.getExpenseTrend(
+                accountId
+            ),
+
 
         inventory:
-            inventoryTrendEngine.getInventoryTrend(telegramId),
+            inventoryTrendEngine.getInventoryTrend(
+                accountId
+            ),
+
 
         customers:
-            customerTrendEngine.getCustomerTrend(telegramId)
+            customerTrendEngine.getCustomerTrend(
+                accountId
+            )
 
     };
 
 }
+
+
+// ============================================================
+// EXPORTS
+// ============================================================
 
 module.exports = {
 

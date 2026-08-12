@@ -1,43 +1,21 @@
 const db = require("../database/database");
 
-// ==========================
-// GET INTERNAL USER ID
-// ==========================
-function getUserId(telegramId) {
-
-    const user = db.prepare(`
-        SELECT id
-        FROM users
-        WHERE telegram_id = ?
-    `).get(telegramId);
-
-    if (!user) {
-
-        throw new Error("User not found.");
-
-    }
-
-    return user.id;
-}
-
-
-// ==========================
+// ======================================================
 // CREATE EXPENSE
-// ==========================
-function create(telegramId, expense) {
+// ======================================================
 
-    const userId =
-        getUserId(telegramId);
+function create(accountId, expense) {
 
     const result = db.prepare(`
         INSERT INTO expenses
         (
-            user_id,
+            account_id,
             item,
             category,
             amount,
             notes
         )
+
         VALUES
         (
             ?,
@@ -48,11 +26,11 @@ function create(telegramId, expense) {
         )
     `).run(
 
-        userId,
+        accountId,
 
         expense.item,
 
-        expense.category,
+        expense.category || null,
 
         expense.amount,
 
@@ -63,141 +41,192 @@ function create(telegramId, expense) {
     return findById(
         result.lastInsertRowid
     );
+
 }
 
 
-// ==========================
-// FIND BY ID
-// ==========================
+// ======================================================
+// FIND EXPENSE BY ID
+// ======================================================
+
 function findById(id) {
 
     return db.prepare(`
-        SELECT *
+        SELECT
+            *
+
         FROM expenses
-        WHERE id = ?
+
+        WHERE
+            id = ?
+
+        LIMIT 1
+
     `).get(id);
 
 }
 
 
-// ==========================
+// ======================================================
 // TODAY TOTAL
-// ==========================
-function getTodayTotal(telegramId) {
+// ======================================================
 
-    const userId =
-        getUserId(telegramId);
+function getTodayTotal(accountId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(SUM(amount), 0) AS total
-        FROM expenses
-        WHERE user_id = ?
-        AND DATE(created_at,'localtime')
-            = DATE('now','localtime')
-    `).get(userId);
+            COALESCE(
+                SUM(amount),
+                0
+            ) AS total
 
-    return Number(result.total) || 0;
+        FROM expenses
+
+        WHERE
+            account_id = ?
+
+            AND DATE(
+                created_at,
+                'localtime'
+            )
+            =
+            DATE(
+                'now',
+                'localtime'
+            )
+
+    `).get(accountId);
+
+    return Number(
+        result.total
+    ) || 0;
+
 }
 
 
-// ==========================
+// ======================================================
 // MONTHLY TOTAL
-// ==========================
-function getMonthlyTotal(telegramId) {
+// ======================================================
 
-    const userId =
-        getUserId(telegramId);
+function getMonthlyTotal(accountId) {
 
     const result = db.prepare(`
         SELECT
-            COALESCE(SUM(amount),0) AS total
-        FROM expenses
-        WHERE user_id = ?
-        AND strftime(
-            '%Y-%m',
-            created_at,
-            'localtime'
-        )
-        =
-        strftime(
-            '%Y-%m',
-            'now',
-            'localtime'
-        )
-    `).get(userId);
+            COALESCE(
+                SUM(amount),
+                0
+            ) AS total
 
-    return Number(result.total) || 0;
+        FROM expenses
+
+        WHERE
+            account_id = ?
+
+            AND strftime(
+                '%Y-%m',
+                created_at,
+                'localtime'
+            )
+            =
+            strftime(
+                '%Y-%m',
+                'now',
+                'localtime'
+            )
+
+    `).get(accountId);
+
+    return Number(
+        result.total
+    ) || 0;
+
 }
 
 
-// ==========================
+// ======================================================
 // BY CATEGORY
-// ==========================
-function getByCategory(telegramId) {
+// ======================================================
 
-    const userId =
-        getUserId(telegramId);
+function getByCategory(accountId) {
 
     return db.prepare(`
         SELECT
             category,
-            SUM(amount) AS total
+
+            COALESCE(
+                SUM(amount),
+                0
+            ) AS total
+
         FROM expenses
-        WHERE user_id = ?
-        GROUP BY category
-        ORDER BY total DESC
-    `).all(userId);
+
+        WHERE
+            account_id = ?
+
+        GROUP BY
+            category
+
+        ORDER BY
+            total DESC
+
+    `).all(accountId);
+
 }
 
 
-// ==========================
+// ======================================================
 // GET ALL EXPENSES
-// ==========================
-function findAll(telegramId) {
+// ======================================================
 
-    const userId =
-        getUserId(telegramId);
+function findAll(accountId) {
 
     return db.prepare(`
-        SELECT *
+        SELECT
+            *
+
         FROM expenses
-        WHERE user_id = ?
-        ORDER BY created_at DESC
-    `).all(userId);
+
+        WHERE
+            account_id = ?
+
+        ORDER BY
+            created_at DESC
+
+    `).all(accountId);
+
 }
 
 
-// ==========================================================
+// ======================================================
 // GET DAILY EXPENSE HISTORY
-// ==========================================================
+// ======================================================
 //
-// Returns one row per calendar day from the first recorded
-// expense through today.
+// Returns one row per calendar day from the first
+// recorded expense through today.
 //
-// Zero-expense days are intentionally included.
+// Zero-expense days are included.
 //
-// ==========================================================
-function getDailyHistory(telegramId) {
+// ======================================================
 
-    const userId =
-        getUserId(telegramId);
+function getDailyHistory(accountId) {
 
-    const firstExpense =
-        db.prepare(`
-            SELECT
-                MIN(
-                    DATE(
-                        created_at,
-                        'localtime'
-                    )
-                ) AS first_date
-            FROM expenses
-            WHERE user_id = ?
-        `).get(userId);
+    const firstExpense = db.prepare(`
+        SELECT
+            MIN(
+                DATE(
+                    created_at,
+                    'localtime'
+                )
+            ) AS first_date
+
+        FROM expenses
+
+        WHERE
+            account_id = ?
+
+    `).get(accountId);
 
 
-    // No expense history.
     if (
         !firstExpense ||
         !firstExpense.first_date
@@ -221,8 +250,11 @@ function getDailyHistory(telegramId) {
                     date,
                     '+1 day'
                 )
+
             FROM calendar
-            WHERE date <
+
+            WHERE
+                date <
                 DATE(
                     'now',
                     'localtime'
@@ -250,7 +282,7 @@ function getDailyHistory(telegramId) {
             =
             calendar.date
 
-            AND expenses.user_id = ?
+            AND expenses.account_id = ?
 
         GROUP BY
             calendar.date
@@ -259,8 +291,11 @@ function getDailyHistory(telegramId) {
             calendar.date ASC
 
     `).all(
+
         firstExpense.first_date,
-        userId
+
+        accountId
+
     ).map(day => ({
 
         date:
@@ -276,9 +311,10 @@ function getDailyHistory(telegramId) {
 }
 
 
-// ==========================
+// ======================================================
 // EXPORT
-// ==========================
+// ======================================================
+
 module.exports = {
 
     create,

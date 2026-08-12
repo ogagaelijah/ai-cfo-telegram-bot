@@ -1,36 +1,82 @@
-const trendsRepository = require("../../repositories/businessTrendsRepository");
+const trendsRepository =
+    require("../../repositories/businessTrendsRepository");
 
-// ==========================
+// ============================================================
 // REVENUE TREND ENGINE
-// ==========================
-function getRevenueTrend(userId) {
+// ============================================================
+//
+// ACCOUNT-BASED INTELLIGENCE
+//
+// Receives accountId directly.
+//
+// It does NOT know about:
+//
+// - Telegram
+// - Web
+// - Mobile
+// - HTTP
+// - Sessions
+//
+// ============================================================
+
+function getRevenueTrend(accountId) {
+
+    if (
+        accountId === undefined ||
+        accountId === null ||
+        accountId === ""
+    ) {
+
+        throw new Error(
+            "Account ID is required."
+        );
+
+    }
+
 
     const current =
-        trendsRepository.getThisMonthSales(userId);
+        trendsRepository.getThisMonthSales(
+            accountId
+        );
+
 
     const previous =
-        trendsRepository.getLastMonthSales(userId);
+        trendsRepository.getLastMonthSales(
+            accountId
+        );
+
 
     let percentage = 0;
+
 
     if (previous > 0) {
 
         percentage =
-            ((current - previous) / previous) * 100;
+            (
+                (current - previous) /
+                previous
+            ) * 100;
 
     }
 
-    let direction = "Stable";
+
+    let direction =
+        "Stable";
+
 
     if (percentage > 5) {
 
-        direction = "Growing";
-
-    } else if (percentage < -5) {
-
-        direction = "Declining";
+        direction =
+            "Growing";
 
     }
+    else if (percentage < -5) {
+
+        direction =
+            "Declining";
+
+    }
+
 
     return {
 
@@ -45,6 +91,11 @@ function getRevenueTrend(userId) {
     };
 
 }
+
+
+// ============================================================
+// EXPORTS
+// ============================================================
 
 module.exports = {
 

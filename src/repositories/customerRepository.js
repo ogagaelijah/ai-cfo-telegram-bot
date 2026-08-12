@@ -1,19 +1,21 @@
 const db = require("../database/database");
 
-// ==========================
+// ======================================================
 // CREATE CUSTOMER
-// ==========================
+// ======================================================
+
 function create(customer) {
 
     const result = db.prepare(`
         INSERT INTO customers
         (
-            user_id,
+            account_id,
             name,
             phone,
             email,
             address
         )
+
         VALUES
         (
             ?,
@@ -24,7 +26,7 @@ function create(customer) {
         )
     `).run(
 
-        customer.userId,
+        customer.accountId,
 
         customer.name,
 
@@ -36,120 +38,133 @@ function create(customer) {
 
     );
 
-    return findById(result.lastInsertRowid);
+    return findById(
+        result.lastInsertRowid
+    );
 
 }
 
-// ==========================
+
+// ======================================================
 // FIND CUSTOMER BY ID
-// ==========================
+// ======================================================
+
 function findById(id) {
 
     return db.prepare(`
         SELECT *
         FROM customers
-        WHERE id = ?
+
+        WHERE
+            id = ?
+
+        LIMIT 1
     `).get(id);
 
 }
 
-// ==========================
-// FIND CUSTOMER BY NAME
-// ==========================
-function findByName(userId, name) {
+
+// ======================================================
+// GET ALL CUSTOMERS FOR ACCOUNT
+// ======================================================
+
+function findAll(accountId) {
 
     return db.prepare(`
         SELECT *
         FROM customers
+
         WHERE
-            user_id = ?
-        AND
-            LOWER(name) = LOWER(?)
-        LIMIT 1
-    `).get(
+            account_id = ?
 
-        userId,
-
-        name.trim()
-
-    );
+        ORDER BY
+            name ASC
+    `).all(accountId);
 
 }
 
-// ==========================
-// FIND CUSTOMER OR CREATE
-// ==========================
-function findOrCreate(userId, name) {
 
-    const customer =
-        findByName(userId, name);
-
-    if (customer) {
-
-        return customer;
-
-    }
-
-    return create({
-
-        userId,
-
-        name,
-
-        phone: null,
-
-        email: null,
-
-        address: null
-
-    });
-
-}
-
-// ==========================
-// GET ALL CUSTOMERS
-// ==========================
-function findAll(userId) {
-
-    return db.prepare(`
-        SELECT *
-        FROM customers
-        WHERE user_id = ?
-        ORDER BY name
-    `).all(userId);
-
-}
-
-// ==========================
+// ======================================================
 // SEARCH CUSTOMERS
-// ==========================
-function search(userId, keyword) {
+// ======================================================
+
+function search(
+    accountId,
+    keyword
+) {
+
+    const searchTerm =
+        `%${String(keyword || "").trim()}%`;
 
     return db.prepare(`
         SELECT *
         FROM customers
+
         WHERE
-            user_id = ?
-        AND
-        (
-            name LIKE ?
-            OR phone LIKE ?
-            OR email LIKE ?
-        )
-        ORDER BY name
+            account_id = ?
+
+            AND
+            (
+                name LIKE ?
+
+                OR phone LIKE ?
+
+                OR email LIKE ?
+            )
+
+        ORDER BY
+            name ASC
+
     `).all(
 
-        userId,
+        accountId,
 
-        `%${keyword}%`,
+        searchTerm,
 
-        `%${keyword}%`,
+        searchTerm,
 
-        `%${keyword}%`
+        searchTerm
 
     );
 
 }
+
+
+// ======================================================
+// FIND CUSTOMER BY NAME
+// ======================================================
+
+function findByName(
+    accountId,
+    name
+) {
+
+    return db.prepare(`
+        SELECT *
+        FROM customers
+
+        WHERE
+            account_id = ?
+
+            AND LOWER(name) =
+                LOWER(?)
+
+        LIMIT 1
+
+    `).get(
+
+        accountId,
+
+        String(name || "").trim()
+
+    );
+
+}
+
+
+// ======================================================
+// EXPORT
+// ======================================================
 
 module.exports = {
 
@@ -157,12 +172,10 @@ module.exports = {
 
     findById,
 
-    findByName,
-
-    findOrCreate,
-
     findAll,
 
-    search
+    search,
+
+    findByName
 
 };
