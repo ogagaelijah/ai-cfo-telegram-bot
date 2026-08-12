@@ -41,6 +41,7 @@ const {
     getDailyCOGS
 } = require("../../repositories/businessTrendsRepository");
 
+
 // ============================================================
 // FORECAST ENGINE
 // ============================================================
@@ -98,6 +99,7 @@ const {
 //              COMPLETE CFO INTELLIGENCE
 //
 // ============================================================
+
 
 function buildForecast(
     userId,
@@ -243,7 +245,20 @@ function buildForecast(
     // DECISION FORECAST
     // ========================================================
     //
-    // Decisions interpret identified risks.
+    // The Decision Engine interprets risks and produces:
+    //
+    // - decisions
+    // - topDecision
+    // - executiveSummary
+    // - decision counts
+    // - priority groups
+    //
+    // IMPORTANT:
+    //
+    // We intentionally preserve the COMPLETE decision
+    // forecast internally, but expose the stable public
+    // structure expected by the existing Forecast Engine
+    // contract.
     //
     // ========================================================
 
@@ -254,7 +269,33 @@ function buildForecast(
 
 
     const decisions =
-        decisionForecast.decisions;
+        Array.isArray(
+            decisionForecast?.decisions
+        )
+            ? decisionForecast.decisions
+            : [];
+
+
+    // ========================================================
+    // EXECUTIVE SUMMARY
+    // ========================================================
+
+    const executiveSummary =
+        decisionForecast?.executiveSummary || {
+
+            headline:
+                "No immediate business decisions are required.",
+
+            message:
+                "Current forecasts do not indicate significant conditions requiring immediate management action.",
+
+            status:
+                "Healthy",
+
+            topPriority:
+                "Maintain Current Operations"
+
+        };
 
 
     // ========================================================
@@ -303,8 +344,7 @@ function buildForecast(
 
         recommendations,
 
-        executiveSummary:
-            decisionForecast.executiveSummary
+        executiveSummary
 
     };
 
@@ -319,12 +359,26 @@ function buildForecast(
     // COMPLETE CFO INTELLIGENCE
     // ========================================================
     //
-    // This is now the central structured intelligence
-    // payload for the entire application.
+    // This is the central structured intelligence payload
+    // for the entire application.
     //
-    // Telegram, Website, Mobile App and future AI layers
-    // should consume this structure instead of directly
-    // accessing repositories.
+    // IMPORTANT:
+    //
+    // Do NOT add the entire decisionForecast object here.
+    //
+    // The existing Forecast Engine contract exposes:
+    //
+    // decisions
+    //
+    // and
+    //
+    // executiveSummary
+    //
+    // separately.
+    //
+    // This keeps existing consumers and tests compatible
+    // while the Decision Engine itself can continue to
+    // provide its richer internal structure.
     //
     // ========================================================
 
@@ -364,8 +418,7 @@ function buildForecast(
 
         recommendations,
 
-        executiveSummary:
-            decisionForecast.executiveSummary,
+        executiveSummary,
 
 
         // ----------------------------------------------------
