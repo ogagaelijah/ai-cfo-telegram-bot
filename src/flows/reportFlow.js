@@ -1,204 +1,477 @@
 const keyboard = require("../keyboards/reportKeyboard");
 
 const {
-    getBusinessSnapshot,
-    getBusinessHealth,
-    getCashMetrics,
-    getDebtMetrics,
-    getBusinessKPIs,
-    getBusinessForecast
-} = require("../services/financialAnalyticsService");
-
-const {
-    getBusinessInsights
-} = require("../services/businessInsightsService");
-
-const {
-    getBusinessRecommendations
-} = require("../services/businessRecommendationService");
+    getExecutiveReportForUser
+} = require("../application/reportApplicationService");
 
 module.exports = async function reportFlow(ctx) {
 
-    const snapshot = getBusinessSnapshot(ctx.from.id);
+    const report =
+        getExecutiveReportForUser(
+            ctx.from.id
+        );
 
-    const cash = getCashMetrics(ctx.from.id);
+    const dashboard =
+        report.dashboard || {};
 
-    const debt = getDebtMetrics(ctx.from.id);
+    const cashFlow =
+        report.cashFlow || {};
 
-    const health = getBusinessHealth(ctx.from.id);
+    const health =
+        report.health || {};
 
-    const kpis = getBusinessKPIs(ctx.from.id);
+    const kpis =
+        report.kpis || {};
 
     const forecast =
-    getBusinessForecast(ctx.from.id);
+        report.forecast || {};
 
-    const insights = getBusinessInsights(ctx.from.id);
+    const advisor =
+        report.advisor || {};
+
+    const decisions =
+        Array.isArray(report.decisions)
+            ? report.decisions
+            : [];
 
     const recommendations =
-        getBusinessRecommendations(ctx.from.id);
+        Array.isArray(report.recommendations)
+            ? report.recommendations
+            : [];
 
-    await ctx.reply(
+    const risks =
+        Array.isArray(report.risks)
+            ? report.risks
+            : [];
 
-`🏢 AI CFO EXECUTIVE DASHBOARD
+    const insights =
+        Array.isArray(report.insights)
+            ? report.insights
+            : [];
 
-━━━━━━━━━━━━━━━━━━
+    const executiveSummary =
+        report.executiveSummary || {};
+
+
+    // ============================================================
+    // SAFE FORMATTERS
+    // ============================================================
+
+    const money = (value) =>
+        `₦${(
+            Number(value) || 0
+        ).toLocaleString()}`;
+
+    const number = (value) =>
+        (
+            Number(value) || 0
+        ).toLocaleString();
+
+    const percent = (value) =>
+        `${(
+            Number(value) || 0
+        ).toFixed(2)}%`;
+
+    const decimal = (value) =>
+        (
+            Number(value) || 0
+        ).toFixed(2);
+
+
+    // ============================================================
+    // FORECAST VALUES
+    // ============================================================
+
+    const revenueForecast =
+        forecast.revenue || {};
+
+    const cashForecast =
+        forecast.cash || {};
+
+    const profitForecast =
+        forecast.profit || {};
+
+    const inventoryForecast =
+        forecast.inventory || {};
+
+    const inventoryDemandForecast =
+        forecast.inventoryDemand || {};
+
+
+    // ============================================================
+    // ADVISOR VALUES
+    // ============================================================
+
+    const advisorStatus =
+        advisor.businessStatus ||
+        "Unknown";
+
+    const advisorPriority =
+        advisor.overallPriority ||
+        "None";
+
+    const advisorHeadline =
+        advisor.headline ||
+        "No advisor assessment available.";
+
+    const advisorAssessment =
+        advisor.assessment ||
+        "No advisor assessment is currently available.";
+
+
+    // ============================================================
+    // EXECUTIVE DASHBOARD
+    // ============================================================
+
+    const message = `💼 AI CFO EXECUTIVE DASHBOARD
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📋 EXECUTIVE SUMMARY
+
+${executiveSummary.headline || "No executive summary available."}
+
+${executiveSummary.message || "No executive message available."}
+
+Status:
+${executiveSummary.status || "Unknown"}
+
+Top Priority:
+${executiveSummary.topPriority || "None"}
+
+━━━━━━━━━━━━━━━━━━━━━━
 
 💰 PROFITABILITY
 
 📈 Revenue
-₦${snapshot.sales.toLocaleString()}
+${money(dashboard.sales)}
 
 📦 Cost of Goods Sold
-₦${snapshot.costOfGoods.toLocaleString()}
+${money(dashboard.costOfGoods)}
 
 💵 Gross Profit
-₦${snapshot.grossProfit.toLocaleString()}
+${money(dashboard.grossProfit)}
 
 📊 Gross Margin
-${snapshot.grossMargin.toFixed(2)}%
+${percent(dashboard.grossMargin)}
 
-━━━━━━━━━━━━━━━━━━
+💰 Net Profit
+${money(dashboard.netProfit)}
+
+━━━━━━━━━━━━━━━━━━━━━━
 
 💵 CASH FLOW
 
 💰 Cash In
-₦${cash.cashIn.toLocaleString()}
+${money(cashFlow.cashIn)}
 
 💸 Cash Out
-₦${cash.cashOut.toLocaleString()}
+${money(cashFlow.cashOut)}
 
 💳 Cash Position
-₦${cash.cashPosition.toLocaleString()}
+${money(cashFlow.cashPosition)}
 
-━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━
 
 📦 INVENTORY
 
 💼 Inventory Value
-₦${snapshot.inventoryValue.toLocaleString()}
+${money(dashboard.inventoryValue)}
 
 📦 Products
-${snapshot.productCount}
+${number(dashboard.productCount)}
 
-━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━
 
 👥 RECEIVABLES & PAYABLES
 
 👤 Outstanding Debtors
-₦${debt.debtors.toLocaleString()}
+${money(
+        dashboard.outstandingDebtors ??
+        report.health?.outstandingDebtors
+    )}
 
 🏢 Outstanding Creditors
-₦${debt.creditors.toLocaleString()}
+${money(
+        dashboard.outstandingCreditors ??
+        report.health?.outstandingCreditors
+    )}
 
-━━━━━━━━━━━━━━━━━━
-
-📈 BUSINESS PERFORMANCE
-
-💸 Operating Expenses
-₦${snapshot.expenses.toLocaleString()}
-
-💵 Other Income
-₦${snapshot.income.toLocaleString()}
-
-🏆 Net Profit
-₦${snapshot.netProfit.toLocaleString()}
-
-━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━
 
 📊 KEY PERFORMANCE INDICATORS
 
 📈 Gross Margin
-${kpis.grossMargin.toFixed(2)}%
+${percent(kpis.grossMargin)}
 
 💰 Net Margin
-${kpis.netMargin.toFixed(2)}%
+${percent(kpis.netMargin)}
 
 💸 Expense Ratio
-${kpis.expenseRatio.toFixed(2)}%
+${percent(kpis.expenseRatio)}
 
-🏦 Cash Ratio
-${kpis.cashRatio.toFixed(2)}%
+💵 Cash Ratio
+${decimal(kpis.cashRatio)}
 
 📋 Debt Ratio
-${kpis.debtRatio.toFixed(2)}%
+${percent(kpis.debtRatio)}
 
 📦 Inventory Turnover
-${kpis.inventoryTurnover.toFixed(2)}
+${decimal(kpis.inventoryTurnover)}
 
 🛒 Revenue per Product
-₦${kpis.revenuePerProduct.toLocaleString()}
+${money(kpis.revenuePerProduct)}
 
-━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━
 
 🤖 AI CFO HEALTH
 
-${health.status}
+${health.status || "Unknown"}
 
-⭐ Business Score
-${health.score}/100
+Health Score:
+${number(health.score)}/100
 
-━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━
 
-🏆 Strengths
+💪 STRENGTHS
 
-${health.strengths.length > 0
-    ? health.strengths.map(item => `✅ ${item}`).join("\n")
-    : "None"}
+${
+    Array.isArray(health.strengths) &&
+    health.strengths.length > 0
 
-━━━━━━━━━━━━━━━━━━
+        ? health.strengths
+            .map(item => `✅ ${item}`)
+            .join("\n")
 
-⚠️ Risks
+        : "No strengths identified."
+}
 
-${health.risks.length > 0
-    ? health.risks.map(item => `⚠️ ${item}`).join("\n")
-    : "No major risks detected."}
+━━━━━━━━━━━━━━━━━━━━━━
 
-━━━━━━━━━━━━━━━━━━
+⚠️ RISKS
 
-🧠 AI CFO INSIGHTS
+${
+    risks.length > 0
 
-${insights.length > 0
-    ? insights.join("\n")
-    : "No business insights available yet."}
+        ? risks
+            .map(item => {
 
-    ━━━━━━━━━━━━━━━━━━
+                if (
+                    typeof item === "string"
+                ) {
+                    return `⚠️ ${item}`;
+                }
 
-🔮 FORECAST TEST
+                return `⚠️ ${
+                    item.title ||
+                    item.message ||
+                    item.description ||
+                    "Business risk identified."
+                }`;
 
-📈 Average Daily Sales
+            })
+            .join("\n")
 
-₦${forecast.averageDailySales.toLocaleString()}
+        : "No major risks detected."
+}
 
-💸 Average Daily Expenses
+━━━━━━━━━━━━━━━━━━━━━━
 
-₦${forecast.averageDailyExpenses.toLocaleString()}
+🧠 AI CFO ADVISOR
 
-📅 7-Day Revenue Forecast
+Business Status:
+${advisorStatus}
 
-₦${forecast.forecast7DaysRevenue.toLocaleString()}
+Priority:
+${advisorPriority}
 
-📅 30-Day Revenue Forecast
+${advisorHeadline}
 
-₦${forecast.forecast30DaysRevenue.toLocaleString()}
+${advisorAssessment}
 
-💰 7-Day Cash Forecast
+━━━━━━━━━━━━━━━━━━━━━━
 
-₦${forecast.forecast7DaysCash.toLocaleString()}
+🎯 DECISIONS
 
-💰 30-Day Cash Forecast
+${
+    decisions.length > 0
 
-₦${forecast.forecast30DaysCash.toLocaleString()}
+        ? decisions
+            .slice(0, 5)
+            .map((decision, index) => {
 
-━━━━━━━━━━━━━━━━━━
+                if (
+                    typeof decision === "string"
+                ) {
+                    return `${index + 1}. ${decision}`;
+                }
 
-🎯 AI CFO RECOMMENDATIONS
+                return `${index + 1}. ${
+                    decision.title ||
+                    decision.message ||
+                    decision.description ||
+                    "Decision identified."
+                }`;
 
-${recommendations.length > 0
-    ? recommendations.join("\n")
-    : "No recommendations at this time."}`,
+            })
+            .join("\n")
 
+        : "No major decisions identified."
+}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+💡 RECOMMENDATIONS
+
+${
+    recommendations.length > 0
+
+        ? recommendations
+            .slice(0, 5)
+            .map((recommendation, index) => {
+
+                if (
+                    typeof recommendation === "string"
+                ) {
+                    return `${index + 1}. ${recommendation}`;
+                }
+
+                return `${index + 1}. ${
+                    recommendation.title ||
+                    recommendation.message ||
+                    recommendation.description ||
+                    "Recommendation available."
+                }`;
+
+            })
+            .join("\n")
+
+        : "No recommendations at this time."
+}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📈 REVENUE FORECAST
+
+Tomorrow:
+${money(revenueForecast.tomorrow)}
+
+Next 7 Days:
+${money(revenueForecast.next7Days)}
+
+Next 30 Days:
+${money(revenueForecast.next30Days)}
+
+Forecast Confidence:
+${percent(revenueForecast.confidence)}
+
+Trend:
+${revenueForecast.trend || "Unknown"}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+💵 CASH FORECAST
+
+Tomorrow:
+${money(cashForecast.tomorrow)}
+
+Next 7 Days:
+${money(cashForecast.next7Days)}
+
+Next 30 Days:
+${money(cashForecast.next30Days)}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+💰 PROFIT FORECAST
+
+Tomorrow:
+${money(profitForecast.tomorrowProfit)}
+
+Next 7 Days:
+${money(profitForecast.next7DaysProfit)}
+
+Next 30 Days:
+${money(profitForecast.next30DaysProfit)}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📦 INVENTORY FORECAST
+
+Tomorrow:
+${number(inventoryForecast.tomorrow)}
+
+Next 7 Days:
+${number(inventoryForecast.next7Days)}
+
+Next 30 Days:
+${number(inventoryForecast.next30Days)}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🛒 INVENTORY DEMAND
+
+${
+    inventoryDemandForecast.summary ||
+    inventoryDemandForecast.message ||
+    "No inventory demand assessment available."
+}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+💡 BUSINESS INSIGHTS
+
+${
+    insights.length > 0
+
+        ? insights
+            .slice(0, 5)
+            .map(item => {
+
+                if (
+                    typeof item === "string"
+                ) {
+                    return `• ${item}`;
+                }
+
+                return `• ${
+                    item.title ||
+                    item.message ||
+                    item.description ||
+                    "Business insight available."
+                }`;
+
+            })
+            .join("\n")
+
+        : "No business insights available yet."
+}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📊 REPORT STATUS
+
+Executive Report:
+Ready
+
+Advisor:
+${advisorStatus}
+
+Decision Intelligence:
+${decisions.length > 0 ? "Available" : "None"}
+
+Recommendation Intelligence:
+${recommendations.length > 0 ? "Available" : "None"}
+
+Risk Intelligence:
+${risks.length > 0 ? "Available" : "None"}
+
+━━━━━━━━━━━━━━━━━━━━━━
+`;
+
+    await ctx.reply(
+        message,
         keyboard
-
     );
 
 };

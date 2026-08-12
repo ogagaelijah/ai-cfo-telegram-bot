@@ -1,13 +1,13 @@
-const { buildForecastReport } = require("../services/forecastReportService");
+const {
+    buildForecastReport
+} = require("../services/forecastReportService");
 
 module.exports = async function forecastHandler(ctx) {
 
     const text = ctx.message.text;
 
     if (text !== "🔮 Forecast") {
-
         return false;
-
     }
 
     const report =
@@ -16,5 +16,4 @@ module.exports = async function forecastHandler(ctx) {
     await ctx.reply(report);
 
     return true;
-
 };

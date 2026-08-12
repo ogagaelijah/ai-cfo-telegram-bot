@@ -4,12 +4,12 @@ module.exports = Markup.keyboard([
 
     ["💰 Transactions", "📊 Business"],
 
-    ["👥 Customers", "📦 Inventory"],
+    ["📊 Reports", "👥 Customers"],
 
-    ["🏢 Suppliers", "💳 Finance"],
+    ["📦 Inventory", "🧾 Suppliers"],
 
-    ["🤖 Ask AI", "⚙️ Settings"],
+    ["💳 Finance", "🤖 Ask AI"],
 
-    ["❓ Help"]
+    ["⚙️ Settings"]
 
 ]).resize();
