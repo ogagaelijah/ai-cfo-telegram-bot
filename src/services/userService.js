@@ -1,414 +1,59 @@
 const db = require("../database/database");
 
+
 // ======================================================
-// CREATE / LOAD USER
+// USER SERVICE
 // ======================================================
 //
-// Central user creation service.
+// Responsible for:
 //
-// Architecture:
+// - Finding existing users
+// - Loading user profiles
+// - Loading current accounts
+// - Loading account membership
+//
+// IMPORTANT:
+//
+// This service does NOT perform onboarding.
+//
+// New-user registration is handled by:
+//     onboardingService.js
+//
+// This separation keeps the architecture interface-neutral.
 //
 // Interface
-//    ↓
-// userService
-//    ↓
-// User
-//    ↓
-// Account
-//    ↓
-// Account Membership
-//    ↓
-// Current Account
+//     ↓
+// Onboarding Service
+//     ↓
+// User Service / Account Service
+//     ↓
+// Database
 //
-// Current account is stored in:
-//
-// user_current_accounts
-//
-// NOT inside users.
-//
-// This keeps the user/account architecture compatible
-// with the multi-account system.
+// Telegram, Web, WhatsApp, Mobile and other interfaces
+// can therefore use the same underlying architecture.
 // ======================================================
-
-function createUser(user) {
-
-    // ==================================================
-    // CHECK WHETHER USER ALREADY EXISTS
-    // ==================================================
-
-    let existingUser = db.prepare(`
-        SELECT
-            id,
-            telegram_id,
-            full_name,
-            username,
-            created_at
-
-        FROM users
-
-        WHERE telegram_id = ?
-    `).get(
-        user.id
-    );
-
-
-    // ==================================================
-    // CREATE USER IF NECESSARY
-    // ==================================================
-
-    if (!existingUser) {
-
-        const fullName =
-            (
-                user.first_name ||
-                ""
-            ) +
-            (
-                user.last_name
-                    ? " " + user.last_name
-                    : ""
-            );
-
-
-        const result = db.prepare(`
-            INSERT INTO users
-            (
-                telegram_id,
-                full_name,
-                username
-            )
-
-            VALUES
-            (
-                ?,
-                ?,
-                ?
-            )
-        `).run(
-
-            user.id,
-
-            fullName.trim() ||
-                "Telegram User",
-
-            user.username || null
-
-        );
-
-
-        const userId =
-            result.lastInsertRowid;
-
-
-        existingUser = db.prepare(`
-            SELECT
-                id,
-                telegram_id,
-                full_name,
-                username,
-                created_at
-
-            FROM users
-
-            WHERE id = ?
-        `).get(
-            userId
-        );
-
-    }
-
-
-    // ==================================================
-    // CHECK CURRENT ACCOUNT
-    // ==================================================
-
-    let currentAccount = db.prepare(`
-        SELECT
-            a.id,
-            a.name,
-            a.owner_user_id,
-            a.created_at,
-            am.role
-
-        FROM user_current_accounts uca
-
-        INNER JOIN accounts a
-            ON a.id = uca.account_id
-
-        INNER JOIN account_members am
-            ON am.account_id = a.id
-            AND am.user_id = uca.user_id
-
-        WHERE
-            uca.user_id = ?
-
-        LIMIT 1
-    `).get(
-        existingUser.id
-    );
-
-
-    // ==================================================
-    // IF NO CURRENT ACCOUNT EXISTS
-    // CHECK WHETHER USER ALREADY OWNS / BELONGS TO ONE
-    // ==================================================
-
-    if (!currentAccount) {
-
-        currentAccount = db.prepare(`
-            SELECT
-                a.id,
-                a.name,
-                a.owner_user_id,
-                a.created_at,
-                am.role
-
-            FROM account_members am
-
-            INNER JOIN accounts a
-                ON a.id = am.account_id
-
-            WHERE
-                am.user_id = ?
-
-            ORDER BY
-                a.id ASC
-
-            LIMIT 1
-        `).get(
-            existingUser.id
-        );
-
-    }
-
-
-    // ==================================================
-    // CREATE FIRST ACCOUNT
-    // ==================================================
-    //
-    // If this user has never had an account,
-    // automatically create one.
-    //
-    // Default name:
-    //
-    // "My Business"
-    //
-    // The account settings flow can later allow
-    // the owner to rename it.
-    // ==================================================
-
-    if (!currentAccount) {
-
-        const accountResult = db.prepare(`
-            INSERT INTO accounts
-            (
-                name,
-                owner_user_id
-            )
-
-            VALUES
-            (
-                ?,
-                ?
-            )
-        `).run(
-
-            "My Business",
-
-            existingUser.id
-
-        );
-
-
-        const accountId =
-            accountResult.lastInsertRowid;
-
-
-        // ==============================================
-        // ADD USER AS OWNER
-        // ==============================================
-
-        db.prepare(`
-            INSERT INTO account_members
-            (
-                account_id,
-                user_id,
-                role
-            )
-
-            VALUES
-            (
-                ?,
-                ?,
-                ?
-            )
-        `).run(
-
-            accountId,
-
-            existingUser.id,
-
-            "OWNER"
-
-        );
-
-
-        // ==============================================
-        // SET CURRENT ACCOUNT
-        // ==============================================
-
-        db.prepare(`
-            INSERT INTO user_current_accounts
-            (
-                user_id,
-                account_id
-            )
-
-            VALUES
-            (
-                ?,
-                ?
-            )
-
-            ON CONFLICT(user_id)
-            DO UPDATE SET
-                account_id = excluded.account_id,
-                updated_at = CURRENT_TIMESTAMP
-        `).run(
-
-            existingUser.id,
-
-            accountId
-
-        );
-
-
-        // ==============================================
-        // LOAD ACCOUNT
-        // ==============================================
-
-        currentAccount = db.prepare(`
-            SELECT
-                a.id,
-                a.name,
-                a.owner_user_id,
-                a.created_at,
-                am.role
-
-            FROM accounts a
-
-            INNER JOIN account_members am
-                ON am.account_id = a.id
-                AND am.user_id = ?
-
-            WHERE
-                a.id = ?
-
-            LIMIT 1
-        `).get(
-
-            existingUser.id,
-
-            accountId
-
-        );
-
-    }
-
-
-    // ==================================================
-    // ENSURE CURRENT ACCOUNT IS STORED
-    // ==================================================
-
-    const currentAccountRecord = db.prepare(`
-        SELECT
-            id,
-            account_id
-
-        FROM user_current_accounts
-
-        WHERE user_id = ?
-
-        LIMIT 1
-    `).get(
-        existingUser.id
-    );
-
-
-    if (!currentAccountRecord) {
-
-        db.prepare(`
-            INSERT INTO user_current_accounts
-            (
-                user_id,
-                account_id
-            )
-
-            VALUES
-            (
-                ?,
-                ?
-            )
-        `).run(
-
-            existingUser.id,
-
-            currentAccount.id
-
-        );
-
-    }
-
-
-    // ==================================================
-    // RETURN USER + CURRENT ACCOUNT
-    // ==================================================
-
-    return {
-
-        id:
-            existingUser.id,
-
-        telegram_id:
-            existingUser.telegram_id,
-
-        full_name:
-            existingUser.full_name,
-
-        username:
-            existingUser.username,
-
-        account: {
-
-            id:
-                currentAccount.id,
-
-            name:
-                currentAccount.name,
-
-            role:
-                currentAccount.role ||
-                (
-                    currentAccount.owner_user_id ===
-                    existingUser.id
-                        ? "OWNER"
-                        : "MEMBER"
-                )
-
-        }
-
-    };
-
-}
 
 
 // ======================================================
 // GET USER BY TELEGRAM ID
 // ======================================================
+//
+// Telegram is currently one identity provider.
+//
+// This function exists for the Telegram interface.
+//
+// It does NOT perform registration.
+//
+// ======================================================
 
 function getUserByTelegramId(
     telegramId
 ) {
+
+    if (!telegramId) {
+        return null;
+    }
+
 
     const user = db.prepare(`
         SELECT
@@ -416,11 +61,15 @@ function getUserByTelegramId(
             telegram_id,
             full_name,
             username,
+            email,
+            phone,
             created_at
 
         FROM users
 
         WHERE telegram_id = ?
+
+        LIMIT 1
     `).get(
         telegramId
     );
@@ -439,6 +88,7 @@ function getUserByTelegramId(
         SELECT
             a.id,
             a.name,
+            a.account_type,
             a.owner_user_id,
             a.created_at,
             am.role
@@ -474,19 +124,365 @@ function getUserByTelegramId(
                 name:
                     account.name,
 
+                account_type:
+                    account.account_type,
+
+                owner_user_id:
+                    account.owner_user_id,
+
                 role:
                     account.role ||
                     (
                         account.owner_user_id ===
                         user.id
+
                             ? "OWNER"
+
                             : "MEMBER"
                     )
 
             }
+
             : null
 
     };
+
+}
+
+
+// ======================================================
+// GET USER BY DATABASE ID
+// ======================================================
+
+function getUserById(
+    userId
+) {
+
+    if (!userId) {
+        return null;
+    }
+
+
+    const user = db.prepare(`
+        SELECT
+            id,
+            telegram_id,
+            full_name,
+            username,
+            email,
+            phone,
+            created_at
+
+        FROM users
+
+        WHERE id = ?
+
+        LIMIT 1
+    `).get(
+        userId
+    );
+
+
+    if (!user) {
+        return null;
+    }
+
+
+    // ==================================================
+    // LOAD CURRENT ACCOUNT
+    // ==================================================
+
+    const account = db.prepare(`
+        SELECT
+            a.id,
+            a.name,
+            a.account_type,
+            a.owner_user_id,
+            a.created_at,
+            am.role
+
+        FROM user_current_accounts uca
+
+        INNER JOIN accounts a
+            ON a.id = uca.account_id
+
+        INNER JOIN account_members am
+            ON am.account_id = a.id
+            AND am.user_id = uca.user_id
+
+        WHERE
+            uca.user_id = ?
+
+        LIMIT 1
+    `).get(
+        user.id
+    );
+
+
+    return {
+
+        ...user,
+
+        account: account
+            ? {
+
+                id:
+                    account.id,
+
+                name:
+                    account.name,
+
+                account_type:
+                    account.account_type,
+
+                owner_user_id:
+                    account.owner_user_id,
+
+                role:
+                    account.role ||
+                    (
+                        account.owner_user_id ===
+                        user.id
+
+                            ? "OWNER"
+
+                            : "MEMBER"
+                    )
+
+            }
+
+            : null
+
+    };
+
+}
+
+
+// ======================================================
+// GET USER ACCOUNTS
+// ======================================================
+//
+// Returns every account the user belongs to.
+//
+// Useful for:
+//
+// - Account switching
+// - Multi-business users
+// - Personal + Business accounts
+// - Future account selector UI
+//
+// ======================================================
+
+function getUserAccounts(
+    userId
+) {
+
+    if (!userId) {
+        return [];
+    }
+
+
+    return db.prepare(`
+        SELECT
+
+            a.id,
+            a.name,
+            a.account_type,
+            a.owner_user_id,
+            a.created_at,
+            am.role
+
+        FROM account_members am
+
+        INNER JOIN accounts a
+            ON a.id = am.account_id
+
+        WHERE
+            am.user_id = ?
+
+        ORDER BY
+            a.created_at ASC
+    `).all(
+        userId
+    );
+
+}
+
+
+// ======================================================
+// GET CURRENT ACCOUNT
+// ======================================================
+//
+// Returns the account currently selected by the user.
+//
+// ======================================================
+
+function getCurrentAccount(
+    userId
+) {
+
+    if (!userId) {
+        return null;
+    }
+
+
+    return db.prepare(`
+        SELECT
+
+            a.id,
+            a.name,
+            a.account_type,
+            a.owner_user_id,
+            a.created_at,
+            am.role
+
+        FROM user_current_accounts uca
+
+        INNER JOIN accounts a
+            ON a.id = uca.account_id
+
+        INNER JOIN account_members am
+            ON am.account_id = a.id
+            AND am.user_id = uca.user_id
+
+        WHERE
+            uca.user_id = ?
+
+        LIMIT 1
+    `).get(
+        userId
+    );
+
+}
+
+
+// ======================================================
+// CHECK WHETHER USER EXISTS
+// ======================================================
+//
+// This is intentionally separate from registration.
+//
+// The onboarding service decides what to do with the
+// result.
+//
+// ======================================================
+
+function userExistsByTelegramId(
+    telegramId
+) {
+
+    if (!telegramId) {
+        return false;
+    }
+
+
+    const result = db.prepare(`
+        SELECT
+            id
+
+        FROM users
+
+        WHERE telegram_id = ?
+
+        LIMIT 1
+    `).get(
+        telegramId
+    );
+
+
+    return !!result;
+
+}
+
+
+// ======================================================
+// GET ACCOUNT MEMBERSHIP
+// ======================================================
+
+function getAccountMembership(
+    accountId,
+    userId
+) {
+
+    if (
+        !accountId ||
+        !userId
+    ) {
+        return null;
+    }
+
+
+    return db.prepare(`
+        SELECT
+
+            am.id,
+            am.account_id,
+            am.user_id,
+            am.role,
+            am.created_at
+
+        FROM account_members am
+
+        WHERE
+            am.account_id = ?
+
+            AND am.user_id = ?
+
+        LIMIT 1
+    `).get(
+
+        accountId,
+
+        userId
+
+    );
+
+}
+
+
+// ======================================================
+// GET USER PROFILE
+// ======================================================
+//
+// Returns the user without account information.
+//
+// Useful for:
+//
+// - Registration
+// - Profile
+// - Settings
+// - Web/API responses
+//
+// ======================================================
+
+function getUserProfile(
+    userId
+) {
+
+    if (!userId) {
+        return null;
+    }
+
+
+    return db.prepare(`
+        SELECT
+
+            id,
+            telegram_id,
+            full_name,
+            username,
+            email,
+            phone,
+            created_at
+
+        FROM users
+
+        WHERE id = ?
+
+        LIMIT 1
+    `).get(
+        userId
+    );
 
 }
 
@@ -497,8 +493,18 @@ function getUserByTelegramId(
 
 module.exports = {
 
-    createUser,
+    getUserByTelegramId,
 
-    getUserByTelegramId
+    getUserById,
+
+    getUserAccounts,
+
+    getCurrentAccount,
+
+    userExistsByTelegramId,
+
+    getAccountMembership,
+
+    getUserProfile
 
 };

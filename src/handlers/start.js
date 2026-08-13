@@ -1,110 +1,79 @@
 const {
-    createUser
+    getUserByTelegramId
 } = require("../services/userService");
 
-const keyboard =
+const {
+    startRegistration
+} = require("../flows/registrationFlow");
+
+const businessKeyboard =
     require("../keyboards/mainKeyboard");
 
-module.exports = (bot) => {
 
-    bot.start(async (ctx) => {
+// ======================================================
+// PERSONAL FINANCE KEYBOARD
+// ======================================================
 
-        // ==============================================
-        // CREATE / LOAD USER
-        // ==============================================
-        //
-        // createUser() is responsible for:
-        //
-        // User
-        //   ↓
-        // Account
-        //   ↓
-        // Account Membership
-        //
-        // It also returns the user's current account.
-        //
-
-        const user =
-            createUser(ctx.from);
+const personalKeyboard = {
+    reply_markup: {
+        keyboard: [
+            ["💰 Income", "💸 Expenses"],
+            ["💵 Savings", "📋 Debts"],
+            ["👥 Debtors", "🎯 Personal Goals"],
+            ["💳 Cash Flow", "📊 Financial Reports"],
+            ["🔮 Forecast", "🤖 AI Financial Advisor"]
+        ],
+        resize_keyboard: true
+    }
+};
 
 
-        // ==============================================
-        // USER NAME
-        // ==============================================
+// ======================================================
+// BUSINESS DASHBOARD
+// ======================================================
 
-        const firstName =
-            ctx.from.first_name ||
-            user.full_name ||
-            "User";
+async function showBusinessDashboard(
+    ctx,
+    user
+) {
 
-
-        // ==============================================
-        // CURRENT BUSINESS / ACCOUNT
-        // ==============================================
-        //
-        // The business name belongs to the ACCOUNT,
-        // not the USER.
-        //
-        // createUser() returns:
-        //
-        // user.account.id
-        // user.account.name
-        // user.account.role
-        //
-        // Therefore we use the account returned directly
-        // from the user service.
-        //
-
-        const businessName =
-            user.account &&
-            user.account.name
-                ? user.account.name
-                : "My Business";
+    const firstName =
+        ctx.from.first_name ||
+        user.full_name ||
+        "User";
 
 
-        // ==============================================
-        // CURRENT ACCOUNT ROLE
-        // ==============================================
-
-        const accountRole =
-            user.account &&
-            user.account.role
-                ? user.account.role
-                : "OWNER";
+    const accountName =
+        user.account &&
+        user.account.name
+            ? user.account.name
+            : "My Business";
 
 
-        // ==============================================
-        // PHASE 1 SUMMARY
-        // ==============================================
-        //
-        // These values are temporary.
-        //
-        // Later they will be calculated from the
-        // CURRENT ACCOUNT only.
-        //
-        // IMPORTANT:
-        //
-        // They must never be calculated globally across
-        // all businesses belonging to the user.
-        //
-
-        const sales = 0;
-
-        const expenses = 0;
-
-        const profit =
-            sales - expenses;
+    const accountRole =
+        user.account &&
+        user.account.role
+            ? user.account.role
+            : "OWNER";
 
 
-        // ==============================================
-        // WELCOME MESSAGE
-        // ==============================================
+    // ==================================================
+    // TEMPORARY SUMMARY
+    // ==================================================
 
-        await ctx.reply(
+    const sales = 0;
 
-            `👋 Welcome, ${firstName}!
+    const expenses = 0;
 
-🏢 Business: ${businessName}
+    const profit =
+        sales - expenses;
+
+
+    await ctx.reply(
+
+        `👋 Welcome back, ${firstName}!
+
+🏢 Business: ${accountName}
 
 ━━━━━━━━━━━━━━━━━━
 
@@ -122,9 +91,195 @@ module.exports = (bot) => {
 
 Choose an option below 👇`,
 
-            keyboard
+        businessKeyboard
 
-        );
+    );
+
+}
+
+
+// ======================================================
+// PERSONAL FINANCE DASHBOARD
+// ======================================================
+
+async function showPersonalDashboard(
+    ctx,
+    user
+) {
+
+    const firstName =
+        ctx.from.first_name ||
+        user.full_name ||
+        "User";
+
+
+    const accountName =
+        user.account &&
+        user.account.name
+            ? user.account.name
+            : "Personal Finance";
+
+
+    const accountRole =
+        user.account &&
+        user.account.role
+            ? user.account.role
+            : "OWNER";
+
+
+    await ctx.reply(
+
+        `👋 Welcome back, ${firstName}!
+
+👤 Personal Finance
+🏦 Account: ${accountName}
+
+━━━━━━━━━━━━━━━━━━
+
+💰 Income
+💸 Expenses
+💵 Savings
+📋 Debts
+👥 Debtors
+🎯 Personal Goals
+💳 Cash Flow
+📊 Financial Reports
+🔮 Forecast
+🤖 AI Financial Advisor
+
+━━━━━━━━━━━━━━━━━━
+
+👤 Role: ${accountRole}
+
+Choose an option below 👇`,
+
+        personalKeyboard
+
+    );
+
+}
+
+
+// ======================================================
+// START HANDLER
+// ======================================================
+
+module.exports = (bot) => {
+
+    bot.start(async (ctx) => {
+
+        try {
+
+            // ==================================================
+            // LOAD USER
+            // ==================================================
+
+            const existingUser =
+                getUserByTelegramId(
+                    ctx.from.id
+                );
+
+
+            // ==================================================
+            // NEW USER
+            // ==================================================
+
+            if (!existingUser) {
+
+                await startRegistration(ctx);
+
+                return;
+
+            }
+
+
+            // ==================================================
+            // CHECK CURRENT ACCOUNT
+            // ==================================================
+
+            if (!existingUser.account) {
+
+                await ctx.reply(
+                    "⚠️ Your user account was found, but no current account is selected. Please contact support."
+                );
+
+                return;
+
+            }
+
+
+            // ==================================================
+            // DETERMINE ACCOUNT TYPE
+            // ==================================================
+
+            const accountType =
+                existingUser.account.account_type
+                    ? String(
+                        existingUser.account.account_type
+                    )
+                        .trim()
+                        .toUpperCase()
+                    : "BUSINESS";
+
+
+            // ==================================================
+            // PERSONAL ACCOUNT
+            // ==================================================
+
+            if (
+                accountType === "PERSONAL"
+            ) {
+
+                await showPersonalDashboard(
+                    ctx,
+                    existingUser
+                );
+
+                return;
+
+            }
+
+
+            // ==================================================
+            // BUSINESS ACCOUNT
+            // ==================================================
+
+            if (
+                accountType === "BUSINESS"
+            ) {
+
+                await showBusinessDashboard(
+                    ctx,
+                    existingUser
+                );
+
+                return;
+
+            }
+
+
+            // ==================================================
+            // UNKNOWN ACCOUNT TYPE
+            // ==================================================
+
+            await ctx.reply(
+                `⚠️ Unsupported account type: ${accountType}`
+            );
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "❌ /start error:",
+                error
+            );
+
+            await ctx.reply(
+                "⚠️ Something went wrong while loading your account. Please try again."
+            );
+
+        }
 
     });
 

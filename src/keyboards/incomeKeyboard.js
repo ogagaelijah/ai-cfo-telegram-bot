@@ -2,16 +2,14 @@ const { Markup } = require("telegraf");
 
 module.exports = Markup.keyboard([
 
-    ["💼 Consultancy", "🏦 Bank Interest"],
+["💼 Consultancy", "🦁 Bank Interest"],
 
-    ["🏠 Rent", "📈 Investment"],
+["🏠 Rent", "📈 Investment"],
 
-    ["💵 Commission", "🎁 Gift"],
+["💵 Commission", "🎁 Gift"],
 
-    ["🔄 Refund", "🧾 Other"],
+["🔄 Refund", "🧾 Other"],
 
-    ["❌ Cancel"]
+["⬅️ Back to Personal Finance"]
 
-])
-.resize()
-.oneTime();
+]).resize();

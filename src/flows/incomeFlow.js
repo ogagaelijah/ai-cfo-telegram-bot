@@ -1,5 +1,8 @@
-const keyboard = require("../keyboards/mainKeyboard");
-const incomeKeyboard = require("../keyboards/incomeKeyboard");
+const businessKeyboard =
+    require("../keyboards/businessKeyboard");
+
+const incomeKeyboard =
+    require("../keyboards/incomeKeyboard");
 
 const {
     getSession,
@@ -7,7 +10,8 @@ const {
     clearSession
 } = require("../states/sessionManager");
 
-const STATES = require("../constants/states");
+const STATES =
+    require("../constants/states");
 
 const {
     saveIncome,
@@ -16,108 +20,199 @@ const {
 
 module.exports = async function incomeFlow(ctx) {
 
-    const session = getSession(ctx.from.id);
+    const session =
+        getSession(ctx.from.id);
 
-    if (!session) return;
+    if (!session) {
+        return;
+    }
 
-    switch (session.state) {
+    const text =
+        ctx.message &&
+        ctx.message.text
+            ? ctx.message.text.trim()
+            : "";
 
-        // ==========================
-        // SOURCE
-        // ==========================
-        case STATES.WAITING_FOR_INCOME_SOURCE:
+    // ==================================================
+    // BACK TO BUSINESS
+    // ==================================================
 
-            if (ctx.message.text === "❌ Cancel") {
+    if (
+        text === "⬅️ Back to Business" ||
+        text === "⬅️ Back"
+    ) {
 
-                clearSession(ctx.from.id);
+        clearSession(ctx.from.id);
 
-                return ctx.reply(
-                    "❌ Income recording cancelled.",
-                    keyboard
-                );
+        await ctx.reply(
+            "📊 BUSINESS CENTER",
+            businessKeyboard
+        );
 
-            }
+        return;
+    }
 
-            session.source = ctx.message.text;
+    // ==================================================
+    // BUSINESS INCOME SOURCE
+    // ==================================================
 
-            session.state = STATES.WAITING_FOR_INCOME_AMOUNT;
+    if (
+        session.state ===
+        STATES.WAITING_FOR_INCOME_SOURCE
+    ) {
 
-            setSession(ctx.from.id, session);
+        if (!text) {
 
-            return ctx.reply(
-                "💵 Enter the income amount."
+            await ctx.reply(
+                "Please select an income source.",
+                incomeKeyboard
             );
 
-        // ==========================
-        // AMOUNT
-        // ==========================
-        case STATES.WAITING_FOR_INCOME_AMOUNT:
+            return;
+        }
 
-            session.amount = Number(ctx.message.text);
+        session.source = text;
 
-            if (
-                isNaN(session.amount) ||
-                session.amount <= 0
-            ) {
-                return ctx.reply(
-                    "❌ Please enter a valid amount."
-                );
-            }
+        session.state =
+            STATES.WAITING_FOR_INCOME_AMOUNT;
 
-            session.state = STATES.WAITING_FOR_INCOME_NOTE;
+        setSession(
+            ctx.from.id,
+            session
+        );
 
-            setSession(ctx.from.id, session);
+        await ctx.reply(
+            `💰 Income Source: ${session.source}\n\n` +
+            "💵 Enter the amount:"
+        );
 
-            return ctx.reply(
-`📝 Enter a note.
+        return;
+    }
 
-If you don't have one, type:
+    // ==================================================
+    // BUSINESS INCOME AMOUNT
+    // ==================================================
 
-skip`
+    if (
+        session.state ===
+        STATES.WAITING_FOR_INCOME_AMOUNT
+    ) {
+
+        const amount =
+            Number(
+                text.replace(/,/g, "")
             );
 
-        // ==========================
-        // NOTE
-        // ==========================
-        case STATES.WAITING_FOR_INCOME_NOTE:
+        if (
+            !Number.isFinite(amount) ||
+            amount <= 0
+        ) {
 
-            session.notes =
-                ctx.message.text.toLowerCase() === "skip"
-                    ? ""
-                    : ctx.message.text;
+            await ctx.reply(
+                "⚠️ Please enter a valid amount greater than zero."
+            );
 
-            saveIncome(ctx.from.id, session);
+            return;
+        }
 
-            const todayIncome = getTodayIncome(ctx.from.id);
+        session.amount = amount;
+
+        session.state =
+            STATES.WAITING_FOR_INCOME_NOTE;
+
+        setSession(
+            ctx.from.id,
+            session
+        );
+
+        await ctx.reply(
+            "📝 Enter a note for this income, or type NONE:"
+        );
+
+        return;
+    }
+
+    // ==================================================
+    // BUSINESS INCOME NOTE
+    // ==================================================
+
+    if (
+        session.state ===
+        STATES.WAITING_FOR_INCOME_NOTE
+    ) {
+
+        const note =
+            text.toLowerCase() === "none"
+                ? ""
+                : text;
+
+        try {
+
+            saveIncome(
+                ctx.from.id,
+                {
+                    source:
+                        session.source,
+
+                    amount:
+                        session.amount,
+
+                    notes:
+                        note
+                }
+            );
+
+            const todayIncome =
+                getTodayIncome(
+                    ctx.from.id
+                );
+
+            clearSession(
+                ctx.from.id
+            );
 
             await ctx.reply(
 
-`✅ Income Recorded Successfully
+                `💰 BUSINESS INCOME\n\n` +
 
-💰 Source:
-${session.source}
+                `📌 Source: ${session.source}\n` +
 
-💵 Amount:
-₦${session.amount.toLocaleString()}
+                `💵 Amount: ₦${Number(
+                    session.amount
+                ).toLocaleString()}\n\n` +
 
-📝 Note:
-${session.notes || "None"}
+                `━━━━━━━━━━━━━━━━━━\n` +
 
-━━━━━━━━━━━━━━━━━━
+                `💰 Today's Business Income:\n` +
 
-💰 Today's Other Income:
-₦${todayIncome.toLocaleString()}
+                `₦${Number(
+                    todayIncome
+                ).toLocaleString()}\n\n` +
 
-💾 Saved Successfully`,
+                `✅ Saved Successfully`,
 
-                keyboard
-
+                businessKeyboard
             );
-
-            clearSession(ctx.from.id);
 
             return;
 
-    }
+        } catch (error) {
 
+            console.error(
+                "Business income save error:",
+                error
+            );
+
+            clearSession(
+                ctx.from.id
+            );
+
+            await ctx.reply(
+                "❌ I couldn't save this income. Please try again.",
+                businessKeyboard
+            );
+
+            return;
+        }
+    }
 };

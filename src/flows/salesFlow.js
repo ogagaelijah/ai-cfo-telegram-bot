@@ -2,248 +2,496 @@ const keyboard = require("../keyboards/mainKeyboard");
 const paymentKeyboard = require("../keyboards/paymentKeyboard");
 
 const {
-    getSession,
-    setSession,
-    clearSession
+getSession,
+setSession,
+clearSession
 } = require("../states/sessionManager");
 
 const STATES = require("../constants/states");
 
 const {
-    saveSale
+saveSale
 } = require("../services/salesService");
 
 const {
-    createDebt
+createDebt
 } = require("../services/debtorService");
+
+const {
+getUserByTelegramId
+} = require("../services/userService");
 
 module.exports = async function salesFlow(ctx) {
 
-    const session = getSession(ctx.from.id);
+const telegramId =
+    ctx.from.id;
 
-    if (!session) return;
+const session =
+    getSession(telegramId);
 
-    switch (session.state) {
+if (!session) {
+    return;
+}
 
-        // ==========================
-        // PRODUCT
-        // ==========================
-        case STATES.WAITING_FOR_PRODUCT:
+const text =
+    (ctx.message.text || "").trim();
 
-            session.product = ctx.message.text.trim();
 
-            session.state = STATES.WAITING_FOR_QUANTITY;
+// ==================================================
+// VERIFY ACCOUNT TYPE
+// ==================================================
+//
+// Sales currently belongs to BUSINESS accounts.
+//
+// Personal accounts should never enter this flow.
+//
+// ==================================================
 
-            setSession(ctx.from.id, session);
+const user =
+    getUserByTelegramId(
+        telegramId
+    );
 
-            return ctx.reply(
-                "🔢 How many units did you sell?"
+const accountType =
+    user &&
+    user.account
+        ? user.account.account_type
+        : null;
+
+if (
+    accountType &&
+    accountType !== "BUSINESS"
+) {
+
+    clearSession(telegramId);
+
+    await ctx.reply(
+        "ℹ️ Sales recording is available for Business accounts."
+    );
+
+    return;
+}
+
+
+// ==================================================
+// PRODUCT
+// ==================================================
+
+if (
+    session.state ===
+    STATES.WAITING_FOR_PRODUCT
+) {
+
+    if (!text) {
+
+        await ctx.reply(
+            "❌ Please enter the product name."
+        );
+
+        return;
+    }
+
+    setSession(
+        telegramId,
+        {
+            ...session,
+
+            product:
+                text,
+
+            state:
+                STATES.WAITING_FOR_QUANTITY
+        }
+    );
+
+    await ctx.reply(
+        "🔢 How many units did you sell?"
+    );
+
+    return;
+}
+
+
+// ==================================================
+// QUANTITY
+// ==================================================
+
+if (
+    session.state ===
+    STATES.WAITING_FOR_QUANTITY
+) {
+
+    const quantity =
+        Number(
+            text.replace(/,/g, "")
+        );
+
+    if (
+        !Number.isFinite(quantity) ||
+        quantity <= 0
+    ) {
+
+        await ctx.reply(
+            "❌ Please enter a valid quantity.\n\nExample: 5"
+        );
+
+        return;
+    }
+
+    setSession(
+        telegramId,
+        {
+            ...session,
+
+            quantity,
+
+            state:
+                STATES.WAITING_FOR_PRICE
+        }
+    );
+
+    await ctx.reply(
+        "💵 What was the selling price per unit?"
+    );
+
+    return;
+}
+
+
+// ==================================================
+// PRICE
+// ==================================================
+
+if (
+    session.state ===
+    STATES.WAITING_FOR_PRICE
+) {
+
+    const price =
+        Number(
+            text.replace(/,/g, "")
+        );
+
+    if (
+        !Number.isFinite(price) ||
+        price < 0
+    ) {
+
+        await ctx.reply(
+            "❌ Please enter a valid selling price.\n\nExample: 2500"
+        );
+
+        return;
+    }
+
+    setSession(
+        telegramId,
+        {
+            ...session,
+
+            price,
+
+            state:
+                STATES.WAITING_FOR_CUSTOMER
+        }
+    );
+
+    await ctx.reply(
+        "👤 Enter the customer name:"
+    );
+
+    return;
+}
+
+
+// ==================================================
+// CUSTOMER
+// ==================================================
+
+if (
+    session.state ===
+    STATES.WAITING_FOR_CUSTOMER
+) {
+
+    if (!text) {
+
+        await ctx.reply(
+            "❌ Please enter the customer name."
+        );
+
+        return;
+    }
+
+    setSession(
+        telegramId,
+        {
+            ...session,
+
+            customer:
+                text,
+
+            state:
+                STATES.WAITING_FOR_PAYMENT_STATUS
+        }
+    );
+
+    await ctx.reply(
+        "💳 How was this sale paid?",
+        paymentKeyboard
+    );
+
+    return;
+}
+
+
+// ==================================================
+// PAYMENT STATUS
+// ==================================================
+
+if (
+    session.state ===
+    STATES.WAITING_FOR_PAYMENT_STATUS
+) {
+
+    const paymentStatus =
+        text.toLowerCase();
+
+
+    const paid =
+        paymentStatus.includes("paid") &&
+        !paymentStatus.includes("unpaid") &&
+        !paymentStatus.includes("credit");
+
+
+    const credit =
+        paymentStatus.includes("credit") ||
+        paymentStatus.includes("unpaid") ||
+        paymentStatus.includes("debt");
+
+
+    if (
+        !paid &&
+        !credit
+    ) {
+
+        await ctx.reply(
+            "❌ Please select a valid payment option.",
+            paymentKeyboard
+        );
+
+        return;
+    }
+
+
+    // ==============================================
+    // SAVE SALE
+    // ==============================================
+
+    try {
+
+        const result =
+            saveSale(
+                telegramId,
+                {
+                    product:
+                        session.product,
+
+                    quantity:
+                        session.quantity,
+
+                    price:
+                        session.price,
+
+                    customer:
+                        session.customer
+                }
             );
 
-        // ==========================
-        // QUANTITY
-        // ==========================
-        case STATES.WAITING_FOR_QUANTITY:
 
-            session.quantity = Number(ctx.message.text);
+        const sale =
+            result.sale;
 
-            if (
-                isNaN(session.quantity) ||
-                session.quantity <= 0
-            ) {
 
-                return ctx.reply(
-                    "❌ Please enter a valid quantity."
-                );
-
-            }
-
-            session.state = STATES.WAITING_FOR_PRICE;
-
-            setSession(ctx.from.id, session);
-
-            return ctx.reply(
-                "💵 What is the unit price?"
+        const total =
+            Number(
+                sale.total
+            ) || (
+                Number(
+                    session.quantity
+                ) *
+                Number(
+                    session.price
+                )
             );
 
-        // ==========================
-        // PRICE
-        // ==========================
-        case STATES.WAITING_FOR_PRICE:
 
-            session.price = Number(ctx.message.text);
+        // ==========================================
+        // CREATE DEBT IF CREDIT SALE
+        // ==========================================
 
-            if (
-                isNaN(session.price) ||
-                session.price <= 0
-            ) {
+        let debtCreated =
+            false;
 
-                return ctx.reply(
-                    "❌ Please enter a valid amount."
-                );
-
-            }
-
-            session.state = STATES.WAITING_FOR_CUSTOMER;
-
-            setSession(ctx.from.id, session);
-
-            return ctx.reply(
-                "👤 Customer name?"
-            );
-
-        // ==========================
-        // CUSTOMER
-        // ==========================
-        case STATES.WAITING_FOR_CUSTOMER:
-
-            session.customer = ctx.message.text.trim();
-
-            session.state =
-                STATES.WAITING_FOR_PAYMENT_STATUS;
-
-            setSession(ctx.from.id, session);
-
-            return ctx.reply(
-
-                "💳 Has the customer paid?",
-
-                paymentKeyboard
-
-            );
-                    // ==========================
-        // PAYMENT STATUS
-        // ==========================
-        case STATES.WAITING_FOR_PAYMENT_STATUS:
-
-            if (
-                ctx.message.text !== "✅ Paid" &&
-                ctx.message.text !== "❌ Owes Me"
-            ) {
-
-                return ctx.reply(
-                    "Please choose one of the options below.",
-                    paymentKeyboard
-                );
-
-            }
+        if (credit) {
 
             try {
 
-                const result = saveSale(
+                createDebt(
 
-                    ctx.from.id,
+                    telegramId,
 
-                    session
+                    session.customer,
+
+                    sale.id,
+
+                    total
 
                 );
 
-                // ==========================
-                // CREATE DEBT
-                // ==========================
-                if (ctx.message.text === "❌ Owes Me") {
+                debtCreated =
+                    true;
 
-                    createDebt(
+            } catch (debtError) {
 
-                        ctx.from.id,
-
-                        result.customer.name,
-
-                        result.sale.id,
-
-                        result.sale.total
-
-                    );
-
-                }
-
-                const total =
-                    session.quantity * session.price;
-
-                let message =
-`✅ Sale Recorded Successfully
-
-📦 Product:
-${session.product}
-
-🔢 Quantity:
-${session.quantity}
-
-💵 Unit Price:
-₦${session.price.toLocaleString()}
-
-👤 Customer:
-${session.customer}
-
-━━━━━━━━━━━━━━━━━━
-
-💰 Total Sale:
-₦${total.toLocaleString()}`;
-
-                if (ctx.message.text === "❌ Owes Me") {
-
-                    message += `
-
-━━━━━━━━━━━━━━━━━━
-
-🧾 This sale has been added to Debtors.`;
-
-                } else {
-
-                    message += `
-
-━━━━━━━━━━━━━━━━━━
-
-✅ Customer paid in full.`;
-
-                }
+                console.error(
+                    "Debt creation error:",
+                    debtError
+                );
 
                 await ctx.reply(
-
-                    message,
-
-                    keyboard
-
+                    "⚠️ Sale was recorded, but I couldn't create the debtor record automatically."
                 );
-
-                clearSession(ctx.from.id);
-
-                return;
-
-            } catch (error) {
-
-                if (error.message === "Product not found in inventory.") {
-
-                    clearSession(ctx.from.id);
-
-                    return ctx.reply(
-
-                        "❌ This product does not exist in your inventory.\n\nPlease add it to Inventory before recording a sale.",
-
-                        keyboard
-
-                    );
-
-                }
-
-                if (error.message === "Insufficient stock.") {
-
-                    clearSession(ctx.from.id);
-
-                    return ctx.reply(
-
-                        "❌ Sale cannot be completed.\n\nThere is not enough stock available for this product.",
-
-                        keyboard
-
-                    );
-
-                }
-
-                throw error;
 
             }
 
+        }
+
+
+        // ==========================================
+        // SUCCESS MESSAGE
+        // ==========================================
+
+        let message =
+
+            `✅ Sale Recorded
+
+━━━━━━━━━━━━━━━━━━
+
+📦 Product: ${session.product}
+
+🔢 Quantity: ${Number(
+session.quantity
+).toLocaleString()}
+
+💵 Unit Price: ₦${Number(
+session.price
+).toLocaleString()}
+
+👤 Customer: ${session.customer}
+
+💰 Total Sale: ₦${total.toLocaleString()}`;
+
+        if (debtCreated) {
+
+            message += `
+
+━━━━━━━━━━━━━━━━━━
+
+🧾 Payment: Credit
+
+👤 This sale has been added to Debtors.`;
+
+        } else {
+
+            message += `
+
+━━━━━━━━━━━━━━━━━━
+
+💳 Payment: Paid
+
+✅ Customer paid in full.`;
+
+        }
+
+
+        await ctx.reply(
+            message,
+            keyboard
+        );
+
+
+        clearSession(
+            telegramId
+        );
+
+        return;
+
+    } catch (error) {
+
+        console.error(
+            "Sale save error:",
+            error
+        );
+
+
+        // ==========================================
+        // KNOWN ERRORS
+        // ==========================================
+
+        if (
+            error.message ===
+            "Product not found in inventory."
+        ) {
+
+            await ctx.reply(
+                "❌ Product not found in inventory.\n\nPlease make sure the product exists in your inventory before recording a sale."
+            );
+
+            clearSession(
+                telegramId
+            );
+
+            return;
+        }
+
+
+        if (
+            error.message ===
+            "Insufficient stock."
+        ) {
+
+            await ctx.reply(
+                "❌ Insufficient stock.\n\nYou cannot sell more units than are currently available."
+            );
+
+            clearSession(
+                telegramId
+            );
+
+            return;
+        }
+
+
+        if (
+            error.message ===
+            "Customer name is required."
+        ) {
+
+            await ctx.reply(
+                "❌ Customer name is required."
+            );
+
+            return;
+        }
+
+
+        await ctx.reply(
+            "❌ I couldn't record this sale right now. Please try again."
+        );
+
+        return;
     }
+
+}
 
 };

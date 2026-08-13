@@ -133,7 +133,40 @@ const FEATURES = {
         "PDF_EXPORT",
 
     EXCEL_EXPORT:
-        "EXCEL_EXPORT"
+        "EXCEL_EXPORT",
+
+
+    // ------------------------------------------
+    // ACCOUNT / TEAM FEATURES
+    // ------------------------------------------
+    //
+    // IMPORTANT:
+    //
+    // MULTI_USER is intentionally a Business-only
+    // entitlement.
+    //
+    // FREE  = no multi-user
+    // PRO   = no multi-user
+    // BUSINESS = multi-user
+    //
+    // This feature controls access to:
+    //
+    // - Staff
+    // - Managers
+    // - Accountants
+    // - Other team members
+    // - Account membership management
+    // - Invitations
+    // - Team roles
+    //
+    // The actual roles remain controlled by
+    // account_members.
+    //
+    // ==================================================
+
+    MULTI_USER:
+        "MULTI_USER"
+
 };
 
 
@@ -611,6 +644,7 @@ function requireFeature(
         error.code =
             entitlement.reason;
 
+
         error.entitlement =
             entitlement;
 
@@ -621,6 +655,79 @@ function requireFeature(
 
 
     return entitlement;
+
+}
+
+
+// ======================================================
+// MULTI-USER ACCESS
+// ======================================================
+//
+// Multi-user access is a special account-level feature.
+//
+// FREE:
+//     Not allowed.
+//
+// PRO:
+//     Not allowed.
+//
+// BUSINESS:
+//     Allowed.
+//
+// This means we do NOT simply check:
+//
+//     user.role
+//
+// We check:
+//
+//     account subscription
+//          ↓
+//     BUSINESS plan
+//          ↓
+//     MULTI_USER entitlement
+//
+// This prevents Free and Pro accounts from creating
+// staff, managers, accountants or other team members.
+//
+// ======================================================
+
+function hasMultiUserAccess(
+    accountId
+) {
+
+    return hasFeature(
+        accountId,
+        FEATURES.MULTI_USER
+    );
+
+}
+
+
+// ======================================================
+// REQUIRE MULTI-USER ACCESS
+// ======================================================
+//
+// Use this before any operation that adds or manages
+// additional users on an account.
+//
+// Examples:
+//
+// - Invite staff
+// - Add manager
+// - Add accountant
+// - Create team member
+// - Manage account members
+//
+// ======================================================
+
+function requireMultiUserAccess(
+    accountId
+) {
+
+    return requireFeature(
+        accountId,
+        FEATURES.MULTI_USER
+    );
 
 }
 
@@ -637,7 +744,7 @@ function requireFeature(
 // ======================================================
 
 function getAccountEntitlements(
-accountId
+    accountId
 ) {
 
     const subscription =
@@ -745,8 +852,8 @@ accountId
 // ======================================================
 
 function getFeatureLimit(
-accountId,
-featureCode
+    accountId,
+    featureCode
 ) {
 
     const entitlement =
@@ -791,6 +898,10 @@ module.exports = {
     hasFeature,
 
     requireFeature,
+
+    hasMultiUserAccess,
+
+    requireMultiUserAccess,
 
     getAccountEntitlements,
 

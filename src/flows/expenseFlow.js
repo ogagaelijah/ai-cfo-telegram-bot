@@ -2,124 +2,247 @@ const keyboard = require("../keyboards/mainKeyboard");
 const expenseKeyboard = require("../keyboards/expenseKeyboard");
 
 const {
-    getSession,
-    setSession,
-    clearSession
+getSession,
+setSession,
+clearSession
 } = require("../states/sessionManager");
 
 const STATES = require("../constants/states");
 
 const {
-    saveExpense,
-    getTodayExpenses
+saveExpense,
+getTodayExpenses
 } = require("../services/expenseService");
 
 module.exports = async function expenseFlow(ctx) {
 
-    const session = getSession(ctx.from.id);
+const session =
+    getSession(ctx.from.id);
 
-    if (!session) return;
+if (!session) {
+    return;
+}
 
-    switch (session.state) {
+const text =
+    (ctx.message.text || "").trim();
 
-        // ==========================
-        // EXPENSE CATEGORY
-        // ==========================
-        case STATES.WAITING_FOR_EXPENSE_CATEGORY:
 
-            if (ctx.message.text === "❌ Cancel") {
+// ==================================================
+// EXPENSE CATEGORY
+// ==================================================
 
-                clearSession(ctx.from.id);
+if (
+    session.state ===
+    STATES.WAITING_FOR_EXPENSE_CATEGORY
+) {
 
-                return ctx.reply(
-                    "❌ Expense recording cancelled.",
-                    keyboard
-                );
+    if (!text) {
+        return;
+    }
 
+    setSession(
+        ctx.from.id,
+        {
+            ...session,
+
+            state:
+                STATES.WAITING_FOR_EXPENSE_DESCRIPTION,
+
+            category:
+                text
+        }
+    );
+
+    await ctx.reply(
+        "📝 Enter a description for this expense:"
+    );
+
+    return;
+}
+
+
+// ==================================================
+// EXPENSE DESCRIPTION
+// ==================================================
+
+if (
+    session.state ===
+    STATES.WAITING_FOR_EXPENSE_DESCRIPTION
+) {
+
+    if (!text) {
+        await ctx.reply(
+            "❌ Please enter an expense description."
+        );
+
+        return;
+    }
+
+    setSession(
+        ctx.from.id,
+        {
+            ...session,
+
+            state:
+                STATES.WAITING_FOR_EXPENSE_AMOUNT,
+
+            description:
+                text
+        }
+    );
+
+    await ctx.reply(
+        "💸 Enter the expense amount:"
+    );
+
+    return;
+}
+
+
+// ==================================================
+// EXPENSE AMOUNT
+// ==================================================
+
+if (
+    session.state ===
+    STATES.WAITING_FOR_EXPENSE_AMOUNT
+) {
+
+    const amount =
+        Number(
+            text.replace(/,/g, "")
+        );
+
+    if (
+        !Number.isFinite(amount) ||
+        amount <= 0
+    ) {
+
+        await ctx.reply(
+            "❌ Please enter a valid amount.\n\nExample: 15000"
+        );
+
+        return;
+    }
+
+    setSession(
+        ctx.from.id,
+        {
+            ...session,
+
+            state:
+                STATES.WAITING_FOR_EXPENSE_NOTE,
+
+            amount
+        }
+    );
+
+    await ctx.reply(
+        "📝 Add a note for this expense, or type NONE:"
+    );
+
+    return;
+}
+
+
+// ==================================================
+// EXPENSE NOTE
+// ==================================================
+
+if (
+    session.state ===
+    STATES.WAITING_FOR_EXPENSE_NOTE
+) {
+
+    const note =
+        text.toUpperCase() === "NONE"
+            ? ""
+            : text;
+
+
+    // ==============================================
+    // SAVE EXPENSE
+    // ==============================================
+
+    try {
+
+        await saveExpense(
+            ctx.from.id,
+            {
+                category:
+                    session.category,
+
+                description:
+                    session.description,
+
+                amount:
+                    session.amount,
+
+                note
             }
+        );
 
-            session.category = ctx.message.text;
+    } catch (error) {
 
-            session.state = STATES.WAITING_FOR_EXPENSE_DESCRIPTION;
+        console.error(
+            "Expense save error:",
+            error
+        );
 
-            setSession(ctx.from.id, session);
+        await ctx.reply(
+            "❌ I couldn't save this expense right now. Please try again."
+        );
 
-            return ctx.reply(
-                "📝 What was the expense for?"
-            );
+        return;
+    }
 
-        // ==========================
-        // DESCRIPTION
-        // ==========================
-        case STATES.WAITING_FOR_EXPENSE_DESCRIPTION:
 
-            session.description = ctx.message.text;
+    // ==============================================
+    // TODAY'S EXPENSE TOTAL
+    // ==============================================
 
-            session.state = STATES.WAITING_FOR_EXPENSE_AMOUNT;
+    let todayExpenses = 0;
 
-            setSession(ctx.from.id, session);
+    try {
 
-            return ctx.reply(
-                "💵 Enter the expense amount."
-            );
+        todayExpenses =
+            Number(
+                await getTodayExpenses(
+                    ctx.from.id
+                )
+            ) || 0;
 
-        // ==========================
-        // AMOUNT
-        // ==========================
-        case STATES.WAITING_FOR_EXPENSE_AMOUNT:
+    } catch (error) {
 
-            session.amount = Number(ctx.message.text);
+        console.error(
+            "Today's expense error:",
+            error
+        );
 
-            if (
-                isNaN(session.amount) ||
-                session.amount <= 0
-            ) {
-                return ctx.reply(
-                    "❌ Please enter a valid amount."
-                );
-            }
+    }
 
-            session.state = STATES.WAITING_FOR_EXPENSE_NOTE;
 
-            setSession(ctx.from.id, session);
+    // ==============================================
+    // SUCCESS
+    // ==============================================
 
-            return ctx.reply(
-`📝 Enter a note.
+    await ctx.reply(
 
-If you don't have one, type:
+        `✅ Expense Recorded
 
-skip`
-            );
+━━━━━━━━━━━━━━━━━━
 
-        // ==========================
-        // NOTE
-        // ==========================
-        case STATES.WAITING_FOR_EXPENSE_NOTE:
+📂 Category: ${session.category}
 
-            session.notes =
-                ctx.message.text.toLowerCase() === "skip"
-                    ? ""
-                    : ctx.message.text;
+📝 Description: ${session.description}
 
-            saveExpense(ctx.from.id, session);
+💸 Amount: ₦${Number(
+session.amount
+).toLocaleString()}
 
-            const todayExpenses = getTodayExpenses(ctx.from.id);
-
-            await ctx.reply(
-
-`✅ Expense Recorded Successfully
-
-📂 Category:
-${session.category}
-
-📝 Description:
-${session.description}
-
-💵 Amount:
-₦${session.amount.toLocaleString()}
-
-📋 Note:
-${session.notes || "None"}
+🗒️ Note: ${
+note || "None"
+}
 
 ━━━━━━━━━━━━━━━━━━
 
@@ -128,14 +251,16 @@ ${session.notes || "None"}
 
 💾 Saved Successfully`,
 
-                keyboard
+        keyboard
 
-            );
+    );
 
-            clearSession(ctx.from.id);
 
-            return;
+    clearSession(
+        ctx.from.id
+    );
 
-    }
+    return;
+}
 
 };

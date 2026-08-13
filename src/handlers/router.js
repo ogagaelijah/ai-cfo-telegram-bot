@@ -1,124 +1,223 @@
-const { getSession, clearSession } = require("../states/sessionManager");
+const {
+    getSession,
+    clearSession
+} = require("../states/sessionManager");
+
+const {
+    handleRegistration
+} = require("../flows/registrationFlow");
 
 const STATES = require("../constants/states");
 
-const keyboard = require("../keyboards/mainKeyboard");
+const keyboard =
+    require("../keyboards/mainKeyboard");
 
-const salesFlow = require("../flows/salesFlow");
-const expenseFlow = require("../flows/expenseFlow");
-const incomeFlow = require("../flows/incomeFlow");
-const customerFlow = require("../flows/customerFlow");
-const inventoryFlow = require("../flows/inventoryFlow");
-const debtorFlow = require("../flows/debtorFlow");
-const supplierFlow = require("../flows/supplierFlow");
-const creditorFlow = require("../flows/creditorFlow");
-const purchaseFlow = require("../flows/purchaseFlow");
+const salesFlow =
+    require("../flows/salesFlow");
 
-const menuHandler = require("./menuHandler");
-const customerHandler = require("./customerHandler");
-const inventoryHandler = require("./inventoryHandler");
-const reportHandler = require("./reportHandler");
-const forecastHandler = require("./forecastHandler");
-const businessHandler = require("./businessHandler");
-const debtorHandler = require("./debtorHandler");
-const supplierHandler = require("./supplierHandler");
-const creditorHandler = require("./creditorHandler");
-const purchaseHandler = require("./purchaseHandler");
-const analyticsHandler = require("./analyticsHandler");
-const aiHandler = require("./aiHandler");
+const expenseFlow =
+    require("../flows/expenseFlow");
+
+const incomeFlow =
+    require("../flows/incomeFlow");
+
+const customerFlow =
+    require("../flows/customerFlow");
+
+const inventoryFlow =
+    require("../flows/inventoryFlow");
+
+const debtorFlow =
+    require("../flows/debtorFlow");
+
+const supplierFlow =
+    require("../flows/supplierFlow");
+
+const creditorFlow =
+    require("../flows/creditorFlow");
+
+const purchaseFlow =
+    require("../flows/purchaseFlow");
+
+const menuHandler =
+    require("./menuHandler");
+
+const personalHandler =
+    require("./personalHandler");
+
+const customerHandler =
+    require("./customerHandler");
+
+const inventoryHandler =
+    require("./inventoryHandler");
+
+const reportHandler =
+    require("./reportHandler");
+
+const forecastHandler =
+    require("./forecastHandler");
+
+const businessHandler =
+    require("./businessHandler");
+
+const debtorHandler =
+    require("./debtorHandler");
+
+const supplierHandler =
+    require("./supplierHandler");
+
+const creditorHandler =
+    require("./creditorHandler");
+
+const purchaseHandler =
+    require("./purchaseHandler");
+
+const analyticsHandler =
+    require("./analyticsHandler");
+
+const aiHandler =
+    require("./aiHandler");
+
 
 module.exports = (bot) => {
 
     bot.on("text", async (ctx) => {
 
-        // ==========================
+        // ==================================================
+        // REGISTRATION
+        // ==================================================
+
+        if (await handleRegistration(ctx)) {
+            return;
+        }
+
+
+        // ==================================================
         // MAIN MENU
-        // ==========================
+        // ==================================================
+
         if (await menuHandler(ctx)) {
             return;
         }
 
-        // ==========================
+
+        // ==================================================
+        // PERSONAL FINANCE
+        // ==================================================
+
+        if (await personalHandler(ctx)) {
+            return;
+        }
+
+
+        // ==================================================
         // CUSTOMER MENU
-        // ==========================
+        // ==================================================
+
         if (await customerHandler(ctx)) {
             return;
         }
 
-        // ==========================
+
+        // ==================================================
         // INVENTORY MENU
-        // ==========================
+        // ==================================================
+
         if (await inventoryHandler(ctx)) {
             return;
         }
 
-        // ==========================
+
+        // ==================================================
         // REPORT MENU
-        // ==========================
+        // ==================================================
+
         if (await reportHandler(ctx)) {
             return;
         }
 
-        // ==========================
+
+        // ==================================================
         // FORECAST
-        // ==========================
+        // ==================================================
+
         if (await forecastHandler(ctx)) {
             return;
         }
 
-        // ==========================
+
+        // ==================================================
         // BUSINESS MENU
-        // ==========================
+        // ==================================================
+
         if (await businessHandler(ctx)) {
             return;
         }
 
-        // ==========================
+
+        // ==================================================
         // AI CHAT
-        // ==========================
+        // ==================================================
+
         if (await aiHandler(ctx)) {
             return;
         }
 
-        // ==========================
+
+        // ==================================================
         // ANALYTICS
-        // ==========================
+        // ==================================================
+
         if (await analyticsHandler(ctx)) {
             return;
         }
 
-        // ==========================
+
+        // ==================================================
         // DEBTORS MENU
-        // ==========================
+        // ==================================================
+
         if (await debtorHandler(ctx)) {
             return;
         }
 
-        // ==========================
+
+        // ==================================================
         // SUPPLIERS MENU
-        // ==========================
+        // ==================================================
+
         if (await supplierHandler(ctx)) {
             return;
         }
 
-        // ==========================
+
+        // ==================================================
         // CREDITORS MENU
-        // ==========================
+        // ==================================================
+
         if (await creditorHandler(ctx)) {
             return;
         }
 
-        // ==========================
+
+        // ==================================================
         // PURCHASE MENU
-        // ==========================
+        // ==================================================
+
         if (await purchaseHandler(ctx)) {
             return;
         }
 
-        // ==========================
+
+        // ==================================================
         // ACTIVE SESSION
-        // ==========================
-        const session = getSession(ctx.from.id);
+        // ==================================================
+
+        const session =
+            getSession(
+                ctx.from.id
+            );
+
 
         if (!session) {
 
@@ -129,96 +228,158 @@ module.exports = (bot) => {
 
         }
 
+
+        // ==================================================
+        // SESSION ROUTING
+        // ==================================================
+
         switch (session.state) {
 
-            // ==========================
+            // ==============================================
             // SALES
-            // ==========================
+            // ==============================================
+
             case STATES.WAITING_FOR_PRODUCT:
+
             case STATES.WAITING_FOR_QUANTITY:
+
             case STATES.WAITING_FOR_PRICE:
+
             case STATES.WAITING_FOR_CUSTOMER:
+
             case STATES.WAITING_FOR_PAYMENT_STATUS:
+
                 return salesFlow(ctx);
 
-            // ==========================
+
+            // ==============================================
             // EXPENSES
-            // ==========================
+            // ==============================================
+
             case STATES.WAITING_FOR_EXPENSE_CATEGORY:
+
             case STATES.WAITING_FOR_EXPENSE_DESCRIPTION:
+
             case STATES.WAITING_FOR_EXPENSE_AMOUNT:
+
             case STATES.WAITING_FOR_EXPENSE_NOTE:
+
                 return expenseFlow(ctx);
 
-            // ==========================
+
+            // ==============================================
             // INCOME
-            // ==========================
+            // ==============================================
+
             case STATES.WAITING_FOR_INCOME_SOURCE:
+
             case STATES.WAITING_FOR_INCOME_AMOUNT:
+
             case STATES.WAITING_FOR_INCOME_NOTE:
+
                 return incomeFlow(ctx);
 
-            // ==========================
+
+            // ==============================================
             // CUSTOMERS
-            // ==========================
+            // ==============================================
+
             case STATES.WAITING_FOR_CUSTOMER_NAME:
+
             case STATES.WAITING_FOR_CUSTOMER_PHONE:
+
             case STATES.WAITING_FOR_CUSTOMER_EMAIL:
+
             case STATES.WAITING_FOR_CUSTOMER_ADDRESS:
+
             case STATES.WAITING_FOR_CUSTOMER_SEARCH:
+
                 return customerFlow(ctx);
 
-            // ==========================
+
+            // ==============================================
             // INVENTORY
-            // ==========================
+            // ==============================================
+
             case STATES.WAITING_FOR_INVENTORY_PRODUCT:
+
             case STATES.WAITING_FOR_INVENTORY_QUANTITY:
+
             case STATES.WAITING_FOR_COST_PRICE:
+
             case STATES.WAITING_FOR_SELLING_PRICE:
+
                 return inventoryFlow(ctx);
 
-            // ==========================
+
+            // ==============================================
             // DEBTORS
-            // ==========================
+            // ==============================================
+
             case STATES.WAITING_FOR_PAYMENT_CUSTOMER:
+
             case STATES.WAITING_FOR_PAYMENT_AMOUNT:
+
                 return debtorFlow(ctx);
 
-            // ==========================
+
+            // ==============================================
             // SUPPLIERS
-            // ==========================
+            // ==============================================
+
             case STATES.WAITING_FOR_SUPPLIER_NAME:
+
             case STATES.WAITING_FOR_SUPPLIER_PHONE:
+
             case STATES.WAITING_FOR_SUPPLIER_EMAIL:
+
             case STATES.WAITING_FOR_SUPPLIER_ADDRESS:
+
                 return supplierFlow(ctx);
 
+
             case STATES.WAITING_FOR_SUPPLIER_SEARCH:
+
                 return supplierHandler.handleSearchResult(ctx);
 
-            // ==========================
+
+            // ==============================================
             // CREDITORS
-            // ==========================
+            // ==============================================
+
             case STATES.WAITING_FOR_CREDITOR_SUPPLIER:
+
             case STATES.WAITING_FOR_CREDITOR_PAYMENT:
+
                 return creditorFlow(ctx);
 
-            // ==========================
+
+            // ==============================================
             // PURCHASES
-            // ==========================
+            // ==============================================
+
             case STATES.WAITING_FOR_PURCHASE_SUPPLIER:
+
             case STATES.WAITING_FOR_PURCHASE_PRODUCT:
+
             case STATES.WAITING_FOR_PURCHASE_QUANTITY:
+
             case STATES.WAITING_FOR_PURCHASE_COST:
+
             case STATES.WAITING_FOR_PURCHASE_PAID:
+
                 return purchaseFlow(ctx);
 
-            // ==========================
+
+            // ==============================================
             // UNKNOWN SESSION
-            // ==========================
+            // ==============================================
+
             default:
 
-                clearSession(ctx.from.id);
+                clearSession(
+                    ctx.from.id
+                );
 
                 return ctx.reply(
                     "⚠️ Session expired. Please start again.",
