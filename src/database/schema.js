@@ -266,6 +266,36 @@ function initializeDatabase() {
 
 
     // ======================================================
+    // PERSONAL SAVINGS GOALS
+    // ======================================================
+
+    db.prepare(`
+        CREATE TABLE IF NOT EXISTS personal_savings_goals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            account_id INTEGER NOT NULL,
+
+            name TEXT NOT NULL,
+
+            target_amount REAL NOT NULL,
+
+            saved_amount REAL DEFAULT 0,
+
+            deadline TEXT,
+
+            notes TEXT,
+
+            status TEXT DEFAULT 'ACTIVE',
+
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+
+            FOREIGN KEY(account_id)
+                REFERENCES accounts(id)
+        )
+    `).run();
+
+
+    // ======================================================
     // DEBTORS
     // ======================================================
 
@@ -450,6 +480,12 @@ function initializeDatabase() {
     db.prepare(`
         CREATE INDEX IF NOT EXISTS idx_income_account
         ON income(account_id)
+    `).run();
+
+
+    db.prepare(`
+        CREATE INDEX IF NOT EXISTS idx_personal_savings_goals_account
+        ON personal_savings_goals(account_id)
     `).run();
 
 

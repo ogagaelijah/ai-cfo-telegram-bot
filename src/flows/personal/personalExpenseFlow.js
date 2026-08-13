@@ -1,81 +1,51 @@
-const mainKeyboard =
-    require("../keyboards/mainKeyboard");
+const personalKeyboard =
+    require("../../keyboards/personal/personalKeyboard");
 
-const businessKeyboard =
-    require("../keyboards/businessKeyboard");
-
-const incomeKeyboard =
-    require("../keyboards/incomeKeyboard");
+const personalExpenseKeyboard =
+    require("../../keyboards/personal/personalExpenseKeyboard");
 
 const {
     getSession,
     setSession,
     clearSession
-} = require("../states/sessionManager");
+} = require("../../states/sessionManager");
 
 const STATES =
-    require("../constants/states");
+    require("../../constants/states");
 
 const accountContext =
-    require("../services/accountContext");
+    require("../../services/accountContext");
 
-const {
-    saveIncome,
-    getTodayIncome
-} = require("../services/incomeService");
+const personalExpense =
+    require("../../application/personal/personalExpense");
 
 
 // ======================================================
-// BUSINESS INCOME TELEGRAM ADAPTER
+// PERSONAL EXPENSE TELEGRAM ADAPTER
 // ======================================================
 //
-// This file belongs to the TELEGRAM INTERFACE layer.
+// This file is Telegram-specific.
 //
-// It is allowed to know about:
+// It handles:
 //
-// - ctx
-// - Telegram user ID
+// - Telegram messages
 // - Telegram sessions
 // - Telegram keyboards
-// - Telegram replies
+// - Telegram responses
 //
-// It MUST NOT pass telegramId into the service layer.
+// It does NOT contain accounting logic.
 //
-// Architecture:
+// Accounting logic is delegated to:
 //
-// Telegram
-//     ↓
-// incomeFlow
-//     ↓
-// accountContext
-//     ↓
-// incomeService
-//     ↓
-// incomeRepository
-//     ↓
-// Database
+// application/personal/personalExpense.js
 //
 // ======================================================
 
 
-module.exports = async function incomeFlow(ctx) {
-
-    // ==================================================
-    // TELEGRAM USER ID
-    // ==================================================
+module.exports = async function personalExpenseFlow(ctx) {
 
     const telegramId =
-        ctx.from &&
-        ctx.from.id
-            ? ctx.from.id
-            : null;
-
-
-    if (!telegramId) {
-
-        return false;
-
-    }
+        ctx.from.id;
 
 
     // ==================================================
@@ -96,7 +66,7 @@ module.exports = async function incomeFlow(ctx) {
 
 
     // ==================================================
-    // GET MESSAGE TEXT
+    // MESSAGE TEXT
     // ==================================================
 
     const text =
@@ -107,12 +77,12 @@ module.exports = async function incomeFlow(ctx) {
 
 
     // ==================================================
-    // BACK TO BUSINESS
+    // BACK TO PERSONAL FINANCE
     // ==================================================
 
     if (
-        text === "⬅️ Back to Business" ||
-        text === "⬅️ Back"
+        text === "⬅️ Back to Personal Finance" ||
+        text === "🔙 Back to Personal Finance"
     ) {
 
         clearSession(
@@ -122,9 +92,10 @@ module.exports = async function incomeFlow(ctx) {
 
         await ctx.reply(
 
-            "📊 BUSINESS CENTER",
+            "👤 PERSONAL FINANCE\n\n" +
+            "Choose an option below 👇",
 
-            businessKeyboard
+            personalKeyboard
 
         );
 
@@ -135,21 +106,21 @@ module.exports = async function incomeFlow(ctx) {
 
 
     // ==================================================
-    // BUSINESS INCOME SOURCE
+    // PERSONAL EXPENSE CATEGORY
     // ==================================================
 
     if (
         session.state ===
-        STATES.WAITING_FOR_INCOME_SOURCE
+        STATES.WAITING_FOR_PERSONAL_EXPENSE_CATEGORY
     ) {
 
         if (!text) {
 
             await ctx.reply(
 
-                "Please select an income source.",
+                "Please select an expense category.",
 
-                incomeKeyboard
+                personalExpenseKeyboard
 
             );
 
@@ -158,12 +129,12 @@ module.exports = async function incomeFlow(ctx) {
         }
 
 
-        session.source =
+        session.category =
             text;
 
 
         session.state =
-            STATES.WAITING_FOR_INCOME_AMOUNT;
+            STATES.WAITING_FOR_PERSONAL_EXPENSE_DESCRIPTION;
 
 
         setSession(
@@ -177,8 +148,7 @@ module.exports = async function incomeFlow(ctx) {
 
         await ctx.reply(
 
-            `💰 Income Source: ${session.source}\n\n` +
-            "💵 Enter the amount:"
+            "📝 What was the expense for?"
 
         );
 
@@ -189,17 +159,71 @@ module.exports = async function incomeFlow(ctx) {
 
 
     // ==================================================
-    // BUSINESS INCOME AMOUNT
+    // PERSONAL EXPENSE DESCRIPTION
     // ==================================================
 
     if (
         session.state ===
-        STATES.WAITING_FOR_INCOME_AMOUNT
+        STATES.WAITING_FOR_PERSONAL_EXPENSE_DESCRIPTION
+    ) {
+
+        if (!text) {
+
+            await ctx.reply(
+
+                "Please enter a description for the expense."
+
+            );
+
+            return true;
+
+        }
+
+
+        session.description =
+            text;
+
+
+        session.state =
+            STATES.WAITING_FOR_PERSONAL_EXPENSE_AMOUNT;
+
+
+        setSession(
+
+            telegramId,
+
+            session
+
+        );
+
+
+        await ctx.reply(
+
+            "💵 Enter the expense amount:"
+
+        );
+
+
+        return true;
+
+    }
+
+
+    // ==================================================
+    // PERSONAL EXPENSE AMOUNT
+    // ==================================================
+
+    if (
+        session.state ===
+        STATES.WAITING_FOR_PERSONAL_EXPENSE_AMOUNT
     ) {
 
         const amount =
             Number(
-                text.replace(/,/g, "")
+                text.replace(
+                    /,/g,
+                    ""
+                )
             );
 
 
@@ -214,7 +238,6 @@ module.exports = async function incomeFlow(ctx) {
 
             );
 
-
             return true;
 
         }
@@ -225,7 +248,7 @@ module.exports = async function incomeFlow(ctx) {
 
 
         session.state =
-            STATES.WAITING_FOR_INCOME_NOTE;
+            STATES.WAITING_FOR_PERSONAL_EXPENSE_NOTE;
 
 
         setSession(
@@ -239,9 +262,8 @@ module.exports = async function incomeFlow(ctx) {
 
         await ctx.reply(
 
-            "📝 Add a note for this income.\n\n" +
-            "If you don't want to add a note, type:\n" +
-            "Skip"
+            "📝 Add a note for this expense.\n\n" +
+            "Type a note or type \"None\" if you don't want to add one."
 
         );
 
@@ -252,47 +274,43 @@ module.exports = async function incomeFlow(ctx) {
 
 
     // ==================================================
-    // BUSINESS INCOME NOTE + SAVE
+    // PERSONAL EXPENSE NOTE
     // ==================================================
 
     if (
         session.state ===
-        STATES.WAITING_FOR_INCOME_NOTE
+        STATES.WAITING_FOR_PERSONAL_EXPENSE_NOTE
     ) {
 
-        session.note =
-            text.toLowerCase() === "skip" ||
+        const note =
             text.toLowerCase() === "none"
                 ? ""
                 : text;
 
 
+        session.note =
+            note;
+
+
         // ==============================================
         // RESOLVE CURRENT ACCOUNT
         // ==============================================
-        //
-        // Telegram identity is converted into the
-        // interface-neutral account context here.
-        //
-        // The service receives accountId only.
-        //
 
         let account;
 
         try {
 
             account =
-                accountContext.requireAccount(
+                accountContext.getCurrentAccount(
                     telegramId
                 );
 
         } catch (error) {
 
             console.error(
-                "Business income account error:",
+                "Personal expense account error:",
                 error
             );
-
 
             clearSession(
                 telegramId
@@ -302,9 +320,9 @@ module.exports = async function incomeFlow(ctx) {
             await ctx.reply(
 
                 "⚠️ I couldn't determine your active account.\n\n" +
-                "Please return to your account menu and try again.",
+                "Please return to your Personal Finance menu and try again.",
 
-                mainKeyboard
+                personalKeyboard
 
             );
 
@@ -315,12 +333,12 @@ module.exports = async function incomeFlow(ctx) {
 
 
         // ==============================================
-        // VERIFY BUSINESS ACCOUNT
+        // VERIFY PERSONAL ACCOUNT
         // ==============================================
 
         if (
-            account.accountType !==
-            "BUSINESS"
+            !account ||
+            account.accountType !== "PERSONAL"
         ) {
 
             clearSession(
@@ -330,9 +348,9 @@ module.exports = async function incomeFlow(ctx) {
 
             await ctx.reply(
 
-                "⚠️ Business income can only be recorded from a BUSINESS account.",
+                "⚠️ Personal expenses can only be recorded from a PERSONAL account.",
 
-                mainKeyboard
+                personalKeyboard
 
             );
 
@@ -343,32 +361,25 @@ module.exports = async function incomeFlow(ctx) {
 
 
         // ==============================================
-        // SAVE BUSINESS INCOME
+        // SAVE PERSONAL EXPENSE
         // ==============================================
-        //
-        // IMPORTANT:
-        //
-        // We pass account.accountId.
-        //
-        // We DO NOT pass telegramId.
-        //
-        // This prevents the FOREIGN KEY problem caused
-        // by sending an incorrect/nonexistent account ID.
-        //
 
-        let savedIncome;
+        let savedExpense;
 
         try {
 
-            savedIncome =
-                saveIncome(
+            savedExpense =
+                personalExpense.recordPersonalExpense(
 
                     account.accountId,
 
                     {
 
-                        source:
-                            session.source,
+                        category:
+                            session.category,
+
+                        description:
+                            session.description,
 
                         amount:
                             session.amount,
@@ -383,7 +394,7 @@ module.exports = async function incomeFlow(ctx) {
         } catch (error) {
 
             console.error(
-                "Business income save error:",
+                "Personal expense application error:",
                 error
             );
 
@@ -395,10 +406,10 @@ module.exports = async function incomeFlow(ctx) {
 
             await ctx.reply(
 
-                "⚠️ I couldn't save this business income record.\n\n" +
+                "⚠️ I couldn't save this personal expense.\n\n" +
                 "Please try again.",
 
-                mainKeyboard
+                personalKeyboard
 
             );
 
@@ -409,15 +420,15 @@ module.exports = async function incomeFlow(ctx) {
 
 
         // ==============================================
-        // GET TODAY'S BUSINESS INCOME
+        // GET TODAY'S PERSONAL EXPENSE TOTAL
         // ==============================================
 
-        let todayIncome = 0;
+        let todayExpenses = 0;
 
         try {
 
-            todayIncome =
-                getTodayIncome(
+            todayExpenses =
+                personalExpense.getTodayPersonalExpenses(
 
                     account.accountId
 
@@ -426,7 +437,7 @@ module.exports = async function incomeFlow(ctx) {
         } catch (error) {
 
             console.error(
-                "Business income total error:",
+                "Personal expense total error:",
                 error
             );
 
@@ -448,25 +459,29 @@ module.exports = async function incomeFlow(ctx) {
 
         await ctx.reply(
 
-            "✅ BUSINESS INCOME RECORDED\n\n" +
+            "✅ PERSONAL EXPENSE RECORDED\n\n" +
 
-            `💰 Source: ${savedIncome.source}\n` +
+            `📂 Category: ${savedExpense.category || session.category}\n` +
+
+            `📝 Description: ${savedExpense.item || session.description}\n` +
 
             `💵 Amount: ₦${Number(
-                savedIncome.amount
+                savedExpense.amount
             ).toLocaleString()}\n` +
 
             `📝 Note: ${
-                savedIncome.notes || "None"
+                savedExpense.notes || "None"
             }\n\n` +
 
-            `📊 Today's Business Income: ₦${Number(
-                todayIncome
+            `💸 Today's Personal Expenses:\n` +
+
+            `₦${Number(
+                todayExpenses
             ).toLocaleString()}\n\n` +
 
             "What would you like to do next? 👇",
 
-            mainKeyboard
+            personalKeyboard
 
         );
 
@@ -477,7 +492,7 @@ module.exports = async function incomeFlow(ctx) {
 
 
     // ==================================================
-    // NO MATCH
+    // UNKNOWN PERSONAL EXPENSE STATE
     // ==================================================
 
     return false;

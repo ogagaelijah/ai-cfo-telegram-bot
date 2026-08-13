@@ -1,40 +1,50 @@
-const incomeRepository =
-    require("../repositories/incomeRepository");
+const incomeService =
+    require("../incomeService");
+
 
 // ======================================================
-// INCOME SERVICE
+// PERSONAL INCOME SERVICE
 // ======================================================
 //
-// INTERFACE-NEUTRAL
+// INTERFACE-NEUTRAL APPLICATION SERVICE
 //
-// This service MUST NOT know about:
+// This service contains PERSONAL INCOME business logic.
+//
+// It does NOT know about:
+//
 // - Telegram
 // - Website
 // - Mobile App
+// - ctx
+// - telegramId
+// - keyboards
+// - sessions
 // - HTTP
-// - Telegram IDs
 //
-// The caller is responsible for resolving the active
-// account and supplying accountId.
+// The caller must provide the active accountId.
 //
 // Architecture:
 //
 // Interface
-//     ↓
-// Account Context
-//     ↓
+//      ↓
+// Personal Income Adapter
+//      ↓
+// personalIncomeService
+//      ↓
 // incomeService
-//     ↓
+//      ↓
 // incomeRepository
+//      ↓
+// Database
 //
 // ======================================================
 
 
 // ======================================================
-// SAVE INCOME
+// RECORD PERSONAL INCOME
 // ======================================================
 
-function saveIncome(
+function recordPersonalIncome(
     accountId,
     income
 ) {
@@ -47,15 +57,44 @@ function saveIncome(
 
     }
 
+
     if (!income) {
 
         throw new Error(
-            "Income data is required."
+            "Personal income data is required."
         );
 
     }
 
-    return incomeRepository.create(
+
+    if (!income.source) {
+
+        throw new Error(
+            "Personal income source is required."
+        );
+
+    }
+
+
+    const amount =
+        Number(
+            income.amount
+        );
+
+
+    if (
+        !Number.isFinite(amount) ||
+        amount <= 0
+    ) {
+
+        throw new Error(
+            "Personal income amount must be greater than zero."
+        );
+
+    }
+
+
+    return incomeService.saveIncome(
 
         accountId,
 
@@ -64,12 +103,12 @@ function saveIncome(
                 income.source,
 
             amount:
-                Number(
-                    income.amount
-                ),
+                amount,
 
             notes:
-                income.notes || ""
+                income.note ||
+                income.notes ||
+                ""
         }
 
     );
@@ -78,10 +117,10 @@ function saveIncome(
 
 
 // ======================================================
-// TODAY'S INCOME
+// TODAY'S PERSONAL INCOME
 // ======================================================
 
-function getTodayIncome(
+function getTodayPersonalIncome(
     accountId
 ) {
 
@@ -93,7 +132,8 @@ function getTodayIncome(
 
     }
 
-    return incomeRepository.getTodayTotal(
+
+    return incomeService.getTodayIncome(
         accountId
     );
 
@@ -101,10 +141,10 @@ function getTodayIncome(
 
 
 // ======================================================
-// MONTHLY INCOME
+// MONTHLY PERSONAL INCOME
 // ======================================================
 
-function getMonthlyIncome(
+function getMonthlyPersonalIncome(
     accountId
 ) {
 
@@ -116,7 +156,8 @@ function getMonthlyIncome(
 
     }
 
-    return incomeRepository.getMonthlyTotal(
+
+    return incomeService.getMonthlyIncome(
         accountId
     );
 
@@ -124,10 +165,10 @@ function getMonthlyIncome(
 
 
 // ======================================================
-// ALL INCOME
+// ALL PERSONAL INCOME
 // ======================================================
 
-function getIncome(
+function getPersonalIncome(
     accountId
 ) {
 
@@ -139,7 +180,8 @@ function getIncome(
 
     }
 
-    return incomeRepository.findAll(
+
+    return incomeService.getIncome(
         accountId
     );
 
@@ -152,12 +194,12 @@ function getIncome(
 
 module.exports = {
 
-    saveIncome,
+    recordPersonalIncome,
 
-    getTodayIncome,
+    getTodayPersonalIncome,
 
-    getMonthlyIncome,
+    getMonthlyPersonalIncome,
 
-    getIncome
+    getPersonalIncome
 
 };

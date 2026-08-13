@@ -1,67 +1,51 @@
-const mainKeyboard =
-    require("../keyboards/mainKeyboard");
+const personalKeyboard =
+    require("../../keyboards/personal/personalKeyboard");
 
-const businessKeyboard =
-    require("../keyboards/businessKeyboard");
-
-const incomeKeyboard =
-    require("../keyboards/incomeKeyboard");
+const personalIncomeKeyboard =
+    require("../../keyboards/personal/personalIncomeKeyboard");
 
 const {
     getSession,
     setSession,
     clearSession
-} = require("../states/sessionManager");
+} = require("../../states/sessionManager");
 
 const STATES =
-    require("../constants/states");
+    require("../../constants/states");
 
 const accountContext =
-    require("../services/accountContext");
+    require("../../services/accountContext");
 
-const {
-    saveIncome,
-    getTodayIncome
-} = require("../services/incomeService");
+const personalIncome =
+    require("../../application/personal/personalIncome");
 
 
 // ======================================================
-// BUSINESS INCOME TELEGRAM ADAPTER
+// PERSONAL INCOME TELEGRAM ADAPTER
 // ======================================================
 //
-// This file belongs to the TELEGRAM INTERFACE layer.
+// TELEGRAM INTERFACE LAYER
 //
-// It is allowed to know about:
+// This file handles:
 //
-// - ctx
-// - Telegram user ID
+// - Telegram input
 // - Telegram sessions
 // - Telegram keyboards
-// - Telegram replies
+// - Telegram responses
 //
-// It MUST NOT pass telegramId into the service layer.
+// It does NOT contain accounting logic.
 //
-// Architecture:
+// Accounting operations are delegated to:
 //
-// Telegram
-//     ↓
-// incomeFlow
-//     ↓
-// accountContext
-//     ↓
-// incomeService
-//     ↓
-// incomeRepository
-//     ↓
-// Database
+// application/personal/personalIncome.js
 //
 // ======================================================
 
 
-module.exports = async function incomeFlow(ctx) {
+module.exports = async function personalIncomeFlow(ctx) {
 
     // ==================================================
-    // TELEGRAM USER ID
+    // TELEGRAM USER
     // ==================================================
 
     const telegramId =
@@ -72,14 +56,12 @@ module.exports = async function incomeFlow(ctx) {
 
 
     if (!telegramId) {
-
         return false;
-
     }
 
 
     // ==================================================
-    // GET SESSION
+    // LOAD SESSION
     // ==================================================
 
     const session =
@@ -89,14 +71,12 @@ module.exports = async function incomeFlow(ctx) {
 
 
     if (!session) {
-
         return false;
-
     }
 
 
     // ==================================================
-    // GET MESSAGE TEXT
+    // MESSAGE TEXT
     // ==================================================
 
     const text =
@@ -107,11 +87,11 @@ module.exports = async function incomeFlow(ctx) {
 
 
     // ==================================================
-    // BACK TO BUSINESS
+    // BACK TO PERSONAL FINANCE
     // ==================================================
 
     if (
-        text === "⬅️ Back to Business" ||
+        text === "⬅️ Back to Personal Finance" ||
         text === "⬅️ Back"
     ) {
 
@@ -122,25 +102,25 @@ module.exports = async function incomeFlow(ctx) {
 
         await ctx.reply(
 
-            "📊 BUSINESS CENTER",
+            "👤 PERSONAL FINANCE\n\n" +
+            "Choose an option below 👇",
 
-            businessKeyboard
+            personalKeyboard
 
         );
 
 
         return true;
-
     }
 
 
     // ==================================================
-    // BUSINESS INCOME SOURCE
+    // PERSONAL INCOME SOURCE
     // ==================================================
 
     if (
         session.state ===
-        STATES.WAITING_FOR_INCOME_SOURCE
+        STATES.WAITING_FOR_PERSONAL_INCOME_SOURCE
     ) {
 
         if (!text) {
@@ -149,12 +129,11 @@ module.exports = async function incomeFlow(ctx) {
 
                 "Please select an income source.",
 
-                incomeKeyboard
+                personalIncomeKeyboard
 
             );
 
             return true;
-
         }
 
 
@@ -163,7 +142,7 @@ module.exports = async function incomeFlow(ctx) {
 
 
         session.state =
-            STATES.WAITING_FOR_INCOME_AMOUNT;
+            STATES.WAITING_FOR_PERSONAL_INCOME_AMOUNT;
 
 
         setSession(
@@ -177,24 +156,23 @@ module.exports = async function incomeFlow(ctx) {
 
         await ctx.reply(
 
-            `💰 Income Source: ${session.source}\n\n` +
+            `💰 Personal Income Source: ${session.source}\n\n` +
             "💵 Enter the amount:"
 
         );
 
 
         return true;
-
     }
 
 
     // ==================================================
-    // BUSINESS INCOME AMOUNT
+    // PERSONAL INCOME AMOUNT
     // ==================================================
 
     if (
         session.state ===
-        STATES.WAITING_FOR_INCOME_AMOUNT
+        STATES.WAITING_FOR_PERSONAL_INCOME_AMOUNT
     ) {
 
         const amount =
@@ -214,9 +192,7 @@ module.exports = async function incomeFlow(ctx) {
 
             );
 
-
             return true;
-
         }
 
 
@@ -225,7 +201,7 @@ module.exports = async function incomeFlow(ctx) {
 
 
         session.state =
-            STATES.WAITING_FOR_INCOME_NOTE;
+            STATES.WAITING_FOR_PERSONAL_INCOME_NOTE;
 
 
         setSession(
@@ -240,28 +216,26 @@ module.exports = async function incomeFlow(ctx) {
         await ctx.reply(
 
             "📝 Add a note for this income.\n\n" +
-            "If you don't want to add a note, type:\n" +
-            "Skip"
+            "You can type a note or reply with \"None\"."
 
         );
 
 
         return true;
-
     }
 
 
     // ==================================================
-    // BUSINESS INCOME NOTE + SAVE
+    // PERSONAL INCOME NOTE
     // ==================================================
 
     if (
         session.state ===
-        STATES.WAITING_FOR_INCOME_NOTE
+        STATES.WAITING_FOR_PERSONAL_INCOME_NOTE
     ) {
 
         session.note =
-            text.toLowerCase() === "skip" ||
+            !text ||
             text.toLowerCase() === "none"
                 ? ""
                 : text;
@@ -270,29 +244,47 @@ module.exports = async function incomeFlow(ctx) {
         // ==============================================
         // RESOLVE CURRENT ACCOUNT
         // ==============================================
-        //
-        // Telegram identity is converted into the
-        // interface-neutral account context here.
-        //
-        // The service receives accountId only.
-        //
 
         let account;
 
         try {
 
             account =
-                accountContext.requireAccount(
+                accountContext.getCurrentAccount(
                     telegramId
                 );
 
         } catch (error) {
 
             console.error(
-                "Business income account error:",
+                "Personal account context error:",
                 error
             );
 
+            clearSession(
+                telegramId
+            );
+
+
+            await ctx.reply(
+
+                "⚠️ I couldn't determine your active personal account.\n\n" +
+                "Please return to your personal finance menu and try again.",
+
+                personalKeyboard
+
+            );
+
+
+            return true;
+        }
+
+
+        // ==============================================
+        // ACCOUNT NOT FOUND
+        // ==============================================
+
+        if (!account) {
 
             clearSession(
                 telegramId
@@ -302,25 +294,24 @@ module.exports = async function incomeFlow(ctx) {
             await ctx.reply(
 
                 "⚠️ I couldn't determine your active account.\n\n" +
-                "Please return to your account menu and try again.",
+                "Please return to your personal finance menu and try again.",
 
-                mainKeyboard
+                personalKeyboard
 
             );
 
 
             return true;
-
         }
 
 
         // ==============================================
-        // VERIFY BUSINESS ACCOUNT
+        // VERIFY PERSONAL ACCOUNT
         // ==============================================
 
         if (
             account.accountType !==
-            "BUSINESS"
+            "PERSONAL"
         ) {
 
             clearSession(
@@ -330,50 +321,38 @@ module.exports = async function incomeFlow(ctx) {
 
             await ctx.reply(
 
-                "⚠️ Business income can only be recorded from a BUSINESS account.",
+                "⚠️ Personal income can only be recorded from a PERSONAL account.",
 
-                mainKeyboard
+                personalKeyboard
 
             );
 
 
             return true;
-
         }
 
 
         // ==============================================
-        // SAVE BUSINESS INCOME
+        // RECORD PERSONAL INCOME
         // ==============================================
-        //
-        // IMPORTANT:
-        //
-        // We pass account.accountId.
-        //
-        // We DO NOT pass telegramId.
-        //
-        // This prevents the FOREIGN KEY problem caused
-        // by sending an incorrect/nonexistent account ID.
-        //
 
         let savedIncome;
 
         try {
 
             savedIncome =
-                saveIncome(
+                personalIncome.recordPersonalIncome(
 
                     account.accountId,
 
                     {
-
                         source:
                             session.source,
 
                         amount:
                             session.amount,
 
-                        notes:
+                        note:
                             session.note
 
                     }
@@ -383,7 +362,7 @@ module.exports = async function incomeFlow(ctx) {
         } catch (error) {
 
             console.error(
-                "Business income save error:",
+                "Personal income application error:",
                 error
             );
 
@@ -395,21 +374,20 @@ module.exports = async function incomeFlow(ctx) {
 
             await ctx.reply(
 
-                "⚠️ I couldn't save this business income record.\n\n" +
+                "⚠️ I couldn't save this personal income record.\n\n" +
                 "Please try again.",
 
-                mainKeyboard
+                personalKeyboard
 
             );
 
 
             return true;
-
         }
 
 
         // ==============================================
-        // GET TODAY'S BUSINESS INCOME
+        // GET TODAY'S PERSONAL INCOME
         // ==============================================
 
         let todayIncome = 0;
@@ -417,7 +395,7 @@ module.exports = async function incomeFlow(ctx) {
         try {
 
             todayIncome =
-                getTodayIncome(
+                personalIncome.getTodayPersonalIncome(
 
                     account.accountId
 
@@ -426,7 +404,7 @@ module.exports = async function incomeFlow(ctx) {
         } catch (error) {
 
             console.error(
-                "Business income total error:",
+                "Personal income total error:",
                 error
             );
 
@@ -443,12 +421,12 @@ module.exports = async function incomeFlow(ctx) {
 
 
         // ==============================================
-        // SUCCESS RESPONSE
+        // SUCCESS
         // ==============================================
 
         await ctx.reply(
 
-            "✅ BUSINESS INCOME RECORDED\n\n" +
+            "✅ PERSONAL INCOME RECORDED\n\n" +
 
             `💰 Source: ${savedIncome.source}\n` +
 
@@ -460,26 +438,40 @@ module.exports = async function incomeFlow(ctx) {
                 savedIncome.notes || "None"
             }\n\n` +
 
-            `📊 Today's Business Income: ₦${Number(
+            `📊 Today's Personal Income: ₦${Number(
                 todayIncome
             ).toLocaleString()}\n\n` +
 
-            "What would you like to do next? 👇",
+            "What would you like to do next?",
 
-            mainKeyboard
+            personalKeyboard
 
         );
 
 
         return true;
-
     }
 
 
     // ==================================================
-    // NO MATCH
+    // UNKNOWN PERSONAL INCOME SESSION
     // ==================================================
 
-    return false;
+    clearSession(
+        telegramId
+    );
+
+
+    await ctx.reply(
+
+        "⚠️ This personal income session has expired.\n\n" +
+        "Please choose an option from your personal finance menu.",
+
+        personalKeyboard
+
+    );
+
+
+    return true;
 
 };

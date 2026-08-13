@@ -7,10 +7,32 @@ const {
     handleRegistration
 } = require("../flows/registrationFlow");
 
-const STATES = require("../constants/states");
+const STATES =
+    require("../constants/states");
+
+
+// ======================================================
+// KEYBOARDS
+// ======================================================
 
 const keyboard =
     require("../keyboards/mainKeyboard");
+
+const personalKeyboard =
+    require("../keyboards/personal/personalKeyboard");
+
+
+// ======================================================
+// ACCOUNT CONTEXT
+// ======================================================
+
+const accountContext =
+    require("../services/accountContext");
+
+
+// ======================================================
+// BUSINESS FLOWS
+// ======================================================
 
 const salesFlow =
     require("../flows/salesFlow");
@@ -39,11 +61,30 @@ const creditorFlow =
 const purchaseFlow =
     require("../flows/purchaseFlow");
 
+
+// ======================================================
+// PERSONAL FLOWS
+// ======================================================
+
+const personalIncomeFlow =
+    require("../flows/personal/personalIncomeFlow");
+
+const personalExpenseFlow =
+    require("../flows/personal/personalExpenseFlow");
+
+const personalSavingsFlow =
+    require("../flows/personal/personalSavingsFlow");
+
+
+// ======================================================
+// MENU / HANDLERS
+// ======================================================
+
 const menuHandler =
     require("./menuHandler");
 
 const personalHandler =
-    require("./personalHandler");
+    require("./personal/personalHandler");
 
 const customerHandler =
     require("./customerHandler");
@@ -79,16 +120,81 @@ const aiHandler =
     require("./aiHandler");
 
 
+// ======================================================
+// GET CORRECT MAIN KEYBOARD
+// ======================================================
+//
+// PERSONAL  -> personalKeyboard
+// BUSINESS  -> mainKeyboard
+//
+// ======================================================
+
+function getMainKeyboard(telegramId) {
+
+    try {
+
+        const account =
+            accountContext.getCurrentAccount(
+                telegramId
+            );
+
+        if (
+            account &&
+            account.accountType === "PERSONAL"
+        ) {
+
+            return personalKeyboard;
+
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Account context error:",
+            error
+        );
+
+    }
+
+    return keyboard;
+
+}
+
+
+// ======================================================
+// ROUTER
+// ======================================================
+
 module.exports = (bot) => {
 
     bot.on("text", async (ctx) => {
+
+        const telegramId =
+            ctx.from &&
+            ctx.from.id
+                ? ctx.from.id
+                : null;
+
+
+        // ==================================================
+        // INVALID TELEGRAM USER
+        // ==================================================
+
+        if (!telegramId) {
+
+            return;
+
+        }
+
 
         // ==================================================
         // REGISTRATION
         // ==================================================
 
         if (await handleRegistration(ctx)) {
+
             return;
+
         }
 
 
@@ -97,16 +203,20 @@ module.exports = (bot) => {
         // ==================================================
 
         if (await menuHandler(ctx)) {
+
             return;
+
         }
 
 
         // ==================================================
-        // PERSONAL FINANCE
+        // PERSONAL FINANCE MENU
         // ==================================================
 
         if (await personalHandler(ctx)) {
+
             return;
+
         }
 
 
@@ -115,7 +225,9 @@ module.exports = (bot) => {
         // ==================================================
 
         if (await customerHandler(ctx)) {
+
             return;
+
         }
 
 
@@ -124,7 +236,9 @@ module.exports = (bot) => {
         // ==================================================
 
         if (await inventoryHandler(ctx)) {
+
             return;
+
         }
 
 
@@ -133,7 +247,9 @@ module.exports = (bot) => {
         // ==================================================
 
         if (await reportHandler(ctx)) {
+
             return;
+
         }
 
 
@@ -142,7 +258,9 @@ module.exports = (bot) => {
         // ==================================================
 
         if (await forecastHandler(ctx)) {
+
             return;
+
         }
 
 
@@ -151,7 +269,9 @@ module.exports = (bot) => {
         // ==================================================
 
         if (await businessHandler(ctx)) {
+
             return;
+
         }
 
 
@@ -160,7 +280,9 @@ module.exports = (bot) => {
         // ==================================================
 
         if (await aiHandler(ctx)) {
+
             return;
+
         }
 
 
@@ -169,7 +291,9 @@ module.exports = (bot) => {
         // ==================================================
 
         if (await analyticsHandler(ctx)) {
+
             return;
+
         }
 
 
@@ -178,7 +302,9 @@ module.exports = (bot) => {
         // ==================================================
 
         if (await debtorHandler(ctx)) {
+
             return;
+
         }
 
 
@@ -187,7 +313,9 @@ module.exports = (bot) => {
         // ==================================================
 
         if (await supplierHandler(ctx)) {
+
             return;
+
         }
 
 
@@ -196,7 +324,9 @@ module.exports = (bot) => {
         // ==================================================
 
         if (await creditorHandler(ctx)) {
+
             return;
+
         }
 
 
@@ -205,25 +335,36 @@ module.exports = (bot) => {
         // ==================================================
 
         if (await purchaseHandler(ctx)) {
+
             return;
+
         }
 
 
         // ==================================================
-        // ACTIVE SESSION
+        // GET ACTIVE SESSION
         // ==================================================
 
         const session =
             getSession(
-                ctx.from.id
+                telegramId
             );
 
 
+        // ==================================================
+        // NO ACTIVE SESSION
+        // ==================================================
+
         if (!session) {
+
+            const correctKeyboard =
+                getMainKeyboard(
+                    telegramId
+                );
 
             return ctx.reply(
                 "Please choose an option below.",
-                keyboard
+                correctKeyboard
             );
 
         }
@@ -235,8 +376,9 @@ module.exports = (bot) => {
 
         switch (session.state) {
 
+
             // ==============================================
-            // SALES
+            // BUSINESS SALES
             // ==============================================
 
             case STATES.WAITING_FOR_PRODUCT:
@@ -253,7 +395,7 @@ module.exports = (bot) => {
 
 
             // ==============================================
-            // EXPENSES
+            // BUSINESS EXPENSES
             // ==============================================
 
             case STATES.WAITING_FOR_EXPENSE_CATEGORY:
@@ -268,7 +410,7 @@ module.exports = (bot) => {
 
 
             // ==============================================
-            // INCOME
+            // BUSINESS INCOME
             // ==============================================
 
             case STATES.WAITING_FOR_INCOME_SOURCE:
@@ -278,6 +420,47 @@ module.exports = (bot) => {
             case STATES.WAITING_FOR_INCOME_NOTE:
 
                 return incomeFlow(ctx);
+
+
+            // ==============================================
+            // PERSONAL INCOME
+            // ==============================================
+
+            case STATES.WAITING_FOR_PERSONAL_INCOME_SOURCE:
+
+            case STATES.WAITING_FOR_PERSONAL_INCOME_AMOUNT:
+
+            case STATES.WAITING_FOR_PERSONAL_INCOME_NOTE:
+
+                return personalIncomeFlow(ctx);
+
+
+            // ==============================================
+            // PERSONAL EXPENSES
+            // ==============================================
+
+            case STATES.WAITING_FOR_PERSONAL_EXPENSE_CATEGORY:
+
+            case STATES.WAITING_FOR_PERSONAL_EXPENSE_DESCRIPTION:
+
+            case STATES.WAITING_FOR_PERSONAL_EXPENSE_AMOUNT:
+
+            case STATES.WAITING_FOR_PERSONAL_EXPENSE_NOTE:
+
+                return personalExpenseFlow(ctx);
+
+
+            // ==============================================
+            // PERSONAL SAVINGS
+            // ==============================================
+
+            case STATES.WAITING_FOR_PERSONAL_SAVING_NAME:
+
+            case STATES.WAITING_FOR_PERSONAL_SAVING_AMOUNT:
+
+            case STATES.WAITING_FOR_PERSONAL_SAVING_NOTE:
+
+                return personalSavingsFlow(ctx);
 
 
             // ==============================================
@@ -338,6 +521,10 @@ module.exports = (bot) => {
                 return supplierFlow(ctx);
 
 
+            // ==============================================
+            // SUPPLIER SEARCH
+            // ==============================================
+
             case STATES.WAITING_FOR_SUPPLIER_SEARCH:
 
                 return supplierHandler.handleSearchResult(ctx);
@@ -375,16 +562,34 @@ module.exports = (bot) => {
             // UNKNOWN SESSION
             // ==============================================
 
-            default:
+            default: {
+
+                console.warn(
+                    "Unknown session state:",
+                    session.state
+                );
+
 
                 clearSession(
-                    ctx.from.id
+                    telegramId
                 );
 
+
+                const correctKeyboard =
+                    getMainKeyboard(
+                        telegramId
+                    );
+
+
                 return ctx.reply(
+
                     "⚠️ Session expired. Please start again.",
-                    keyboard
+
+                    correctKeyboard
+
                 );
+
+            }
 
         }
 

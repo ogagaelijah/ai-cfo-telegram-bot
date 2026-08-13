@@ -25,13 +25,6 @@ module.exports = {
     WAITING_FOR_INCOME_NOTE: "WAITING_FOR_INCOME_NOTE",
 
     // ==========================
-    // PERSONAL INCOME
-    // ==========================
-    WAITING_FOR_PERSONAL_INCOME_SOURCE: "WAITING_FOR_PERSONAL_INCOME_SOURCE",
-    WAITING_FOR_PERSONAL_INCOME_AMOUNT: "WAITING_FOR_PERSONAL_INCOME_AMOUNT",
-    WAITING_FOR_PERSONAL_INCOME_NOTE: "WAITING_FOR_PERSONAL_INCOME_NOTE",
-
-    // ==========================
     // CUSTOMERS
     // ==========================
     WAITING_FOR_CUSTOMER_NAME: "WAITING_FOR_CUSTOMER_NAME",
@@ -76,6 +69,109 @@ module.exports = {
     WAITING_FOR_PURCHASE_PRODUCT: "WAITING_FOR_PURCHASE_PRODUCT",
     WAITING_FOR_PURCHASE_QUANTITY: "WAITING_FOR_PURCHASE_QUANTITY",
     WAITING_FOR_PURCHASE_COST: "WAITING_FOR_PURCHASE_COST",
-    WAITING_FOR_PURCHASE_PAID: "WAITING_FOR_PURCHASE_PAID"
+    WAITING_FOR_PURCHASE_PAID: "WAITING_FOR_PURCHASE_PAID",
+
+    // ======================================================
+    // PERSONAL FINANCE
+    // ======================================================
+
+    // --------------------------
+    // PERSONAL INCOME
+    // --------------------------
+    WAITING_FOR_PERSONAL_INCOME_SOURCE:
+        "WAITING_FOR_PERSONAL_INCOME_SOURCE",
+
+    WAITING_FOR_PERSONAL_INCOME_AMOUNT:
+        "WAITING_FOR_PERSONAL_INCOME_AMOUNT",
+
+    WAITING_FOR_PERSONAL_INCOME_NOTE:
+        "WAITING_FOR_PERSONAL_INCOME_NOTE",
+
+    // --------------------------
+    // PERSONAL EXPENSES
+    // --------------------------
+    WAITING_FOR_PERSONAL_EXPENSE_CATEGORY:
+        "WAITING_FOR_PERSONAL_EXPENSE_CATEGORY",
+
+    WAITING_FOR_PERSONAL_EXPENSE_DESCRIPTION:
+        "WAITING_FOR_PERSONAL_EXPENSE_DESCRIPTION",
+
+    WAITING_FOR_PERSONAL_EXPENSE_AMOUNT:
+        "WAITING_FOR_PERSONAL_EXPENSE_AMOUNT",
+
+    WAITING_FOR_PERSONAL_EXPENSE_NOTE:
+        "WAITING_FOR_PERSONAL_EXPENSE_NOTE",
+
+    // --------------------------
+    // PERSONAL SAVINGS
+    // --------------------------
+    WAITING_FOR_PERSONAL_SAVING_NAME:
+        "WAITING_FOR_PERSONAL_SAVING_NAME",
+
+    WAITING_FOR_PERSONAL_SAVING_AMOUNT:
+        "WAITING_FOR_PERSONAL_SAVING_AMOUNT",
+
+    WAITING_FOR_PERSONAL_SAVING_NOTE:
+        "WAITING_FOR_PERSONAL_SAVING_NOTE",
+
+    // --------------------------
+    // PERSONAL DEBTS
+    // --------------------------
+    WAITING_FOR_PERSONAL_DEBT_NAME:
+        "WAITING_FOR_PERSONAL_DEBT_NAME",
+
+    WAITING_FOR_PERSONAL_DEBT_AMOUNT:
+        "WAITING_FOR_PERSONAL_DEBT_AMOUNT",
+
+    WAITING_FOR_PERSONAL_DEBT_NOTE:
+        "WAITING_FOR_PERSONAL_DEBT_NOTE",
+
+    // --------------------------
+    // PERSONAL DEBTORS
+    // --------------------------
+    WAITING_FOR_PERSONAL_DEBTOR_NAME:
+        "WAITING_FOR_PERSONAL_DEBTOR_NAME",
+
+    WAITING_FOR_PERSONAL_DEBTOR_AMOUNT:
+        "WAITING_FOR_PERSONAL_DEBTOR_AMOUNT",
+
+    WAITING_FOR_PERSONAL_DEBTOR_NOTE:
+        "WAITING_FOR_PERSONAL_DEBTOR_NOTE",
+
+    // --------------------------
+    // PERSONAL GOALS
+    // --------------------------
+    WAITING_FOR_PERSONAL_GOAL_NAME:
+        "WAITING_FOR_PERSONAL_GOAL_NAME",
+
+    WAITING_FOR_PERSONAL_GOAL_TARGET:
+        "WAITING_FOR_PERSONAL_GOAL_TARGET",
+
+    WAITING_FOR_PERSONAL_GOAL_DEADLINE:
+        "WAITING_FOR_PERSONAL_GOAL_DEADLINE",
+
+    // --------------------------
+    // PERSONAL CASH FLOW
+    // --------------------------
+    WAITING_FOR_PERSONAL_CASH_FLOW:
+        "WAITING_FOR_PERSONAL_CASH_FLOW",
+
+    // --------------------------
+    // PERSONAL REPORTS
+    // --------------------------
+    WAITING_FOR_PERSONAL_REPORT:
+        "WAITING_FOR_PERSONAL_REPORT",
+
+    // --------------------------
+    // PERSONAL FORECAST
+    // --------------------------
+    WAITING_FOR_PERSONAL_FORECAST:
+        "WAITING_FOR_PERSONAL_FORECAST",
+
+    // --------------------------
+    // PERSONAL AI ADVISOR
+    // --------------------------
+    WAITING_FOR_PERSONAL_ADVISOR:
+        "WAITING_FOR_PERSONAL_ADVISOR"
 
 };
