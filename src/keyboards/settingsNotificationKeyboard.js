@@ -4,30 +4,28 @@ const {
 
 
 // ======================================================
-// PERSONAL DEBT KEYBOARD
-// Money the USER OWES to someone else.
+// SETTINGS — NOTIFICATIONS KEYBOARD
 // ======================================================
 
 module.exports =
     Markup.keyboard([
 
         [
-            "➕ Add Debt",
-            "📊 View Debts"
+            "🌅 Morning Brief",
+            "🌙 Evening Report"
         ],
 
         [
-            "💳 Make Payment",
-            "📈 Debt Summary"
+            "📅 Weekly Report",
+            "🗓️ Monthly Report"
         ],
 
         [
-            "✏️ Update Debt",
-            "✅ Complete Debt"
+            "⏰ Notification Time"
         ],
 
         [
-            "🗑️ Delete Debt"
+            "🌍 Timezone"
         ],
 
         [

@@ -5,9 +5,18 @@ function initializeDatabase() {
     // ======================================================
     // USERS
     // ======================================================
+    //
+    // User-level information.
+    //
+    // Financial/business data belongs to ACCOUNTS.
+    //
+    // User settings belong to USERS.
+    //
+    // ======================================================
 
     db.prepare(`
         CREATE TABLE IF NOT EXISTS users (
+
             id INTEGER PRIMARY KEY AUTOINCREMENT,
 
             telegram_id INTEGER UNIQUE NOT NULL,
@@ -16,7 +25,24 @@ function initializeDatabase() {
 
             username TEXT,
 
+            email TEXT,
+
+            phone TEXT,
+
+            morning_brief_enabled INTEGER NOT NULL DEFAULT 1,
+
+            evening_report_enabled INTEGER NOT NULL DEFAULT 1,
+
+            weekly_report_enabled INTEGER NOT NULL DEFAULT 1,
+
+            monthly_report_enabled INTEGER NOT NULL DEFAULT 1,
+
+            notification_time TEXT NOT NULL DEFAULT '08:00',
+
+            timezone TEXT NOT NULL DEFAULT 'Africa/Lagos',
+
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
+
         )
     `).run();
 
@@ -24,14 +50,33 @@ function initializeDatabase() {
     // ======================================================
     // ACCOUNTS
     // ======================================================
+    //
+    // Every financial context belongs to an account.
+    //
+    // Account types:
+    //
+    // PERSONAL
+    // BUSINESS
+    //
+    // Subscription entitlement will eventually resolve
+    // against account_id, NOT user_id.
+    //
+    // ======================================================
 
     db.prepare(`
         CREATE TABLE IF NOT EXISTS accounts (
+
             id INTEGER PRIMARY KEY AUTOINCREMENT,
 
             name TEXT NOT NULL,
 
-            account_type TEXT NOT NULL DEFAULT 'BUSINESS',
+            account_type TEXT NOT NULL DEFAULT 'BUSINESS'
+                CHECK (
+                    account_type IN (
+                        'PERSONAL',
+                        'BUSINESS'
+                    )
+                ),
 
             owner_user_id INTEGER NOT NULL,
 
@@ -39,6 +84,7 @@ function initializeDatabase() {
 
             FOREIGN KEY(owner_user_id)
                 REFERENCES users(id)
+
         )
     `).run();
 
@@ -46,26 +92,45 @@ function initializeDatabase() {
     // ======================================================
     // ACCOUNT MEMBERS
     // ======================================================
+    //
+    // Defines the relationship between a user and account.
+    //
+    // Account type belongs to the account.
+    //
+    // Role belongs to the membership.
+    //
+    // ======================================================
 
     db.prepare(`
         CREATE TABLE IF NOT EXISTS account_members (
+
             id INTEGER PRIMARY KEY AUTOINCREMENT,
 
             account_id INTEGER NOT NULL,
 
             user_id INTEGER NOT NULL,
 
-            role TEXT NOT NULL DEFAULT 'OWNER',
+            role TEXT NOT NULL DEFAULT 'OWNER'
+                CHECK (
+                    role IN (
+                        'OWNER',
+                        'ADMIN',
+                        'MEMBER'
+                    )
+                ),
 
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
 
             UNIQUE(account_id, user_id),
 
             FOREIGN KEY(account_id)
-                REFERENCES accounts(id),
+                REFERENCES accounts(id)
+                ON DELETE CASCADE,
 
             FOREIGN KEY(user_id)
                 REFERENCES users(id)
+                ON DELETE CASCADE
+
         )
     `).run();
 
@@ -73,9 +138,21 @@ function initializeDatabase() {
     // ======================================================
     // CURRENT ACCOUNT
     // ======================================================
+    //
+    // Stores the account currently being used by a user.
+    //
+    // This is interface-neutral and can later be used by:
+    //
+    // Telegram
+    // Website
+    // Mobile App
+    // API
+    //
+    // ======================================================
 
     db.prepare(`
         CREATE TABLE IF NOT EXISTS user_current_accounts (
+
             id INTEGER PRIMARY KEY AUTOINCREMENT,
 
             user_id INTEGER NOT NULL UNIQUE,
@@ -85,10 +162,13 @@ function initializeDatabase() {
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
 
             FOREIGN KEY(user_id)
-                REFERENCES users(id),
+                REFERENCES users(id)
+                ON DELETE CASCADE,
 
             FOREIGN KEY(account_id)
                 REFERENCES accounts(id)
+                ON DELETE CASCADE
+
         )
     `).run();
 
@@ -99,6 +179,7 @@ function initializeDatabase() {
 
     db.prepare(`
         CREATE TABLE IF NOT EXISTS customers (
+
             id INTEGER PRIMARY KEY AUTOINCREMENT,
 
             account_id INTEGER NOT NULL,
@@ -115,6 +196,8 @@ function initializeDatabase() {
 
             FOREIGN KEY(account_id)
                 REFERENCES accounts(id)
+                ON DELETE CASCADE
+
         )
     `).run();
 
@@ -125,6 +208,7 @@ function initializeDatabase() {
 
     db.prepare(`
         CREATE TABLE IF NOT EXISTS suppliers (
+
             id INTEGER PRIMARY KEY AUTOINCREMENT,
 
             account_id INTEGER NOT NULL,
@@ -141,6 +225,8 @@ function initializeDatabase() {
 
             FOREIGN KEY(account_id)
                 REFERENCES accounts(id)
+                ON DELETE CASCADE
+
         )
     `).run();
 
@@ -151,6 +237,7 @@ function initializeDatabase() {
 
     db.prepare(`
         CREATE TABLE IF NOT EXISTS inventory (
+
             id INTEGER PRIMARY KEY AUTOINCREMENT,
 
             account_id INTEGER NOT NULL,
@@ -167,6 +254,8 @@ function initializeDatabase() {
 
             FOREIGN KEY(account_id)
                 REFERENCES accounts(id)
+                ON DELETE CASCADE
+
         )
     `).run();
 
@@ -177,6 +266,7 @@ function initializeDatabase() {
 
     db.prepare(`
         CREATE TABLE IF NOT EXISTS sales (
+
             id INTEGER PRIMARY KEY AUTOINCREMENT,
 
             account_id INTEGER NOT NULL,
@@ -204,13 +294,15 @@ function initializeDatabase() {
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
 
             FOREIGN KEY(account_id)
-                REFERENCES accounts(id),
+                REFERENCES accounts(id)
+                ON DELETE CASCADE,
 
             FOREIGN KEY(customer_id)
                 REFERENCES customers(id),
 
             FOREIGN KEY(inventory_id)
                 REFERENCES inventory(id)
+
         )
     `).run();
 
@@ -221,6 +313,7 @@ function initializeDatabase() {
 
     db.prepare(`
         CREATE TABLE IF NOT EXISTS expenses (
+
             id INTEGER PRIMARY KEY AUTOINCREMENT,
 
             account_id INTEGER NOT NULL,
@@ -237,6 +330,8 @@ function initializeDatabase() {
 
             FOREIGN KEY(account_id)
                 REFERENCES accounts(id)
+                ON DELETE CASCADE
+
         )
     `).run();
 
@@ -247,6 +342,7 @@ function initializeDatabase() {
 
     db.prepare(`
         CREATE TABLE IF NOT EXISTS income (
+
             id INTEGER PRIMARY KEY AUTOINCREMENT,
 
             account_id INTEGER NOT NULL,
@@ -261,6 +357,8 @@ function initializeDatabase() {
 
             FOREIGN KEY(account_id)
                 REFERENCES accounts(id)
+                ON DELETE CASCADE
+
         )
     `).run();
 
@@ -271,6 +369,7 @@ function initializeDatabase() {
 
     db.prepare(`
         CREATE TABLE IF NOT EXISTS personal_savings_goals (
+
             id INTEGER PRIMARY KEY AUTOINCREMENT,
 
             account_id INTEGER NOT NULL,
@@ -291,6 +390,8 @@ function initializeDatabase() {
 
             FOREIGN KEY(account_id)
                 REFERENCES accounts(id)
+                ON DELETE CASCADE
+
         )
     `).run();
 
@@ -299,13 +400,11 @@ function initializeDatabase() {
     // PERSONAL DEBTS
     // ======================================================
     //
-    // Personal debt means:
-    //
-    // The USER owes someone else money.
+    // Money the USER owes to someone else.
     //
     // Example:
     //
-    // User owes Mr John ₦100,000.
+    // User owes John ₦100,000.
     //
     // ======================================================
 
@@ -334,12 +433,9 @@ function initializeDatabase() {
 
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
 
-            FOREIGN KEY (
-                account_id
-            )
-            REFERENCES accounts(id)
-
-            ON DELETE CASCADE
+            FOREIGN KEY(account_id)
+                REFERENCES accounts(id)
+                ON DELETE CASCADE
 
         );
     `);
@@ -352,7 +448,6 @@ function initializeDatabase() {
     db.exec(`
         CREATE INDEX IF NOT EXISTS
         idx_personal_debts_account
-
         ON personal_debts(account_id);
     `);
 
@@ -361,19 +456,11 @@ function initializeDatabase() {
     // PERSONAL DEBTORS
     // ======================================================
     //
-    // Personal debtor means:
-    //
-    // Someone owes the USER money.
+    // Money OTHER PEOPLE owe to the USER.
     //
     // Example:
     //
-    // Mr John owes the user ₦100,000.
-    //
-    // This is deliberately separate from
-    // personal_debts.
-    //
-    // personal_debts  = money USER owes
-    // personal_debtors = money OWED TO USER
+    // John owes the user ₦100,000.
     //
     // ======================================================
 
@@ -402,12 +489,9 @@ function initializeDatabase() {
 
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
 
-            FOREIGN KEY (
-                account_id
-            )
-            REFERENCES accounts(id)
-
-            ON DELETE CASCADE
+            FOREIGN KEY(account_id)
+                REFERENCES accounts(id)
+                ON DELETE CASCADE
 
         );
     `);
@@ -420,7 +504,6 @@ function initializeDatabase() {
     db.exec(`
         CREATE INDEX IF NOT EXISTS
         idx_personal_debtors_account
-
         ON personal_debtors(account_id);
     `);
 
@@ -431,6 +514,7 @@ function initializeDatabase() {
 
     db.prepare(`
         CREATE TABLE IF NOT EXISTS debtors (
+
             id INTEGER PRIMARY KEY AUTOINCREMENT,
 
             account_id INTEGER NOT NULL,
@@ -450,13 +534,15 @@ function initializeDatabase() {
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
 
             FOREIGN KEY(account_id)
-                REFERENCES accounts(id),
+                REFERENCES accounts(id)
+                ON DELETE CASCADE,
 
             FOREIGN KEY(customer_id)
                 REFERENCES customers(id),
 
             FOREIGN KEY(sale_id)
                 REFERENCES sales(id)
+
         )
     `).run();
 
@@ -467,6 +553,7 @@ function initializeDatabase() {
 
     db.prepare(`
         CREATE TABLE IF NOT EXISTS purchases (
+
             id INTEGER PRIMARY KEY AUTOINCREMENT,
 
             account_id INTEGER NOT NULL,
@@ -490,13 +577,15 @@ function initializeDatabase() {
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
 
             FOREIGN KEY(account_id)
-                REFERENCES accounts(id),
+                REFERENCES accounts(id)
+                ON DELETE CASCADE,
 
             FOREIGN KEY(supplier_id)
                 REFERENCES suppliers(id),
 
             FOREIGN KEY(inventory_id)
                 REFERENCES inventory(id)
+
         )
     `).run();
 
@@ -507,6 +596,7 @@ function initializeDatabase() {
 
     db.prepare(`
         CREATE TABLE IF NOT EXISTS creditors (
+
             id INTEGER PRIMARY KEY AUTOINCREMENT,
 
             account_id INTEGER NOT NULL,
@@ -526,13 +616,15 @@ function initializeDatabase() {
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
 
             FOREIGN KEY(account_id)
-                REFERENCES accounts(id),
+                REFERENCES accounts(id)
+                ON DELETE CASCADE,
 
             FOREIGN KEY(supplier_id)
                 REFERENCES suppliers(id),
 
             FOREIGN KEY(purchase_id)
                 REFERENCES purchases(id)
+
         )
     `).run();
 
@@ -541,98 +633,149 @@ function initializeDatabase() {
     // INDEXES
     // ======================================================
 
+    // USERS
+
     db.prepare(`
-        CREATE INDEX IF NOT EXISTS idx_accounts_owner
+        CREATE INDEX IF NOT EXISTS
+        idx_users_telegram_id
+        ON users(telegram_id)
+    `).run();
+
+
+    // ACCOUNTS
+
+    db.prepare(`
+        CREATE INDEX IF NOT EXISTS
+        idx_accounts_owner
         ON accounts(owner_user_id)
     `).run();
 
 
     db.prepare(`
-        CREATE INDEX IF NOT EXISTS idx_accounts_type
+        CREATE INDEX IF NOT EXISTS
+        idx_accounts_type
         ON accounts(account_type)
     `).run();
 
 
+    // ACCOUNT MEMBERS
+
     db.prepare(`
-        CREATE INDEX IF NOT EXISTS idx_account_members_user
+        CREATE INDEX IF NOT EXISTS
+        idx_account_members_user
         ON account_members(user_id)
     `).run();
 
 
     db.prepare(`
-        CREATE INDEX IF NOT EXISTS idx_account_members_account
+        CREATE INDEX IF NOT EXISTS
+        idx_account_members_account
         ON account_members(account_id)
     `).run();
 
 
+    // CURRENT ACCOUNT
+
     db.prepare(`
-        CREATE INDEX IF NOT EXISTS idx_current_accounts_user
+        CREATE INDEX IF NOT EXISTS
+        idx_current_accounts_user
         ON user_current_accounts(user_id)
     `).run();
 
 
     db.prepare(`
-        CREATE INDEX IF NOT EXISTS idx_current_accounts_account
+        CREATE INDEX IF NOT EXISTS
+        idx_current_accounts_account
         ON user_current_accounts(account_id)
     `).run();
 
 
+    // CUSTOMERS
+
     db.prepare(`
-        CREATE INDEX IF NOT EXISTS idx_customers_account
+        CREATE INDEX IF NOT EXISTS
+        idx_customers_account
         ON customers(account_id)
     `).run();
 
 
+    // SUPPLIERS
+
     db.prepare(`
-        CREATE INDEX IF NOT EXISTS idx_suppliers_account
+        CREATE INDEX IF NOT EXISTS
+        idx_suppliers_account
         ON suppliers(account_id)
     `).run();
 
 
+    // INVENTORY
+
     db.prepare(`
-        CREATE INDEX IF NOT EXISTS idx_inventory_account
+        CREATE INDEX IF NOT EXISTS
+        idx_inventory_account
         ON inventory(account_id)
     `).run();
 
 
+    // SALES
+
     db.prepare(`
-        CREATE INDEX IF NOT EXISTS idx_sales_account
+        CREATE INDEX IF NOT EXISTS
+        idx_sales_account
         ON sales(account_id)
     `).run();
 
 
+    // EXPENSES
+
     db.prepare(`
-        CREATE INDEX IF NOT EXISTS idx_expenses_account
+        CREATE INDEX IF NOT EXISTS
+        idx_expenses_account
         ON expenses(account_id)
     `).run();
 
 
+    // INCOME
+
     db.prepare(`
-        CREATE INDEX IF NOT EXISTS idx_income_account
+        CREATE INDEX IF NOT EXISTS
+        idx_income_account
         ON income(account_id)
     `).run();
 
 
+    // PERSONAL SAVINGS
+
     db.prepare(`
-        CREATE INDEX IF NOT EXISTS idx_personal_savings_goals_account
+        CREATE INDEX IF NOT EXISTS
+        idx_personal_savings_goals_account
         ON personal_savings_goals(account_id)
     `).run();
 
 
+    // BUSINESS DEBTORS
+
     db.prepare(`
-        CREATE INDEX IF NOT EXISTS idx_debtors_account
+        CREATE INDEX IF NOT EXISTS
+        idx_debtors_account
         ON debtors(account_id)
     `).run();
 
 
+    // PURCHASES
+
     db.prepare(`
-        CREATE INDEX IF NOT EXISTS idx_purchases_account
+        CREATE INDEX IF NOT EXISTS
+        idx_purchases_account
         ON purchases(account_id)
     `).run();
 
 
+    // CREDITORS
+
     db.prepare(`
-        CREATE INDEX IF NOT EXISTS idx_creditors_account
+        CREATE INDEX IF NOT EXISTS
+        idx_creditors_account
         ON creditors(account_id)
     `).run();
 
@@ -644,6 +787,7 @@ function initializeDatabase() {
     console.log(
         "✅ Database initialized successfully."
     );
+
 }
 
 

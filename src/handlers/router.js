@@ -19,6 +19,35 @@ const menuHandler =
 
 
 // ======================================================
+// GLOBAL SETTINGS
+// ======================================================
+//
+// Settings are NOT personal-finance-only.
+//
+// They operate at two levels:
+//
+// USER SETTINGS
+// - Profile
+// - Notifications
+// - Notification time
+// - Timezone
+//
+// ACCOUNT SETTINGS
+// - Account name
+// - Account type
+// - Current account context
+// - Account role
+//
+// Therefore Settings belongs at the global router level,
+// not inside personalHandler or businessHandler.
+//
+// ======================================================
+
+const settingsHandler =
+    require("./settingsHandler");
+
+
+// ======================================================
 // PERSONAL / BUSINESS HANDLERS
 // ======================================================
 
@@ -166,18 +195,18 @@ module.exports = function router(
                 //
                 // IMPORTANT:
                 //
-                // Active multi-step sessions MUST be
+                // Active multi-step sessions MUST always be
                 // processed before menu handlers.
                 //
-                // Otherwise another handler can consume
-                // values such as:
+                // This prevents values such as:
                 //
                 // 1
                 // 2
-                // 3
                 // 50000
+                // John
                 //
-                // before the active flow receives them.
+                // from accidentally being interpreted as
+                // menu commands.
                 // ==========================================
 
                 const session =
@@ -329,15 +358,6 @@ module.exports = function router(
                         // ======================================
                         // PERSONAL CASH FLOW
                         // ======================================
-                        //
-                        // Interface-neutral personal cash-flow
-                        // flow.
-                        //
-                        // All input required for cash-flow
-                        // processing is handled by the
-                        // personalCashFlowFlow.
-                        //
-                        // ======================================
 
                         case STATES.WAITING_FOR_PERSONAL_CASH_FLOW:
 
@@ -455,6 +475,41 @@ module.exports = function router(
                             return;
 
                     }
+
+                }
+
+
+                // ==========================================
+                // GLOBAL SETTINGS
+                // ==========================================
+                //
+                // Settings are checked BEFORE personal and
+                // business handlers.
+                //
+                // This ensures Settings is treated as a
+                // cross-account feature rather than as a
+                // personal-finance feature.
+                //
+                // The settingsHandler is responsible for:
+                //
+                // - User profile
+                // - Notifications
+                // - Notification time
+                // - Timezone
+                // - Account settings
+                // - Account switching
+                //
+                // It should resolve the active account through
+                // accountContext rather than relying on whether
+                // the user is currently in Personal or Business.
+                //
+                // ==========================================
+
+                if (
+                    await settingsHandler(ctx)
+                ) {
+
+                    return;
 
                 }
 
@@ -626,7 +681,6 @@ module.exports = function router(
                     return;
 
                 }
-
 
             }
 

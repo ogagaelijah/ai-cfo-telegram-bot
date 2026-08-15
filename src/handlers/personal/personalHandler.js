@@ -4,6 +4,9 @@ const personalKeyboard =
 const personalDebtsKeyboard =
     require("../../keyboards/personal/personalDebtKeyboard");
 
+const settingsKeyboard =
+    require("../../keyboards/settingsKeyboard");
+
 const {
     clearSession,
     setSession
@@ -84,16 +87,15 @@ module.exports = async function personalHandler(ctx) {
         );
 
         setSession(
-
             telegramId,
-
             {
-
                 state:
                     STATES.WAITING_FOR_PERSONAL_INCOME_SOURCE
-
             }
+        );
 
+        await ctx.reply(
+            "💰 PERSONAL INCOME\n\nWhat's the source of this income?"
         );
 
         return true;
@@ -128,6 +130,13 @@ module.exports = async function personalHandler(ctx) {
     // ==================================================
     // PERSONAL SAVINGS
     // ==================================================
+    //
+    // Retained here only for backward compatibility.
+    //
+    // The current Personal Finance keyboard no longer
+    // exposes Savings.
+    //
+    // ==================================================
 
     if (
         text === "💵 Savings"
@@ -160,7 +169,6 @@ module.exports = async function personalHandler(ctx) {
         clearSession(
             telegramId
         );
-
 
         await ctx.reply(
 
@@ -202,6 +210,13 @@ module.exports = async function personalHandler(ctx) {
 
     // ==================================================
     // PERSONAL GOALS
+    // ==================================================
+    //
+    // Retained here only for backward compatibility.
+    //
+    // The current Personal Finance keyboard no longer
+    // exposes Personal Goals.
+    //
     // ==================================================
 
     if (
@@ -335,7 +350,10 @@ module.exports = async function personalHandler(ctx) {
         await ctx.reply(
 
             "⚙️ SETTINGS\n\n" +
-            "Personal account settings will be handled here."
+            "Manage your profile, notifications, account " +
+            "and account switching from here.",
+
+            settingsKeyboard
 
         );
 

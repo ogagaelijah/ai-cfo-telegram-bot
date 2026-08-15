@@ -4,30 +4,23 @@ const {
 
 
 // ======================================================
-// PERSONAL DEBT KEYBOARD
-// Money the USER OWES to someone else.
+// SETTINGS — PROFILE KEYBOARD
 // ======================================================
 
 module.exports =
     Markup.keyboard([
 
         [
-            "➕ Add Debt",
-            "📊 View Debts"
+            "👤 View Profile"
         ],
 
         [
-            "💳 Make Payment",
-            "📈 Debt Summary"
+            "✏️ Edit Name",
+            "📧 Edit Email"
         ],
 
         [
-            "✏️ Update Debt",
-            "✅ Complete Debt"
-        ],
-
-        [
-            "🗑️ Delete Debt"
+            "📱 Edit Phone"
         ],
 
         [
