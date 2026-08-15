@@ -1,6 +1,9 @@
 const personalKeyboard =
     require("../../keyboards/personal/personalKeyboard");
 
+const personalDebtsKeyboard =
+    require("../../keyboards/personal/personalDebtKeyboard");
+
 const {
     clearSession,
     setSession
@@ -17,9 +20,10 @@ const STATES =
 // Responsible for:
 // - Personal Finance dashboard
 // - Personal Finance menu navigation
-// - Starting Personal Income
+// - Starting Personal Finance modules
 //
-// Personal transaction logic belongs in personal flows.
+// Transaction/business logic belongs in application,
+// service and repository layers.
 //
 // ======================================================
 
@@ -35,7 +39,9 @@ module.exports = async function personalHandler(ctx) {
             : "";
 
     if (!text) {
+
         return false;
+
     }
 
 
@@ -52,12 +58,16 @@ module.exports = async function personalHandler(ctx) {
         );
 
         await ctx.reply(
+
             "👤 PERSONAL FINANCE\n\n" +
             "Choose an option below 👇",
+
             personalKeyboard
+
         );
 
         return true;
+
     }
 
 
@@ -74,14 +84,20 @@ module.exports = async function personalHandler(ctx) {
         );
 
         setSession(
+
             telegramId,
+
             {
+
                 state:
                     STATES.WAITING_FOR_PERSONAL_INCOME_SOURCE
+
             }
+
         );
 
         return true;
+
     }
 
 
@@ -98,11 +114,14 @@ module.exports = async function personalHandler(ctx) {
         );
 
         await ctx.reply(
+
             "💸 PERSONAL EXPENSES\n\n" +
             "Personal expense management will be handled here."
+
         );
 
         return true;
+
     }
 
 
@@ -119,11 +138,14 @@ module.exports = async function personalHandler(ctx) {
         );
 
         await ctx.reply(
+
             "💵 PERSONAL SAVINGS\n\n" +
             "Savings management will be handled here."
+
         );
 
         return true;
+
     }
 
 
@@ -139,12 +161,18 @@ module.exports = async function personalHandler(ctx) {
             telegramId
         );
 
+
         await ctx.reply(
+
             "📋 PERSONAL DEBTS\n\n" +
-            "Your personal debts will be managed here."
+            "Choose an option below 👇",
+
+            personalDebtsKeyboard
+
         );
 
         return true;
+
     }
 
 
@@ -161,11 +189,14 @@ module.exports = async function personalHandler(ctx) {
         );
 
         await ctx.reply(
+
             "👥 PERSONAL DEBTORS\n\n" +
             "People who owe you money will be managed here."
+
         );
 
         return true;
+
     }
 
 
@@ -182,11 +213,14 @@ module.exports = async function personalHandler(ctx) {
         );
 
         await ctx.reply(
+
             "🎯 PERSONAL GOALS\n\n" +
             "Your personal financial goals will be managed here."
+
         );
 
         return true;
+
     }
 
 
@@ -203,11 +237,14 @@ module.exports = async function personalHandler(ctx) {
         );
 
         await ctx.reply(
+
             "💧 PERSONAL CASH FLOW\n\n" +
             "Your personal cash flow will be displayed here."
+
         );
 
         return true;
+
     }
 
 
@@ -224,11 +261,14 @@ module.exports = async function personalHandler(ctx) {
         );
 
         await ctx.reply(
+
             "📊 PERSONAL FINANCIAL REPORTS\n\n" +
             "Your personal financial reports will be available here."
+
         );
 
         return true;
+
     }
 
 
@@ -245,11 +285,14 @@ module.exports = async function personalHandler(ctx) {
         );
 
         await ctx.reply(
+
             "🔮 PERSONAL FORECAST\n\n" +
             "Your personal financial forecast will be displayed here."
+
         );
 
         return true;
+
     }
 
 
@@ -266,11 +309,14 @@ module.exports = async function personalHandler(ctx) {
         );
 
         await ctx.reply(
+
             "🤖 AI FINANCIAL ADVISOR\n\n" +
             "Your personal AI financial advisor will be available here."
+
         );
 
         return true;
+
     }
 
 
@@ -287,13 +333,17 @@ module.exports = async function personalHandler(ctx) {
         );
 
         await ctx.reply(
+
             "⚙️ SETTINGS\n\n" +
             "Personal account settings will be handled here."
+
         );
 
         return true;
+
     }
 
 
     return false;
+
 };

@@ -9,23 +9,8 @@ const {
 const businessKeyboard =
     require("../keyboards/mainKeyboard");
 
-
-// ======================================================
-// PERSONAL FINANCE KEYBOARD
-// ======================================================
-
-const personalKeyboard = {
-    reply_markup: {
-        keyboard: [
-            ["💰 Income", "💸 Expenses"],
-            ["💵 Savings", "📋 Debts"],
-            ["👥 Debtors", "🎯 Personal Goals"],
-            ["💳 Cash Flow", "📊 Financial Reports"],
-            ["🔮 Forecast", "🤖 AI Financial Advisor"]
-        ],
-        resize_keyboard: true
-    }
-};
+const personalKeyboard =
+    require("../keyboards/personal/personalKeyboard");
 
 
 // ======================================================
@@ -138,11 +123,9 @@ async function showPersonalDashboard(
 
 💰 Income
 💸 Expenses
-💵 Savings
 📋 Debts
 👥 Debtors
-🎯 Personal Goals
-💳 Cash Flow
+💧 Cash Flow
 📊 Financial Reports
 🔮 Forecast
 🤖 AI Financial Advisor

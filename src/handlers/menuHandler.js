@@ -34,14 +34,14 @@ const personalIncomeKeyboard =
 const personalExpenseKeyboard =
     require("../keyboards/personal/personalExpenseKeyboard");
 
-const personalSavingsKeyboard =
-    require("../keyboards/personal/personalSavingsKeyboard");
+const personalDebtKeyboard =
+    require("../keyboards/personal/personalDebtKeyboard");
+
+const personalDebtorKeyboard =
+    require("../keyboards/personal/personalDebtorKeyboard");
 
 const accountContext =
     require("../services/accountContext");
-
-const personalSavingsApplication =
-    require("../application/personal/personalSavings");
 
 const {
     getSession,
@@ -66,16 +66,12 @@ const STATES =
 // - Route PERSONAL menus
 // - Route BUSINESS menus
 // - Start flows
-// - Display personal savings
+// - Never interfere with active data-entry sessions
 //
 // ======================================================
 
 
 module.exports = async function menuHandler(ctx) {
-
-    // ==================================================
-    // MESSAGE TEXT
-    // ==================================================
 
     const text =
         ctx.message &&
@@ -90,10 +86,6 @@ module.exports = async function menuHandler(ctx) {
     );
 
 
-    // ==================================================
-    // TELEGRAM USER ID
-    // ==================================================
-
     const telegramId =
         ctx.from &&
         ctx.from.id
@@ -102,9 +94,7 @@ module.exports = async function menuHandler(ctx) {
 
 
     if (!telegramId) {
-
         return false;
-
     }
 
 
@@ -113,14 +103,12 @@ module.exports = async function menuHandler(ctx) {
     // ==================================================
 
     if (text === "/start") {
-
-        return true;
-
+        return false;
     }
 
 
     // ==================================================
-    // GET CURRENT ACCOUNT
+    // CURRENT ACCOUNT
     // ==================================================
 
     const account =
@@ -129,34 +117,22 @@ module.exports = async function menuHandler(ctx) {
         );
 
 
-    // ==================================================
-    // ACCOUNT NOT FOUND
-    // ==================================================
-
     if (!account) {
-
         return false;
-
     }
 
-
-    // ==================================================
-    // ACCOUNT TYPE
-    // ==================================================
 
     const accountType =
         account.accountType;
 
+
     const isPersonal =
         accountType === "PERSONAL";
+
 
     const isBusiness =
         accountType === "BUSINESS";
 
-
-    // ==================================================
-    // CURRENT SESSION
-    // ==================================================
 
     const activeSession =
         getSession(
@@ -165,13 +141,45 @@ module.exports = async function menuHandler(ctx) {
 
 
     // ==================================================
-    // UNIVERSAL BACK TO MAIN MENU
+    // BACK BUTTON DETECTION
+    // ==================================================
+
+    const isBackToMainMenu =
+        text === "⬅️ Back to Main Menu" ||
+        text === "🔙 Back to Main Menu";
+
+
+    const isBack =
+        text === "⬅️ Back";
+
+
+    // ==================================================
+    // ACTIVE SESSION PROTECTION
+    // ==================================================
+    //
+    // Do not allow menu buttons to interfere with an
+    // active data-entry operation.
+    //
+    // Back buttons are always allowed.
+    //
     // ==================================================
 
     if (
-        text === "⬅️ Back to Main Menu" ||
-        text === "🔙 Back to Main Menu"
+        activeSession &&
+        !isBackToMainMenu &&
+        !isBack
     ) {
+
+        return false;
+
+    }
+
+
+    // ==================================================
+    // UNIVERSAL BACK TO MAIN MENU
+    // ==================================================
+
+    if (isBackToMainMenu) {
 
         clearSession(
             telegramId
@@ -186,10 +194,11 @@ module.exports = async function menuHandler(ctx) {
                 "Choose an option below 👇",
 
                 personalKeyboard
-
             );
 
-        } else {
+        }
+
+        else if (isBusiness) {
 
             await ctx.reply(
 
@@ -197,7 +206,6 @@ module.exports = async function menuHandler(ctx) {
                 "Choose an option below 👇",
 
                 keyboard
-
             );
 
         }
@@ -209,15 +217,15 @@ module.exports = async function menuHandler(ctx) {
 
 
     // ======================================================
-    // PERSONAL ACCOUNT ROUTING
+    // PERSONAL ACCOUNT
     // ======================================================
 
     if (isPersonal) {
 
 
-        // ==============================================
+        // ==================================================
         // PERSONAL INCOME
-        // ==============================================
+        // ==================================================
 
         if (text === "💰 Income") {
 
@@ -244,7 +252,6 @@ module.exports = async function menuHandler(ctx) {
                 "Select your income source:",
 
                 personalIncomeKeyboard
-
             );
 
 
@@ -253,9 +260,9 @@ module.exports = async function menuHandler(ctx) {
         }
 
 
-        // ==============================================
+        // ==================================================
         // PERSONAL EXPENSES
-        // ==============================================
+        // ==================================================
 
         if (text === "💸 Expenses") {
 
@@ -282,7 +289,6 @@ module.exports = async function menuHandler(ctx) {
                 "Select an expense category:",
 
                 personalExpenseKeyboard
-
             );
 
 
@@ -291,11 +297,11 @@ module.exports = async function menuHandler(ctx) {
         }
 
 
-        // ==============================================
-        // PERSONAL SAVINGS
-        // ==============================================
+        // ==================================================
+        // PERSONAL DEBTS
+        // ==================================================
 
-        if (text === "💵 Savings") {
+        if (text === "📋 Debts") {
 
             clearSession(
                 telegramId
@@ -304,11 +310,10 @@ module.exports = async function menuHandler(ctx) {
 
             await ctx.reply(
 
-                "💵 PERSONAL SAVINGS\n\n" +
-                "Choose a savings option below 👇",
+                "📋 PERSONAL DEBTS\n\n" +
+                "Choose an option below 👇",
 
-                personalSavingsKeyboard
-
+                personalDebtKeyboard
             );
 
 
@@ -317,306 +322,11 @@ module.exports = async function menuHandler(ctx) {
         }
 
 
-        // ==============================================
-        // VIEW PERSONAL SAVINGS
-        // ==============================================
-
-        if (text === "📊 View Savings") {
-
-            clearSession(
-                telegramId
-            );
-
-
-            try {
-
-                const accountId =
-                    account.accountId;
-
-
-                if (!accountId) {
-
-                    throw new Error(
-                        "ACCOUNT_ID_REQUIRED"
-                    );
-
-                }
-
-
-                const goals =
-                    personalSavingsApplication.getSavingsGoals(
-
-                        accountId
-
-                    );
-
-
-                const summary =
-                    personalSavingsApplication.getSavingsSummary(
-
-                        accountId
-
-                    );
-
-
-                // ======================================
-                // NO SAVINGS GOALS
-                // ======================================
-
-                if (
-                    !goals ||
-                    goals.length === 0
-                ) {
-
-                    await ctx.reply(
-
-                        "📊 PERSONAL SAVINGS\n\n" +
-
-                        "You currently have no savings goals.\n\n" +
-
-                        "Create your first savings goal to start tracking your progress.",
-
-                        personalSavingsKeyboard
-
-                    );
-
-                    return true;
-
-                }
-
-
-                // ======================================
-                // FORMAT SUMMARY
-                // ======================================
-
-                const totalSaved =
-                    Number(
-                        summary.totalSaved || 0
-                    );
-
-                const totalTarget =
-                    Number(
-                        summary.totalTarget || 0
-                    );
-
-                const remaining =
-                    Number(
-                        summary.remaining || 0
-                    );
-
-                const progress =
-                    Number(
-                        summary.progress || 0
-                    );
-
-
-                let message =
-                    "📊 PERSONAL SAVINGS\n\n";
-
-
-                message +=
-                    "💰 Total Saved: ₦" +
-                    totalSaved.toLocaleString() +
-                    "\n";
-
-                message +=
-                    "🎯 Total Target: ₦" +
-                    totalTarget.toLocaleString() +
-                    "\n";
-
-                message +=
-                    "📉 Remaining: ₦" +
-                    remaining.toLocaleString() +
-                    "\n";
-
-                message +=
-                    "📈 Overall Progress: " +
-                    progress +
-                    "%\n\n";
-
-
-                message +=
-                    "━━━━━━━━━━━━━━━━━━\n\n";
-
-
-                message +=
-                    "🎯 YOUR SAVINGS GOALS\n\n";
-
-
-                // ======================================
-                // DISPLAY EACH GOAL
-                // ======================================
-
-                goals.forEach(
-
-                    (goal, index) => {
-
-                        const target =
-                            Number(
-                                goal.target_amount || 0
-                            );
-
-                        const saved =
-                            Number(
-                                goal.saved_amount || 0
-                            );
-
-                        const goalRemaining =
-                            Math.max(
-                                target - saved,
-                                0
-                            );
-
-                        const goalProgress =
-                            target > 0
-
-                                ? Math.min(
-                                    (
-                                        saved /
-                                        target
-                                    ) * 100,
-                                    100
-                                )
-
-                                : 0;
-
-
-                        let statusEmoji =
-                            "🟢";
-
-
-                        if (
-                            goal.status ===
-                            "COMPLETED"
-                        ) {
-
-                            statusEmoji =
-                                "✅";
-
-                        }
-
-
-                        message +=
-                            statusEmoji +
-                            " " +
-                            (index + 1) +
-                            ". " +
-                            goal.name +
-                            "\n\n";
-
-
-                        message +=
-                            "💰 Saved: ₦" +
-                            saved.toLocaleString() +
-                            "\n";
-
-
-                        message +=
-                            "🎯 Target: ₦" +
-                            target.toLocaleString() +
-                            "\n";
-
-
-                        message +=
-                            "📉 Remaining: ₦" +
-                            goalRemaining.toLocaleString() +
-                            "\n";
-
-
-                        message +=
-                            "📈 Progress: " +
-                            goalProgress.toFixed(1) +
-                            "%\n";
-
-
-                        if (
-                            goal.deadline
-                        ) {
-
-                            message +=
-                                "📅 Deadline: " +
-                                goal.deadline +
-                                "\n";
-
-                        }
-
-
-                        if (
-                            goal.notes &&
-                            String(
-                                goal.notes
-                            ).trim()
-                        ) {
-
-                            message +=
-                                "📝 Note: " +
-                                goal.notes +
-                                "\n";
-
-                        }
-
-
-                        message +=
-                            "📌 Status: " +
-                            (
-                                goal.status ||
-                                "ACTIVE"
-                            ) +
-                            "\n\n";
-
-
-                        message +=
-                            "━━━━━━━━━━━━━━━━━━\n\n";
-
-                    }
-
-                );
-
-
-                await ctx.reply(
-
-                    message,
-
-                    personalSavingsKeyboard
-
-                );
-
-
-                return true;
-
-            } catch (error) {
-
-                console.error(
-
-                    "Personal savings view error:",
-
-                    error
-
-                );
-
-
-                await ctx.reply(
-
-                    "❌ I could not load your savings information.\n\n" +
-                    "Please try again.",
-
-                    personalSavingsKeyboard
-
-                );
-
-
-                return true;
-
-            }
-
-        }
-
-
-        // ==============================================
-        // CREATE PERSONAL SAVINGS GOAL
-        // ==============================================
-
-        if (text === "🎯 Create Savings Goal") {
+        // ==================================================
+        // ADD PERSONAL DEBT
+        // ==================================================
+
+        if (text === "➕ Add Debt") {
 
             clearSession(
                 telegramId
@@ -629,7 +339,7 @@ module.exports = async function menuHandler(ctx) {
 
                 {
                     state:
-                        STATES.WAITING_FOR_PERSONAL_SAVING_NAME,
+                        STATES.WAITING_FOR_PERSONAL_DEBT_NAME,
 
                     data: {}
 
@@ -640,9 +350,9 @@ module.exports = async function menuHandler(ctx) {
 
             await ctx.reply(
 
-                "🎯 CREATE SAVINGS GOAL\n\n" +
-                "What are you saving for?\n\n" +
-                "Example: New Laptop"
+                "💳 ADD PERSONAL DEBT\n\n" +
+                "What is the debt for?\n\n" +
+                "Example: School fees"
 
             );
 
@@ -652,23 +362,37 @@ module.exports = async function menuHandler(ctx) {
         }
 
 
-        // ==============================================
-        // PERSONAL DEBTS
-        // ==============================================
+        // ==================================================
+        // MAKE PERSONAL DEBT PAYMENT
+        // ==================================================
 
-        if (text === "📋 Debts") {
+        if (text === "💳 Make Payment") {
 
             clearSession(
                 telegramId
             );
 
 
+            setSession(
+
+                telegramId,
+
+                {
+                    state:
+                        STATES.WAITING_FOR_PERSONAL_DEBT_PAYMENT_DEBT,
+
+                    data: {}
+
+                }
+
+            );
+
+
             await ctx.reply(
 
-                "📋 PERSONAL DEBTS\n\n" +
-                "Personal debt management will be connected here next.",
-
-                personalKeyboard
+                "💳 MAKE DEBT PAYMENT\n\n" +
+                "Enter the debt ID you want to make a payment for.\n\n" +
+                "Example: 1"
 
             );
 
@@ -678,9 +402,129 @@ module.exports = async function menuHandler(ctx) {
         }
 
 
-        // ==============================================
-        // PERSONAL DEBTORS
-        // ==============================================
+        // ==================================================
+        // UPDATE PERSONAL DEBT
+        // ==================================================
+
+        if (text === "✏️ Update Debt") {
+
+            clearSession(
+                telegramId
+            );
+
+
+            setSession(
+
+                telegramId,
+
+                {
+                    state:
+                        STATES.WAITING_FOR_PERSONAL_DEBT_UPDATE_DEBT,
+
+                    data: {}
+
+                }
+
+            );
+
+
+            await ctx.reply(
+
+                "✏️ UPDATE PERSONAL DEBT\n\n" +
+                "Enter the debt ID you want to update.\n\n" +
+                "Example: 1"
+
+            );
+
+
+            return true;
+
+        }
+
+
+        // ==================================================
+        // COMPLETE PERSONAL DEBT
+        // ==================================================
+
+        if (text === "✅ Complete Debt") {
+
+            clearSession(
+                telegramId
+            );
+
+
+            setSession(
+
+                telegramId,
+
+                {
+                    state:
+                        STATES.WAITING_FOR_PERSONAL_DEBT_COMPLETE,
+
+                    data: {}
+
+                }
+
+            );
+
+
+            await ctx.reply(
+
+                "✅ COMPLETE PERSONAL DEBT\n\n" +
+                "Enter the debt ID you want to mark as completed.\n\n" +
+                "Example: 1"
+
+            );
+
+
+            return true;
+
+        }
+
+
+        // ==================================================
+        // DELETE PERSONAL DEBT
+        // ==================================================
+
+        if (text === "🗑️ Delete Debt") {
+
+            clearSession(
+                telegramId
+            );
+
+
+            setSession(
+
+                telegramId,
+
+                {
+                    state:
+                        STATES.WAITING_FOR_PERSONAL_DEBT_DELETE,
+
+                    data: {}
+
+                }
+
+            );
+
+
+            await ctx.reply(
+
+                "🗑️ DELETE PERSONAL DEBT\n\n" +
+                "Enter the debt ID you want to delete.\n\n" +
+                "Example: 1"
+
+            );
+
+
+            return true;
+
+        }
+
+
+        // ==================================================
+        // PERSONAL DEBTORS MENU
+        // ==================================================
 
         if (text === "👥 Debtors") {
 
@@ -692,10 +536,9 @@ module.exports = async function menuHandler(ctx) {
             await ctx.reply(
 
                 "👥 PERSONAL DEBTORS\n\n" +
-                "Personal debtor management will be connected here next.",
+                "Choose an option below 👇",
 
-                personalKeyboard
-
+                personalDebtorKeyboard
             );
 
 
@@ -704,23 +547,37 @@ module.exports = async function menuHandler(ctx) {
         }
 
 
-        // ==============================================
-        // PERSONAL GOALS
-        // ==============================================
+        // ==================================================
+        // ADD PERSONAL DEBTOR
+        // ==================================================
 
-        if (text === "🎯 Personal Goals") {
+        if (text === "➕ Add Debtor") {
 
             clearSession(
                 telegramId
             );
 
 
+            setSession(
+
+                telegramId,
+
+                {
+                    state:
+                        STATES.WAITING_FOR_PERSONAL_DEBTOR_NAME,
+
+                    data: {}
+
+                }
+
+            );
+
+
             await ctx.reply(
 
-                "🎯 PERSONAL GOALS\n\n" +
-                "Personal financial goals will be connected here next.",
-
-                personalKeyboard
+                "👤 ADD PERSONAL DEBTOR\n\n" +
+                "Who owes you money?\n\n" +
+                "Example: John"
 
             );
 
@@ -730,9 +587,241 @@ module.exports = async function menuHandler(ctx) {
         }
 
 
-        // ==============================================
+        // ==================================================
+        // VIEW PERSONAL DEBTORS
+        // ==================================================
+        //
+        // The personalDebtorsFlow performs the actual
+        // database lookup and sends the results.
+        //
+        // ==================================================
+
+        if (text === "📊 View Debtors") {
+
+            clearSession(
+                telegramId
+            );
+
+
+            setSession(
+
+                telegramId,
+
+                {
+                    state:
+                        STATES.WAITING_FOR_PERSONAL_DEBTOR_VIEW,
+
+                    data: {}
+
+                }
+
+            );
+
+
+            return false;
+
+        }
+
+
+        // ==================================================
+        // RECEIVE DEBTOR PAYMENT
+        // ==================================================
+
+        if (text === "💳 Receive Payment") {
+
+            clearSession(
+                telegramId
+            );
+
+
+            setSession(
+
+                telegramId,
+
+                {
+                    state:
+                        STATES.WAITING_FOR_PERSONAL_DEBTOR_PAYMENT_DEBT,
+
+                    data: {}
+
+                }
+
+            );
+
+
+            await ctx.reply(
+
+                "💳 RECEIVE DEBTOR PAYMENT\n\n" +
+                "Enter the debtor ID you want to receive a payment from.\n\n" +
+                "Example: 1"
+
+            );
+
+
+            return true;
+
+        }
+
+
+        // ==================================================
+        // DEBTOR SUMMARY
+        // ==================================================
+        //
+        // The personalDebtorsFlow performs the actual
+        // database lookup and sends the summary.
+        //
+        // ==================================================
+
+        if (text === "📈 Debtor Summary") {
+
+            clearSession(
+                telegramId
+            );
+
+
+            setSession(
+
+                telegramId,
+
+                {
+                    state:
+                        STATES.WAITING_FOR_PERSONAL_DEBTOR_SUMMARY,
+
+                    data: {}
+
+                }
+
+            );
+
+
+            return false;
+
+        }
+
+
+        // ==================================================
+        // UPDATE PERSONAL DEBTOR
+        // ==================================================
+
+        if (text === "✏️ Update Debtor") {
+
+            clearSession(
+                telegramId
+            );
+
+
+            setSession(
+
+                telegramId,
+
+                {
+                    state:
+                        STATES.WAITING_FOR_PERSONAL_DEBTOR_UPDATE_DEBT,
+
+                    data: {}
+
+                }
+
+            );
+
+
+            await ctx.reply(
+
+                "✏️ UPDATE PERSONAL DEBTOR\n\n" +
+                "Enter the debtor ID you want to update.\n\n" +
+                "Example: 1"
+
+            );
+
+
+            return true;
+
+        }
+
+
+        // ==================================================
+        // COMPLETE PERSONAL DEBTOR
+        // ==================================================
+
+        if (text === "✅ Complete Debtor") {
+
+            clearSession(
+                telegramId
+            );
+
+
+            setSession(
+
+                telegramId,
+
+                {
+                    state:
+                        STATES.WAITING_FOR_PERSONAL_DEBTOR_COMPLETE,
+
+                    data: {}
+
+                }
+
+            );
+
+
+            await ctx.reply(
+
+                "✅ COMPLETE PERSONAL DEBTOR\n\n" +
+                "Enter the debtor ID you want to mark as completed.\n\n" +
+                "Example: 1"
+
+            );
+
+
+            return true;
+
+        }
+
+
+        // ==================================================
+        // DELETE PERSONAL DEBTOR
+        // ==================================================
+
+        if (text === "🗑️ Delete Debtor") {
+
+            clearSession(
+                telegramId
+            );
+
+
+            setSession(
+
+                telegramId,
+
+                {
+                    state:
+                        STATES.WAITING_FOR_PERSONAL_DEBTOR_DELETE,
+
+                    data: {}
+
+                }
+
+            );
+
+
+            await ctx.reply(
+
+                "🗑️ DELETE PERSONAL DEBTOR\n\n" +
+                "Enter the debtor ID you want to delete.\n\n" +
+                "Example: 1"
+
+            );
+
+
+            return true;
+
+        }
+
+
+        // ==================================================
         // PERSONAL CASH FLOW
-        // ==============================================
+        // ==================================================
 
         if (text === "💧 Cash Flow") {
 
@@ -747,7 +836,6 @@ module.exports = async function menuHandler(ctx) {
                 "Personal cash-flow analysis will be connected here next.",
 
                 personalKeyboard
-
             );
 
 
@@ -756,9 +844,9 @@ module.exports = async function menuHandler(ctx) {
         }
 
 
-        // ==============================================
+        // ==================================================
         // PERSONAL FINANCIAL REPORTS
-        // ==============================================
+        // ==================================================
 
         if (text === "📊 Financial Reports") {
 
@@ -773,7 +861,6 @@ module.exports = async function menuHandler(ctx) {
                 "Personal financial reporting will be connected here next.",
 
                 personalKeyboard
-
             );
 
 
@@ -782,9 +869,9 @@ module.exports = async function menuHandler(ctx) {
         }
 
 
-        // ==============================================
+        // ==================================================
         // PERSONAL FORECAST
-        // ==============================================
+        // ==================================================
 
         if (text === "🔮 Forecast") {
 
@@ -799,7 +886,6 @@ module.exports = async function menuHandler(ctx) {
                 "Personal forecasting will be connected here next.",
 
                 personalKeyboard
-
             );
 
 
@@ -808,9 +894,9 @@ module.exports = async function menuHandler(ctx) {
         }
 
 
-        // ==============================================
-        // PERSONAL AI FINANCIAL ADVISOR
-        // ==============================================
+        // ==================================================
+        // PERSONAL AI ADVISOR
+        // ==================================================
 
         if (
             text ===
@@ -828,7 +914,6 @@ module.exports = async function menuHandler(ctx) {
                 "Your personal AI financial advisor will be connected here next.",
 
                 personalKeyboard
-
             );
 
 
@@ -837,9 +922,9 @@ module.exports = async function menuHandler(ctx) {
         }
 
 
-        // ==============================================
-        // PERSONAL SETTINGS
-        // ==============================================
+        // ==================================================
+        // SETTINGS
+        // ==================================================
 
         if (text === "⚙️ Settings") {
 
@@ -854,7 +939,6 @@ module.exports = async function menuHandler(ctx) {
                 "Personal account settings will be connected here next.",
 
                 personalKeyboard
-
             );
 
 
@@ -863,9 +947,9 @@ module.exports = async function menuHandler(ctx) {
         }
 
 
-        // ==============================================
+        // ==================================================
         // PERSONAL BACK
-        // ==============================================
+        // ==================================================
 
         if (text === "⬅️ Back") {
 
@@ -880,7 +964,6 @@ module.exports = async function menuHandler(ctx) {
                 "Choose an option below 👇",
 
                 personalKeyboard
-
             );
 
 
@@ -889,27 +972,24 @@ module.exports = async function menuHandler(ctx) {
         }
 
 
-        // ==============================================
-        // PERSONAL ACTIVE SESSION
-        // ==============================================
+        // ==================================================
+        // ACTIVE SESSION
+        // ==================================================
 
         if (activeSession) {
-
             return false;
-
         }
 
 
-        // ==============================================
-        // PERSONAL SAFE FALLBACK
-        // ==============================================
+        // ==================================================
+        // SAFE FALLBACK
+        // ==================================================
 
         await ctx.reply(
 
             "Please choose an option from your PERSONAL FINANCE menu.",
 
             personalKeyboard
-
         );
 
 
@@ -919,15 +999,15 @@ module.exports = async function menuHandler(ctx) {
 
 
     // ======================================================
-    // BUSINESS ACCOUNT ROUTING
+    // BUSINESS ACCOUNT
     // ======================================================
 
     if (isBusiness) {
 
 
-        // ==============================================
-        // TRANSACTIONS MENU
-        // ==============================================
+        // ==================================================
+        // TRANSACTIONS
+        // ==================================================
 
         if (text === "💰 Transactions") {
 
@@ -941,7 +1021,6 @@ module.exports = async function menuHandler(ctx) {
                 "💰 TRANSACTIONS",
 
                 transactionKeyboard
-
             );
 
 
@@ -950,9 +1029,9 @@ module.exports = async function menuHandler(ctx) {
         }
 
 
-        // ==============================================
-        // BUSINESS MENU
-        // ==============================================
+        // ==================================================
+        // BUSINESS CENTER
+        // ==================================================
 
         if (text === "📊 Business") {
 
@@ -966,7 +1045,6 @@ module.exports = async function menuHandler(ctx) {
                 "📊 BUSINESS CENTER",
 
                 businessKeyboard
-
             );
 
 
@@ -975,11 +1053,16 @@ module.exports = async function menuHandler(ctx) {
         }
 
 
-        // ==============================================
-        // SALES
-        // ==============================================
+        // ==================================================
+        // RECORD SALE
+        // ==================================================
 
         if (text === "📦 Record Sale") {
+
+            clearSession(
+                telegramId
+            );
+
 
             setSession(
 
@@ -987,16 +1070,17 @@ module.exports = async function menuHandler(ctx) {
 
                 {
                     state:
-                        STATES.WAITING_FOR_PRODUCT
+                        STATES.WAITING_FOR_PRODUCT,
+
+                    data: {}
+
                 }
 
             );
 
 
             await ctx.reply(
-
                 "📦 What product did you sell?"
-
             );
 
 
@@ -1005,11 +1089,16 @@ module.exports = async function menuHandler(ctx) {
         }
 
 
-        // ==============================================
-        // BUSINESS EXPENSE
-        // ==============================================
+        // ==================================================
+        // RECORD EXPENSE
+        // ==================================================
 
         if (text === "💸 Record Expense") {
+
+            clearSession(
+                telegramId
+            );
+
 
             setSession(
 
@@ -1017,7 +1106,10 @@ module.exports = async function menuHandler(ctx) {
 
                 {
                     state:
-                        STATES.WAITING_FOR_EXPENSE_CATEGORY
+                        STATES.WAITING_FOR_EXPENSE_CATEGORY,
+
+                    data: {}
+
                 }
 
             );
@@ -1028,7 +1120,6 @@ module.exports = async function menuHandler(ctx) {
                 "💸 Select an expense category:",
 
                 expenseKeyboard
-
             );
 
 
@@ -1037,11 +1128,16 @@ module.exports = async function menuHandler(ctx) {
         }
 
 
-        // ==============================================
-        // BUSINESS INCOME
-        // ==============================================
+        // ==================================================
+        // RECORD INCOME
+        // ==================================================
 
         if (text === "💰 Record Income") {
+
+            clearSession(
+                telegramId
+            );
+
 
             setSession(
 
@@ -1049,7 +1145,10 @@ module.exports = async function menuHandler(ctx) {
 
                 {
                     state:
-                        STATES.WAITING_FOR_INCOME_SOURCE
+                        STATES.WAITING_FOR_INCOME_SOURCE,
+
+                    data: {}
+
                 }
 
             );
@@ -1060,7 +1159,6 @@ module.exports = async function menuHandler(ctx) {
                 "💰 Select an income source:",
 
                 incomeKeyboard
-
             );
 
 
@@ -1069,9 +1167,9 @@ module.exports = async function menuHandler(ctx) {
         }
 
 
-        // ==============================================
+        // ==================================================
         // PURCHASES
-        // ==============================================
+        // ==================================================
 
         if (text === "🛒 Purchases") {
 
@@ -1085,7 +1183,6 @@ module.exports = async function menuHandler(ctx) {
                 "🛒 PURCHASE MANAGEMENT",
 
                 purchaseKeyboard
-
             );
 
 
@@ -1094,9 +1191,9 @@ module.exports = async function menuHandler(ctx) {
         }
 
 
-        // ==============================================
+        // ==================================================
         // CUSTOMERS
-        // ==============================================
+        // ==================================================
 
         if (text === "👥 Customers") {
 
@@ -1110,7 +1207,6 @@ module.exports = async function menuHandler(ctx) {
                 "👥 CUSTOMER MANAGEMENT",
 
                 customerKeyboard
-
             );
 
 
@@ -1119,9 +1215,9 @@ module.exports = async function menuHandler(ctx) {
         }
 
 
-        // ==============================================
+        // ==================================================
         // INVENTORY
-        // ==============================================
+        // ==================================================
 
         if (text === "📦 Inventory") {
 
@@ -1135,7 +1231,6 @@ module.exports = async function menuHandler(ctx) {
                 "📦 INVENTORY MANAGEMENT",
 
                 inventoryKeyboard
-
             );
 
 
@@ -1144,9 +1239,9 @@ module.exports = async function menuHandler(ctx) {
         }
 
 
-        // ==============================================
+        // ==================================================
         // CREDITORS
-        // ==============================================
+        // ==================================================
 
         if (text === "📕 Creditors") {
 
@@ -1160,7 +1255,6 @@ module.exports = async function menuHandler(ctx) {
                 "📕 CREDITORS MANAGEMENT",
 
                 creditorKeyboard
-
             );
 
 
@@ -1169,9 +1263,9 @@ module.exports = async function menuHandler(ctx) {
         }
 
 
-        // ==============================================
+        // ==================================================
         // BUSINESS BACK
-        // ==============================================
+        // ==================================================
 
         if (text === "⬅️ Back") {
 
@@ -1186,7 +1280,6 @@ module.exports = async function menuHandler(ctx) {
                 "Choose an option below 👇",
 
                 keyboard
-
             );
 
 
@@ -1195,27 +1288,24 @@ module.exports = async function menuHandler(ctx) {
         }
 
 
-        // ==============================================
-        // BUSINESS ACTIVE SESSION
-        // ==============================================
+        // ==================================================
+        // ACTIVE SESSION
+        // ==================================================
 
         if (activeSession) {
-
             return false;
-
         }
 
 
-        // ==============================================
-        // BUSINESS SAFE FALLBACK
-        // ==============================================
+        // ==================================================
+        // SAFE FALLBACK
+        // ==================================================
 
         await ctx.reply(
 
             "Please choose an option from your BUSINESS dashboard.",
 
             keyboard
-
         );
 
 
@@ -1223,10 +1313,6 @@ module.exports = async function menuHandler(ctx) {
 
     }
 
-
-    // ======================================================
-    // UNKNOWN ACCOUNT TYPE
-    // ======================================================
 
     return false;
 

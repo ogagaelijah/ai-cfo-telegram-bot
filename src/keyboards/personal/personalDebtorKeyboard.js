@@ -4,34 +4,33 @@ const {
 
 
 // ======================================================
-// PERSONAL FINANCE KEYBOARD
+// PERSONAL DEBTOR KEYBOARD
 // ======================================================
 
 module.exports =
     Markup.keyboard([
 
         [
-            "💰 Income",
-            "💸 Expenses"
+            "➕ Add Debtor",
+            "📊 View Debtors"
         ],
 
         [
-            "📋 Debts",
-            "👥 Debtors"
+            "💳 Receive Payment",
+            "📈 Debtor Summary"
         ],
 
         [
-            "💧 Cash Flow",
-            "📊 Financial Reports"
+            "✏️ Update Debtor",
+            "✅ Complete Debtor"
         ],
 
         [
-            "🔮 Forecast",
-            "🤖 AI Financial Advisor"
+            "🗑️ Delete Debtor"
         ],
 
         [
-            "⚙️ Settings"
+            "⬅️ Back"
         ]
 
     ])

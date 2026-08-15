@@ -296,7 +296,137 @@ function initializeDatabase() {
 
 
     // ======================================================
-    // DEBTORS
+    // PERSONAL DEBTS
+    // ======================================================
+    //
+    // Personal debt means:
+    //
+    // The USER owes someone else money.
+    //
+    // Example:
+    //
+    // User owes Mr John ₦100,000.
+    //
+    // ======================================================
+
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS personal_debts (
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            account_id INTEGER NOT NULL,
+
+            name TEXT NOT NULL,
+
+            original_amount REAL NOT NULL,
+
+            paid_amount REAL NOT NULL DEFAULT 0,
+
+            remaining_amount REAL NOT NULL,
+
+            due_date TEXT,
+
+            notes TEXT DEFAULT '',
+
+            status TEXT NOT NULL DEFAULT 'ACTIVE',
+
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+
+            FOREIGN KEY (
+                account_id
+            )
+            REFERENCES accounts(id)
+
+            ON DELETE CASCADE
+
+        );
+    `);
+
+
+    // ======================================================
+    // PERSONAL DEBT INDEX
+    // ======================================================
+
+    db.exec(`
+        CREATE INDEX IF NOT EXISTS
+        idx_personal_debts_account
+
+        ON personal_debts(account_id);
+    `);
+
+
+    // ======================================================
+    // PERSONAL DEBTORS
+    // ======================================================
+    //
+    // Personal debtor means:
+    //
+    // Someone owes the USER money.
+    //
+    // Example:
+    //
+    // Mr John owes the user ₦100,000.
+    //
+    // This is deliberately separate from
+    // personal_debts.
+    //
+    // personal_debts  = money USER owes
+    // personal_debtors = money OWED TO USER
+    //
+    // ======================================================
+
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS personal_debtors (
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            account_id INTEGER NOT NULL,
+
+            name TEXT NOT NULL,
+
+            original_amount REAL NOT NULL,
+
+            paid_amount REAL NOT NULL DEFAULT 0,
+
+            remaining_amount REAL NOT NULL,
+
+            due_date TEXT,
+
+            notes TEXT DEFAULT '',
+
+            status TEXT NOT NULL DEFAULT 'ACTIVE',
+
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+
+            FOREIGN KEY (
+                account_id
+            )
+            REFERENCES accounts(id)
+
+            ON DELETE CASCADE
+
+        );
+    `);
+
+
+    // ======================================================
+    // PERSONAL DEBTORS INDEX
+    // ======================================================
+
+    db.exec(`
+        CREATE INDEX IF NOT EXISTS
+        idx_personal_debtors_account
+
+        ON personal_debtors(account_id);
+    `);
+
+
+    // ======================================================
+    // BUSINESS DEBTORS
     // ======================================================
 
     db.prepare(`
@@ -515,5 +645,6 @@ function initializeDatabase() {
         "✅ Database initialized successfully."
     );
 }
+
 
 module.exports = initializeDatabase;
