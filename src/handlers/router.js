@@ -107,6 +107,9 @@ const personalDebtsFlow =
 const personalDebtorsFlow =
     require("../flows/personal/personalDebtorsFlow");
 
+const personalCashFlowFlow =
+    require("../flows/personal/personalCashFlowFlow");
+
 
 // ======================================================
 // ROUTER
@@ -164,7 +167,7 @@ module.exports = function router(
                 // IMPORTANT:
                 //
                 // Active multi-step sessions MUST be
-                // processed BEFORE menu handlers.
+                // processed before menu handlers.
                 //
                 // Otherwise another handler can consume
                 // values such as:
@@ -321,6 +324,24 @@ module.exports = function router(
                         case STATES.WAITING_FOR_PERSONAL_DEBTOR_SUMMARY:
 
                             return personalDebtorsFlow(ctx);
+
+
+                        // ======================================
+                        // PERSONAL CASH FLOW
+                        // ======================================
+                        //
+                        // Interface-neutral personal cash-flow
+                        // flow.
+                        //
+                        // All input required for cash-flow
+                        // processing is handled by the
+                        // personalCashFlowFlow.
+                        //
+                        // ======================================
+
+                        case STATES.WAITING_FOR_PERSONAL_CASH_FLOW:
+
+                            return personalCashFlowFlow(ctx);
 
 
                         // ======================================

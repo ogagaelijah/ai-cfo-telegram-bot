@@ -1,42 +1,49 @@
-const db = require("../database/database");
+const db =
+    require("../database/database");
+
 
 // ======================================================
 // CREATE EXPENSE
 // ======================================================
 
-function create(accountId, expense) {
+function create(
+    accountId,
+    expense
+) {
 
-    const result = db.prepare(`
-        INSERT INTO expenses
-        (
-            account_id,
-            item,
-            category,
-            amount,
-            notes
-        )
+    const result =
+        db.prepare(`
+            INSERT INTO expenses
+            (
+                account_id,
+                item,
+                category,
+                amount,
+                notes
+            )
 
-        VALUES
-        (
-            ?,
-            ?,
-            ?,
-            ?,
-            ?
-        )
-    `).run(
+            VALUES
+            (
+                ?,
+                ?,
+                ?,
+                ?,
+                ?
+            )
+        `).run(
 
-        accountId,
+            accountId,
 
-        expense.item,
+            expense.item,
 
-        expense.category || null,
+            expense.category || null,
 
-        expense.amount,
+            expense.amount,
 
-        expense.notes || ""
+            expense.notes || ""
 
-    );
+        );
+
 
     return findById(
         result.lastInsertRowid
@@ -49,7 +56,9 @@ function create(accountId, expense) {
 // FIND EXPENSE BY ID
 // ======================================================
 
-function findById(id) {
+function findById(
+    id
+) {
 
     return db.prepare(`
         SELECT
@@ -61,7 +70,6 @@ function findById(id) {
             id = ?
 
         LIMIT 1
-
     `).get(id);
 
 }
@@ -71,31 +79,34 @@ function findById(id) {
 // TODAY TOTAL
 // ======================================================
 
-function getTodayTotal(accountId) {
+function getTodayTotal(
+    accountId
+) {
 
-    const result = db.prepare(`
-        SELECT
-            COALESCE(
-                SUM(amount),
-                0
-            ) AS total
+    const result =
+        db.prepare(`
+            SELECT
+                COALESCE(
+                    SUM(amount),
+                    0
+                ) AS total
 
-        FROM expenses
+            FROM expenses
 
-        WHERE
-            account_id = ?
+            WHERE
+                account_id = ?
 
-            AND DATE(
-                created_at,
-                'localtime'
-            )
-            =
-            DATE(
-                'now',
-                'localtime'
-            )
+                AND DATE(
+                    created_at,
+                    'localtime'
+                )
+                =
+                DATE(
+                    'now',
+                    'localtime'
+                )
+        `).get(accountId);
 
-    `).get(accountId);
 
     return Number(
         result.total
@@ -105,36 +116,138 @@ function getTodayTotal(accountId) {
 
 
 // ======================================================
-// MONTHLY TOTAL
+// CURRENT WEEK TOTAL
+// ======================================================
+//
+// Week runs from Monday to Sunday.
+//
 // ======================================================
 
-function getMonthlyTotal(accountId) {
+function getWeeklyTotal(
+    accountId
+) {
 
-    const result = db.prepare(`
-        SELECT
-            COALESCE(
-                SUM(amount),
-                0
-            ) AS total
+    const result =
+        db.prepare(`
+            SELECT
+                COALESCE(
+                    SUM(amount),
+                    0
+                ) AS total
 
-        FROM expenses
+            FROM expenses
 
-        WHERE
-            account_id = ?
+            WHERE
+                account_id = ?
 
-            AND strftime(
-                '%Y-%m',
-                created_at,
-                'localtime'
-            )
-            =
-            strftime(
-                '%Y-%m',
-                'now',
-                'localtime'
-            )
+                AND DATE(
+                    created_at,
+                    'localtime'
+                )
+                >=
+                DATE(
+                    'now',
+                    'localtime',
+                    'weekday 1',
+                    '-7 days'
+                )
 
-    `).get(accountId);
+                AND DATE(
+                    created_at,
+                    'localtime'
+                )
+                <
+                DATE(
+                    'now',
+                    'localtime',
+                    'weekday 1'
+                )
+        `).get(accountId);
+
+
+    return Number(
+        result.total
+    ) || 0;
+
+}
+
+
+// ======================================================
+// CURRENT MONTH TOTAL
+// ======================================================
+
+function getMonthlyTotal(
+    accountId
+) {
+
+    const result =
+        db.prepare(`
+            SELECT
+                COALESCE(
+                    SUM(amount),
+                    0
+                ) AS total
+
+            FROM expenses
+
+            WHERE
+                account_id = ?
+
+                AND strftime(
+                    '%Y-%m',
+                    created_at,
+                    'localtime'
+                )
+                =
+                strftime(
+                    '%Y-%m',
+                    'now',
+                    'localtime'
+                )
+        `).get(accountId);
+
+
+    return Number(
+        result.total
+    ) || 0;
+
+}
+
+
+// ======================================================
+// CURRENT YEAR TOTAL
+// ======================================================
+
+function getYearlyTotal(
+    accountId
+) {
+
+    const result =
+        db.prepare(`
+            SELECT
+                COALESCE(
+                    SUM(amount),
+                    0
+                ) AS total
+
+            FROM expenses
+
+            WHERE
+                account_id = ?
+
+                AND strftime(
+                    '%Y',
+                    created_at,
+                    'localtime'
+                )
+                =
+                strftime(
+                    '%Y',
+                    'now',
+                    'localtime'
+                )
+        `).get(accountId);
+
 
     return Number(
         result.total
@@ -147,7 +260,9 @@ function getMonthlyTotal(accountId) {
 // BY CATEGORY
 // ======================================================
 
-function getByCategory(accountId) {
+function getByCategory(
+    accountId
+) {
 
     return db.prepare(`
         SELECT
@@ -168,7 +283,6 @@ function getByCategory(accountId) {
 
         ORDER BY
             total DESC
-
     `).all(accountId);
 
 }
@@ -178,7 +292,9 @@ function getByCategory(accountId) {
 // GET ALL EXPENSES
 // ======================================================
 
-function findAll(accountId) {
+function findAll(
+    accountId
+) {
 
     return db.prepare(`
         SELECT
@@ -191,7 +307,6 @@ function findAll(accountId) {
 
         ORDER BY
             created_at DESC
-
     `).all(accountId);
 
 }
@@ -200,31 +315,26 @@ function findAll(accountId) {
 // ======================================================
 // GET DAILY EXPENSE HISTORY
 // ======================================================
-//
-// Returns one row per calendar day from the first
-// recorded expense through today.
-//
-// Zero-expense days are included.
-//
-// ======================================================
 
-function getDailyHistory(accountId) {
+function getDailyHistory(
+    accountId
+) {
 
-    const firstExpense = db.prepare(`
-        SELECT
-            MIN(
-                DATE(
-                    created_at,
-                    'localtime'
-                )
-            ) AS first_date
+    const firstExpense =
+        db.prepare(`
+            SELECT
+                MIN(
+                    DATE(
+                        created_at,
+                        'localtime'
+                    )
+                ) AS first_date
 
-        FROM expenses
+            FROM expenses
 
-        WHERE
-            account_id = ?
-
-    `).get(accountId);
+            WHERE
+                account_id = ?
+        `).get(accountId);
 
 
     if (
@@ -325,7 +435,11 @@ module.exports = {
 
     getTodayTotal,
 
+    getWeeklyTotal,
+
     getMonthlyTotal,
+
+    getYearlyTotal,
 
     getByCategory,
 

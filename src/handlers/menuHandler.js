@@ -62,6 +62,26 @@ const personalDebtorsFlow =
 
 
 // ======================================================
+// PERSONAL CASH FLOW
+// ======================================================
+//
+// Cash Flow is an immediate action.
+//
+// The menu handler only:
+// - starts the cash-flow state
+// - invokes the Telegram cash-flow adapter
+//
+// It does NOT calculate cash flow.
+//
+// Calculation remains interface-neutral and belongs
+// below the Telegram flow.
+// ======================================================
+
+const personalCashFlowFlow =
+    require("../flows/personal/personalCashFlowFlow");
+
+
+// ======================================================
 // MENU HANDLER
 // ======================================================
 //
@@ -75,6 +95,8 @@ const personalDebtorsFlow =
 // - Route BUSINESS menus
 // - Start flows
 // - Never interfere with active data-entry sessions
+//
+// This file contains NO accounting/business logic.
 //
 // ======================================================
 
@@ -598,14 +620,6 @@ module.exports = async function menuHandler(ctx) {
         // ==================================================
         // VIEW PERSONAL DEBTORS
         // ==================================================
-        //
-        // This is an immediate action.
-        //
-        // Set the required state and invoke the flow
-        // immediately. The user does not need to send
-        // another message.
-        //
-        // ==================================================
 
         if (text === "📊 View Debtors") {
 
@@ -678,14 +692,6 @@ module.exports = async function menuHandler(ctx) {
 
         // ==================================================
         // DEBTOR SUMMARY
-        // ==================================================
-        //
-        // This is an immediate action.
-        //
-        // Set the required state and invoke the flow
-        // immediately. The user does not need to send
-        // another message.
-        //
         // ==================================================
 
         if (text === "📈 Debtor Summary") {
@@ -840,6 +846,17 @@ module.exports = async function menuHandler(ctx) {
         // ==================================================
         // PERSONAL CASH FLOW
         // ==================================================
+        //
+        // Cash Flow is an immediate analysis action.
+        //
+        // We create the state and immediately invoke the
+        // Telegram cash-flow adapter.
+        //
+        // The adapter will resolve the current PERSONAL
+        // account and delegate the actual calculation to
+        // the interface-neutral application layer.
+        //
+        // ==================================================
 
         if (text === "💧 Cash Flow") {
 
@@ -848,16 +865,24 @@ module.exports = async function menuHandler(ctx) {
             );
 
 
-            await ctx.reply(
+            setSession(
 
-                "💧 PERSONAL CASH FLOW\n\n" +
-                "Personal cash-flow analysis will be connected here next.",
+                telegramId,
 
-                personalKeyboard
+                {
+                    state:
+                        STATES.WAITING_FOR_PERSONAL_CASH_FLOW,
+
+                    data: {}
+
+                }
+
             );
 
 
-            return true;
+            return await personalCashFlowFlow(
+                ctx
+            );
 
         }
 
