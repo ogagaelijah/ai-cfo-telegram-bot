@@ -6,18 +6,32 @@ const personalDebtorService =
 // PERSONAL DEBTORS APPLICATION
 // ======================================================
 //
-// APPLICATION LAYER
+// INTERFACE-NEUTRAL APPLICATION API
 //
-// Telegram
-//     ↓
-// Flow
-//     ↓
-// Application
-//     ↓
-// Service
-//     ↓
-// Repository
-//     ↓
+// This module knows NOTHING about:
+//
+// - Telegram
+// - Website
+// - Mobile App
+// - API
+// - ctx
+// - telegramId
+// - keyboards
+// - sessions
+// - HTTP
+//
+// It receives an already-resolved accountId.
+//
+// Architecture:
+//
+// Interface Adapter
+//        ↓
+// Personal Debtors Application
+//        ↓
+// Personal Debtor Service
+//        ↓
+// Personal Debtor Repository
+//        ↓
 // Database
 //
 // ======================================================
@@ -27,12 +41,12 @@ const personalDebtorService =
 // CREATE PERSONAL DEBTOR
 // ======================================================
 
-async function createDebtor(
+function createPersonalDebtor(
     accountId,
     data
 ) {
 
-    return personalDebtorService.createDebtor(
+    return personalDebtorService.createPersonalDebtor(
         accountId,
         data
     );
@@ -41,15 +55,15 @@ async function createDebtor(
 
 
 // ======================================================
-// GET ONE PERSONAL DEBTOR
+// GET PERSONAL DEBTOR
 // ======================================================
 
-async function getDebtor(
+function getPersonalDebtor(
     accountId,
     debtorId
 ) {
 
-    return personalDebtorService.getDebtor(
+    return personalDebtorService.getPersonalDebtorById(
         accountId,
         debtorId
     );
@@ -61,11 +75,11 @@ async function getDebtor(
 // GET ALL PERSONAL DEBTORS
 // ======================================================
 
-async function getDebtors(
+function getPersonalDebtors(
     accountId
 ) {
 
-    return personalDebtorService.getDebtors(
+    return personalDebtorService.getPersonalDebtors(
         accountId
     );
 
@@ -76,12 +90,48 @@ async function getDebtors(
 // GET ACTIVE PERSONAL DEBTORS
 // ======================================================
 
-async function getActiveDebtors(
+function getActivePersonalDebtors(
     accountId
 ) {
 
-    return personalDebtorService.getActiveDebtors(
+    return personalDebtorService.getActivePersonalDebtors(
         accountId
+    );
+
+}
+
+
+// ======================================================
+// SEARCH PERSONAL DEBTORS
+// ======================================================
+
+function searchPersonalDebtors(
+    accountId,
+    searchTerm
+) {
+
+    return personalDebtorService.searchPersonalDebtors(
+        accountId,
+        searchTerm
+    );
+
+}
+
+
+// ======================================================
+// RECORD PAYMENT
+// ======================================================
+
+function recordPersonalDebtorPayment(
+    accountId,
+    debtorId,
+    paymentAmount
+) {
+
+    return personalDebtorService.recordPayment(
+        accountId,
+        debtorId,
+        paymentAmount
     );
 
 }
@@ -91,13 +141,13 @@ async function getActiveDebtors(
 // UPDATE PERSONAL DEBTOR
 // ======================================================
 
-async function updateDebtor(
+function updatePersonalDebtor(
     accountId,
     debtorId,
     data
 ) {
 
-    return personalDebtorService.updateDebtor(
+    return personalDebtorService.updatePersonalDebtor(
         accountId,
         debtorId,
         data
@@ -107,34 +157,34 @@ async function updateDebtor(
 
 
 // ======================================================
-// ADD PAYMENT
+// UPDATE STATUS
 // ======================================================
 
-async function addPayment(
+function updatePersonalDebtorStatus(
     accountId,
     debtorId,
-    amount
+    status
 ) {
 
-    return personalDebtorService.addPayment(
+    return personalDebtorService.updatePersonalDebtorStatus(
         accountId,
         debtorId,
-        amount
+        status
     );
 
 }
 
 
 // ======================================================
-// COMPLETE DEBTOR
+// DELETE PERSONAL DEBTOR
 // ======================================================
 
-async function completeDebtor(
+function deletePersonalDebtor(
     accountId,
     debtorId
 ) {
 
-    return personalDebtorService.completeDebtor(
+    return personalDebtorService.deletePersonalDebtor(
         accountId,
         debtorId
     );
@@ -143,31 +193,29 @@ async function completeDebtor(
 
 
 // ======================================================
-// DELETE DEBTOR
+// GET TOTAL OUTSTANDING
 // ======================================================
 
-async function deleteDebtor(
-    accountId,
-    debtorId
-) {
-
-    return personalDebtorService.deleteDebtor(
-        accountId,
-        debtorId
-    );
-
-}
-
-
-// ======================================================
-// GET DEBTOR SUMMARY
-// ======================================================
-
-async function getDebtorSummary(
+function getTotalOutstanding(
     accountId
 ) {
 
-    return personalDebtorService.getDebtorSummary(
+    return personalDebtorService.getTotalOutstanding(
+        accountId
+    );
+
+}
+
+
+// ======================================================
+// GET SUMMARY
+// ======================================================
+
+function getSummary(
+    accountId
+) {
+
+    return personalDebtorService.getSummary(
         accountId
     );
 
@@ -180,22 +228,26 @@ async function getDebtorSummary(
 
 module.exports = {
 
-    createDebtor,
+    createPersonalDebtor,
 
-    getDebtor,
+    getPersonalDebtor,
 
-    getDebtors,
+    getPersonalDebtors,
 
-    getActiveDebtors,
+    getActivePersonalDebtors,
 
-    updateDebtor,
+    searchPersonalDebtors,
 
-    addPayment,
+    recordPersonalDebtorPayment,
 
-    completeDebtor,
+    updatePersonalDebtor,
 
-    deleteDebtor,
+    updatePersonalDebtorStatus,
 
-    getDebtorSummary
+    deletePersonalDebtor,
+
+    getTotalOutstanding,
+
+    getSummary
 
 };

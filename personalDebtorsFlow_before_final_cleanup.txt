@@ -16,9 +16,6 @@ const personalDebtorApplication =
 const personalDebtorKeyboard =
     require("../../keyboards/personal/personalDebtorKeyboard");
 
-const personalKeyboard =
-    require("../../keyboards/personal/personalKeyboard");
-
 
 // ======================================================
 // PERSONAL DEBTORS TELEGRAM FLOW
@@ -258,53 +255,6 @@ module.exports = async function personalDebtorsFlow(ctx) {
 
 
         // ==================================================
-        // GET TELEGRAM TEXT
-        // ==================================================
-
-        const text =
-            ctx.message &&
-            ctx.message.text
-                ? ctx.message.text.trim()
-                : "";
-
-
-        // ==================================================
-        // PERSONAL DEBTOR BACK
-        // ==================================================
-        //
-        // IMPORTANT:
-        //
-        // The router sends active sessions into this flow
-        // before menuHandler gets a chance to process the
-        // Back button.
-        //
-        // Therefore Back MUST be handled here.
-        //
-        // ==================================================
-
-        if (text === "⬅️ Back") {
-
-            clearSession(
-                telegramId
-            );
-
-
-            await ctx.reply(
-
-                "👤 PERSONAL FINANCE\n\n" +
-                "Choose an option below 👇",
-
-                personalKeyboard
-
-            );
-
-
-            return true;
-
-        }
-
-
-        // ==================================================
         // RESOLVE CURRENT ACCOUNT
         // ==================================================
         //
@@ -359,6 +309,17 @@ module.exports = async function personalDebtorsFlow(ctx) {
             return true;
 
         }
+
+
+        // ==================================================
+        // GET TELEGRAM TEXT
+        // ==================================================
+
+        const text =
+            ctx.message &&
+            ctx.message.text
+                ? ctx.message.text.trim()
+                : "";
 
 
         // ==================================================
@@ -1364,27 +1325,12 @@ module.exports = async function personalDebtorsFlow(ctx) {
                 );
 
 
-            // ==================================================
-            // OUTSTANDING BALANCE
-            // ==================================================
-            //
-            // Keep the session active so the user can still
-            // enter another debtor ID or use Back.
-            //
-            // Back is handled at the top of this flow.
-            //
-            // ==================================================
-
             if (remaining > 0) {
 
                 await ctx.reply(
 
                     `⚠️ This debtor still has an outstanding balance of ₦${money(remaining)}.\n\n` +
-
-                    "Record the final payment before completing the debtor.\n\n" +
-
-                    "Use 💳 Receive Payment to record the payment, " +
-                    "or press ⬅️ Back to return to Personal Finance."
+                    "Record the final payment before completing the debtor."
 
                 );
 
@@ -1393,10 +1339,6 @@ module.exports = async function personalDebtorsFlow(ctx) {
 
             }
 
-
-            // ==================================================
-            // MARK AS PAID
-            // ==================================================
 
             if (
                 debtor.status !== "PAID"
@@ -1420,10 +1362,6 @@ module.exports = async function personalDebtorsFlow(ctx) {
             );
 
 
-            // ==================================================
-            // RETURN TO PERSONAL DASHBOARD
-            // ==================================================
-
             await ctx.reply(
 
                 "✅ DEBTOR COMPLETED\n\n" +
@@ -1434,12 +1372,9 @@ module.exports = async function personalDebtorsFlow(ctx) {
                     getOriginalAmount(debtor)
                 )}\n\n` +
 
-                "The debtor has been marked as fully paid.\n\n" +
+                "The debtor has been marked as fully paid.",
 
-                "👤 PERSONAL FINANCE\n\n" +
-                "Choose an option below 👇",
-
-                personalKeyboard
+                personalDebtorKeyboard
 
             );
 

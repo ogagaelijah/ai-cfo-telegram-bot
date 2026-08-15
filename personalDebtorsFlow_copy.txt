@@ -1,4 +1,4 @@
-const {
+﻿const {
     getSession,
     setSession,
     clearSession
@@ -21,48 +21,27 @@ const personalKeyboard =
 
 
 // ======================================================
-// PERSONAL DEBTORS TELEGRAM FLOW
+// PERSONAL DEBTORS FLOW
 // ======================================================
 //
-// INTERFACE ADAPTER ONLY
+// Someone who owes money TO the user.
 //
-// This file is Telegram-specific.
+// Handles:
 //
-// It is responsible for:
+// - Add Debtor
+// - View Debtors
+// - Receive Payment
+// - Debtor Summary
+// - Update Debtor
+// - Complete Debtor
+// - Delete Debtor
 //
-// - Telegram input
-// - Telegram sessions
-// - Telegram messages
-// - Telegram keyboards
-// - Resolving Telegram user -> current account
-//
-// It does NOT contain:
-//
-// - Database queries
-// - Financial persistence
-// - Core debtor business logic
-// - Account authorization logic
-// - Repository logic
-//
-// Architecture:
-//
-// Telegram
-//    ↓
-// This Flow
-//    ↓
-// Personal Debtors Application
-//    ↓
-// Personal Debtor Service
-//    ↓
-// Personal Debtor Repository
-//    ↓
-// SQLite
-//
+// All operations are account scoped.
 // ======================================================
 
 
 // ======================================================
-// FORMAT MONEY
+// HELPERS
 // ======================================================
 
 function money(amount) {
@@ -76,53 +55,15 @@ function money(amount) {
 }
 
 
-// ======================================================
-// GET ACCOUNT ID
-// ======================================================
-
 function getAccountId(account) {
 
     return (
-        account.accountId ||
-        account.id
+        account.id ||
+        account.accountId
     );
 
 }
 
-
-// ======================================================
-// GET ORIGINAL AMOUNT
-// ======================================================
-
-function getOriginalAmount(debtor) {
-
-    return Number(
-        debtor.original_amount ??
-        debtor.originalAmount ??
-        0
-    );
-
-}
-
-
-// ======================================================
-// GET PAID AMOUNT
-// ======================================================
-
-function getPaidAmount(debtor) {
-
-    return Number(
-        debtor.paid_amount ??
-        debtor.paidAmount ??
-        0
-    );
-
-}
-
-
-// ======================================================
-// GET REMAINING AMOUNT
-// ======================================================
 
 function getRemaining(debtor) {
 
@@ -135,9 +76,27 @@ function getRemaining(debtor) {
 }
 
 
-// ======================================================
-// GET DUE DATE
-// ======================================================
+function getOriginalAmount(debtor) {
+
+    return Number(
+        debtor.original_amount ??
+        debtor.originalAmount ??
+        0
+    );
+
+}
+
+
+function getPaidAmount(debtor) {
+
+    return Number(
+        debtor.paid_amount ??
+        debtor.paidAmount ??
+        0
+    );
+
+}
+
 
 function getDueDate(debtor) {
 
@@ -150,10 +109,6 @@ function getDueDate(debtor) {
 }
 
 
-// ======================================================
-// GET NOTES
-// ======================================================
-
 function getNotes(debtor) {
 
     return (
@@ -165,84 +120,26 @@ function getNotes(debtor) {
 
 
 // ======================================================
-// VALIDATE INTEGER ID
-// ======================================================
-
-function parsePositiveInteger(value) {
-
-    const number =
-        Number(value);
-
-
-    if (
-        !Number.isInteger(number) ||
-        number <= 0
-    ) {
-
-        return null;
-
-    }
-
-
-    return number;
-
-}
-
-
-// ======================================================
-// PARSE MONEY INPUT
-// ======================================================
-
-function parseAmount(value) {
-
-    const amount =
-        Number(
-            String(value)
-                .replace(/,/g, "")
-                .trim()
-        );
-
-
-    if (
-        !Number.isFinite(amount) ||
-        amount <= 0
-    ) {
-
-        return null;
-
-    }
-
-
-    return amount;
-
-}
-
-
-// ======================================================
 // MAIN FLOW
 // ======================================================
 
 module.exports = async function personalDebtorsFlow(ctx) {
 
-    const telegramId =
-        ctx.from &&
-        ctx.from.id
-            ? ctx.from.id
-            : null;
-
-
-    if (!telegramId) {
-
-        return true;
-
-    }
-
-
     try {
 
-        // ==================================================
-        // GET SESSION
-        // ==================================================
+        const telegramId =
+            ctx.from &&
+            ctx.from.id
+                ? ctx.from.id
+                : null;
+
+
+        if (!telegramId) {
+
+            return true;
+
+        }
+
 
         const session =
             getSession(
@@ -257,64 +154,6 @@ module.exports = async function personalDebtorsFlow(ctx) {
         }
 
 
-        // ==================================================
-        // GET TELEGRAM TEXT
-        // ==================================================
-
-        const text =
-            ctx.message &&
-            ctx.message.text
-                ? ctx.message.text.trim()
-                : "";
-
-
-        // ==================================================
-        // PERSONAL DEBTOR BACK
-        // ==================================================
-        //
-        // IMPORTANT:
-        //
-        // The router sends active sessions into this flow
-        // before menuHandler gets a chance to process the
-        // Back button.
-        //
-        // Therefore Back MUST be handled here.
-        //
-        // ==================================================
-
-        if (text === "⬅️ Back") {
-
-            clearSession(
-                telegramId
-            );
-
-
-            await ctx.reply(
-
-                "👤 PERSONAL FINANCE\n\n" +
-                "Choose an option below 👇",
-
-                personalKeyboard
-
-            );
-
-
-            return true;
-
-        }
-
-
-        // ==================================================
-        // RESOLVE CURRENT ACCOUNT
-        // ==================================================
-        //
-        // Telegram is converted into the user's active
-        // account here.
-        //
-        // Everything below works with accountId.
-        //
-        // ==================================================
-
         const account =
             accountContext.getCurrentAccount(
                 telegramId
@@ -327,11 +166,9 @@ module.exports = async function personalDebtorsFlow(ctx) {
                 telegramId
             );
 
-
             await ctx.reply(
-                "⚠️ No active account was found. Please select an account first."
+                "âš ï¸ No active account was found. Please select an account first."
             );
-
 
             return true;
 
@@ -350,15 +187,21 @@ module.exports = async function personalDebtorsFlow(ctx) {
                 telegramId
             );
 
-
             await ctx.reply(
-                "⚠️ Your current account could not be identified."
+                "âš ï¸ Your current account could not be identified."
             );
-
 
             return true;
 
         }
+
+
+        const text =
+            ctx.message &&
+            ctx.message.text
+                ? ctx.message.text.trim()
+                : "";
+
 
 
         // ==================================================
@@ -375,7 +218,6 @@ module.exports = async function personalDebtorsFlow(ctx) {
                 await ctx.reply(
                     "Please enter the debtor's name."
                 );
-
 
                 return true;
 
@@ -405,7 +247,7 @@ module.exports = async function personalDebtorsFlow(ctx) {
 
             await ctx.reply(
 
-                "💰 How much does this person owe you?\n\n" +
+                "ðŸ’° How much does this person owe you?\n\n" +
                 "Example: 50000"
 
             );
@@ -414,6 +256,7 @@ module.exports = async function personalDebtorsFlow(ctx) {
             return true;
 
         }
+
 
 
         // ==================================================
@@ -426,20 +269,25 @@ module.exports = async function personalDebtorsFlow(ctx) {
         ) {
 
             const amount =
-                parseAmount(
-                    text
+                Number(
+                    text.replace(
+                        /,/g,
+                        ""
+                    )
                 );
 
 
-            if (!amount) {
+            if (
+                !Number.isFinite(amount) ||
+                amount <= 0
+            ) {
 
                 await ctx.reply(
 
-                    "⚠️ Please enter a valid positive amount.\n\n" +
+                    "âš ï¸ Please enter a valid positive amount.\n\n" +
                     "Example: 50000"
 
                 );
-
 
                 return true;
 
@@ -460,6 +308,9 @@ module.exports = async function personalDebtorsFlow(ctx) {
                         ...(session.data || {}),
 
                         originalAmount:
+                            amount,
+
+                        remainingAmount:
                             amount
 
                     }
@@ -471,7 +322,7 @@ module.exports = async function personalDebtorsFlow(ctx) {
 
             await ctx.reply(
 
-                "📝 Enter a note for this debtor.\n\n" +
+                "ðŸ“ Enter a note for this debtor.\n\n" +
                 "Type NONE if you do not want to add a note."
 
             );
@@ -480,6 +331,7 @@ module.exports = async function personalDebtorsFlow(ctx) {
             return true;
 
         }
+
 
 
         // ==================================================
@@ -502,7 +354,7 @@ module.exports = async function personalDebtorsFlow(ctx) {
 
 
             const debtor =
-                personalDebtorApplication.createPersonalDebtor(
+                await personalDebtorApplication.createDebtor(
 
                     accountId,
 
@@ -514,7 +366,16 @@ module.exports = async function personalDebtorsFlow(ctx) {
                         originalAmount:
                             data.originalAmount,
 
-                        notes
+                        remainingAmount:
+                            data.remainingAmount,
+
+                        paidAmount:
+                            0,
+
+                        notes,
+
+                        status:
+                            "ACTIVE"
 
                     }
 
@@ -528,19 +389,19 @@ module.exports = async function personalDebtorsFlow(ctx) {
 
             await ctx.reply(
 
-                "✅ DEBTOR ADDED\n\n" +
+                "âœ… DEBTOR ADDED\n\n" +
 
-                `👤 ${debtor.name}\n` +
+                `ðŸ‘¤ ${debtor.name}\n` +
 
-                `💰 Total Owed: ₦${money(
+                `ðŸ’° Total Owed: â‚¦${money(
                     getOriginalAmount(debtor)
                 )}\n` +
 
-                `💵 Remaining: ₦${money(
+                `ðŸ’µ Remaining: â‚¦${money(
                     getRemaining(debtor)
                 )}\n` +
 
-                `📌 Status: ${debtor.status}`,
+                `ðŸ“Œ Status: ${debtor.status}`,
 
                 personalDebtorKeyboard
 
@@ -550,6 +411,7 @@ module.exports = async function personalDebtorsFlow(ctx) {
             return true;
 
         }
+
 
 
         // ==================================================
@@ -562,7 +424,7 @@ module.exports = async function personalDebtorsFlow(ctx) {
         ) {
 
             const debtors =
-                personalDebtorApplication.getPersonalDebtors(
+                await personalDebtorApplication.getDebtors(
                     accountId
                 );
 
@@ -579,13 +441,12 @@ module.exports = async function personalDebtorsFlow(ctx) {
 
                 await ctx.reply(
 
-                    "📋 DEBTORS\n\n" +
+                    "ðŸ“‹ DEBTORS\n\n" +
                     "You currently have no debtors.",
 
                     personalDebtorKeyboard
 
                 );
-
 
                 return true;
 
@@ -593,66 +454,45 @@ module.exports = async function personalDebtorsFlow(ctx) {
 
 
             let message =
-                "📋 YOUR DEBTORS\n\n";
+                "ðŸ“‹ YOUR DEBTORS\n\n";
 
 
             debtors.forEach(
-
                 (debtor, index) => {
 
                     message +=
 
-                        `${index + 1}. 👤 ${debtor.name}\n` +
+                        `${index + 1}. ðŸ‘¤ ${debtor.name}\n` +
 
                         `   ID: ${debtor.id}\n` +
 
-                        `   💰 Total: ₦${money(
+                        `   ðŸ’° Total: â‚¦${money(
                             getOriginalAmount(debtor)
                         )}\n` +
 
-                        `   💵 Paid: ₦${money(
+                        `   ðŸ’µ Paid: â‚¦${money(
                             getPaidAmount(debtor)
                         )}\n` +
 
-                        `   🔴 Remaining: ₦${money(
+                        `   ðŸ”´ Remaining: â‚¦${money(
                             getRemaining(debtor)
                         )}\n` +
 
-                        `   📌 Status: ${debtor.status}\n`;
-
+                        `   ðŸ“Œ Status: ${debtor.status}\n`;
 
                     const dueDate =
-                        getDueDate(
-                            debtor
-                        );
-
+                        getDueDate(debtor);
 
                     if (dueDate) {
 
                         message +=
-                            `   📅 Due: ${dueDate}\n`;
+                            `   ðŸ“… Due: ${dueDate}\n`;
 
                     }
-
-
-                    const notes =
-                        getNotes(
-                            debtor
-                        );
-
-
-                    if (notes) {
-
-                        message +=
-                            `   📝 Note: ${notes}\n`;
-
-                    }
-
 
                     message += "\n";
 
                 }
-
             );
 
 
@@ -670,6 +510,7 @@ module.exports = async function personalDebtorsFlow(ctx) {
         }
 
 
+
         // ==================================================
         // RECEIVE PAYMENT - DEBTOR ID
         // ==================================================
@@ -680,17 +521,17 @@ module.exports = async function personalDebtorsFlow(ctx) {
         ) {
 
             const debtorId =
-                parsePositiveInteger(
-                    text
-                );
+                Number(text);
 
 
-            if (!debtorId) {
+            if (
+                !Number.isInteger(debtorId) ||
+                debtorId <= 0
+            ) {
 
                 await ctx.reply(
-                    "⚠️ Please enter a valid debtor ID."
+                    "âš ï¸ Please enter a valid debtor ID."
                 );
-
 
                 return true;
 
@@ -698,7 +539,7 @@ module.exports = async function personalDebtorsFlow(ctx) {
 
 
             const debtor =
-                personalDebtorApplication.getPersonalDebtor(
+                await personalDebtorApplication.getDebtor(
 
                     accountId,
 
@@ -710,9 +551,8 @@ module.exports = async function personalDebtorsFlow(ctx) {
             if (!debtor) {
 
                 await ctx.reply(
-                    "⚠️ Debtor not found."
+                    "âš ï¸ Debtor not found."
                 );
-
 
                 return true;
 
@@ -720,26 +560,18 @@ module.exports = async function personalDebtorsFlow(ctx) {
 
 
             const remaining =
-                getRemaining(
-                    debtor
-                );
+                getRemaining(debtor);
 
 
             if (remaining <= 0) {
 
                 await ctx.reply(
-
-                    "ℹ️ This debtor has already been fully paid.",
-
-                    personalDebtorKeyboard
-
+                    "â„¹ï¸ This debtor has already been fully paid."
                 );
-
 
                 clearSession(
                     telegramId
                 );
-
 
                 return true;
 
@@ -768,7 +600,7 @@ module.exports = async function personalDebtorsFlow(ctx) {
 
             await ctx.reply(
 
-                `💳 ${debtor.name} currently owes you ₦${money(remaining)}.\n\n` +
+                `ðŸ’³ ${debtor.name} currently owes you â‚¦${money(remaining)}.\n\n` +
                 "How much did they pay?"
 
             );
@@ -777,6 +609,7 @@ module.exports = async function personalDebtorsFlow(ctx) {
             return true;
 
         }
+
 
 
         // ==================================================
@@ -789,17 +622,22 @@ module.exports = async function personalDebtorsFlow(ctx) {
         ) {
 
             const amount =
-                parseAmount(
-                    text
+                Number(
+                    text.replace(
+                        /,/g,
+                        ""
+                    )
                 );
 
 
-            if (!amount) {
+            if (
+                !Number.isFinite(amount) ||
+                amount <= 0
+            ) {
 
                 await ctx.reply(
-                    "⚠️ Please enter a valid positive payment amount."
+                    "âš ï¸ Please enter a valid positive payment amount."
                 );
-
 
                 return true;
 
@@ -811,8 +649,8 @@ module.exports = async function personalDebtorsFlow(ctx) {
                 session.data.debtorId;
 
 
-            const debtor =
-                personalDebtorApplication.getPersonalDebtor(
+            const currentDebtor =
+                await personalDebtorApplication.getDebtor(
 
                     accountId,
 
@@ -821,17 +659,15 @@ module.exports = async function personalDebtorsFlow(ctx) {
                 );
 
 
-            if (!debtor) {
+            if (!currentDebtor) {
 
                 await ctx.reply(
-                    "⚠️ Debtor not found."
+                    "âš ï¸ Debtor not found."
                 );
-
 
                 clearSession(
                     telegramId
                 );
-
 
                 return true;
 
@@ -840,7 +676,7 @@ module.exports = async function personalDebtorsFlow(ctx) {
 
             const remaining =
                 getRemaining(
-                    debtor
+                    currentDebtor
                 );
 
 
@@ -848,18 +684,17 @@ module.exports = async function personalDebtorsFlow(ctx) {
 
                 await ctx.reply(
 
-                    `⚠️ Payment cannot be greater than the remaining balance of ₦${money(remaining)}.`
+                    `âš ï¸ Payment cannot be greater than the remaining balance of â‚¦${money(remaining)}.`
 
                 );
-
 
                 return true;
 
             }
 
 
-            const updatedDebtor =
-                personalDebtorApplication.recordPersonalDebtorPayment(
+            const debtor =
+                await personalDebtorApplication.addPayment(
 
                     accountId,
 
@@ -870,6 +705,17 @@ module.exports = async function personalDebtorsFlow(ctx) {
                 );
 
 
+            if (!debtor) {
+
+                await ctx.reply(
+                    "âš ï¸ Payment could not be recorded."
+                );
+
+                return true;
+
+            }
+
+
             clearSession(
                 telegramId
             );
@@ -877,17 +723,17 @@ module.exports = async function personalDebtorsFlow(ctx) {
 
             await ctx.reply(
 
-                "✅ PAYMENT RECEIVED\n\n" +
+                "âœ… PAYMENT RECEIVED\n\n" +
 
-                `👤 ${updatedDebtor.name}\n` +
+                `ðŸ‘¤ ${debtor.name}\n` +
 
-                `💵 Payment: ₦${money(amount)}\n` +
+                `ðŸ’µ Payment: â‚¦${money(amount)}\n` +
 
-                `💰 Remaining: ₦${money(
-                    getRemaining(updatedDebtor)
+                `ðŸ’° Remaining: â‚¦${money(
+                    getRemaining(debtor)
                 )}\n` +
 
-                `📌 Status: ${updatedDebtor.status}`,
+                `ðŸ“Œ Status: ${debtor.status}`,
 
                 personalDebtorKeyboard
 
@@ -897,6 +743,7 @@ module.exports = async function personalDebtorsFlow(ctx) {
             return true;
 
         }
+
 
 
         // ==================================================
@@ -909,7 +756,7 @@ module.exports = async function personalDebtorsFlow(ctx) {
         ) {
 
             const summary =
-                personalDebtorApplication.getSummary(
+                await personalDebtorApplication.getDebtorSummary(
                     accountId
                 );
 
@@ -921,47 +768,54 @@ module.exports = async function personalDebtorsFlow(ctx) {
 
             const totalDebtors =
                 Number(
-                    summary.total_debtors || 0
+                    summary.totalDebtors ??
+                    summary.total_debtors ??
+                    summary.count ??
+                    0
                 );
 
 
             const totalOwed =
                 Number(
-                    summary.total_original_amount || 0
+                    summary.totalOwed ??
+                    summary.total_owed ??
+                    summary.originalAmount ??
+                    summary.original_amount ??
+                    0
                 );
 
 
             const totalPaid =
                 Number(
-                    summary.total_paid_amount || 0
+                    summary.totalPaid ??
+                    summary.total_paid ??
+                    summary.paidAmount ??
+                    summary.paid_amount ??
+                    0
                 );
 
 
             const totalRemaining =
                 Number(
-                    summary.total_remaining_amount || 0
+                    summary.totalRemaining ??
+                    summary.total_remaining ??
+                    summary.remainingAmount ??
+                    summary.remaining_amount ??
+                    0
                 );
 
 
             await ctx.reply(
 
-                "📈 DEBTOR SUMMARY\n\n" +
+                "ðŸ“ˆ DEBTOR SUMMARY\n\n" +
 
-                `👥 Total Debtors: ${totalDebtors}\n` +
+                `ðŸ‘¥ Total Debtors: ${totalDebtors}\n` +
 
-                `💰 Total Owed: ₦${money(totalOwed)}\n` +
+                `ðŸ’° Total Owed: â‚¦${money(totalOwed)}\n` +
 
-                `💵 Total Received: ₦${money(totalPaid)}\n` +
+                `ðŸ’µ Total Received: â‚¦${money(totalPaid)}\n` +
 
-                `🔴 Total Outstanding: ₦${money(totalRemaining)}\n\n` +
-
-                `🟢 Active: ${Number(
-                    summary.active_debtors || 0
-                )}\n` +
-
-                `✅ Paid: ${Number(
-                    summary.paid_debtors || 0
-                )}`,
+                `ðŸ”´ Total Outstanding: â‚¦${money(totalRemaining)}`,
 
                 personalDebtorKeyboard
 
@@ -971,6 +825,7 @@ module.exports = async function personalDebtorsFlow(ctx) {
             return true;
 
         }
+
 
 
         // ==================================================
@@ -983,17 +838,17 @@ module.exports = async function personalDebtorsFlow(ctx) {
         ) {
 
             const debtorId =
-                parsePositiveInteger(
-                    text
-                );
+                Number(text);
 
 
-            if (!debtorId) {
+            if (
+                !Number.isInteger(debtorId) ||
+                debtorId <= 0
+            ) {
 
                 await ctx.reply(
-                    "⚠️ Please enter a valid debtor ID."
+                    "âš ï¸ Please enter a valid debtor ID."
                 );
-
 
                 return true;
 
@@ -1001,7 +856,7 @@ module.exports = async function personalDebtorsFlow(ctx) {
 
 
             const debtor =
-                personalDebtorApplication.getPersonalDebtor(
+                await personalDebtorApplication.getDebtor(
 
                     accountId,
 
@@ -1013,9 +868,8 @@ module.exports = async function personalDebtorsFlow(ctx) {
             if (!debtor) {
 
                 await ctx.reply(
-                    "⚠️ Debtor not found."
+                    "âš ï¸ Debtor not found."
                 );
-
 
                 return true;
 
@@ -1044,28 +898,29 @@ module.exports = async function personalDebtorsFlow(ctx) {
 
             await ctx.reply(
 
-                "✏️ UPDATE DEBTOR\n\n" +
+                "âœï¸ UPDATE DEBTOR\n\n" +
 
-                `👤 ${debtor.name}\n` +
+                `ðŸ‘¤ ${debtor.name}\n` +
 
-                `💰 Total: ₦${money(
+                `ðŸ’° Total: â‚¦${money(
                     getOriginalAmount(debtor)
                 )}\n` +
 
-                `💵 Paid: ₦${money(
+                `ðŸ’µ Paid: â‚¦${money(
                     getPaidAmount(debtor)
                 )}\n` +
 
-                `🔴 Remaining: ₦${money(
+                `ðŸ”´ Remaining: â‚¦${money(
                     getRemaining(debtor)
                 )}\n\n` +
 
                 "What would you like to update?\n\n" +
 
                 "1. Name\n" +
-                "2. Note\n\n" +
+                "2. Total Amount\n" +
+                "3. Note\n\n" +
 
-                "Please reply with 1 or 2."
+                "Please reply with 1, 2 or 3."
 
             );
 
@@ -1073,6 +928,7 @@ module.exports = async function personalDebtorsFlow(ctx) {
             return true;
 
         }
+
 
 
         // ==================================================
@@ -1084,14 +940,17 @@ module.exports = async function personalDebtorsFlow(ctx) {
             STATES.WAITING_FOR_PERSONAL_DEBTOR_UPDATE_FIELD
         ) {
 
+            const field =
+                text;
+
+
             if (
-                !["1", "2"].includes(text)
+                !["1", "2", "3"].includes(field)
             ) {
 
                 await ctx.reply(
-                    "⚠️ Please reply with 1 or 2."
+                    "âš ï¸ Please reply with 1, 2 or 3."
                 );
-
 
                 return true;
 
@@ -1111,8 +970,7 @@ module.exports = async function personalDebtorsFlow(ctx) {
 
                         ...(session.data || {}),
 
-                        field:
-                            text
+                        field
 
                     }
 
@@ -1121,7 +979,7 @@ module.exports = async function personalDebtorsFlow(ctx) {
             );
 
 
-            if (text === "1") {
+            if (field === "1") {
 
                 await ctx.reply(
                     "Enter the new debtor name."
@@ -1129,12 +987,18 @@ module.exports = async function personalDebtorsFlow(ctx) {
 
             }
 
+            else if (field === "2") {
+
+                await ctx.reply(
+                    "Enter the new total amount owed."
+                );
+
+            }
+
             else {
 
                 await ctx.reply(
-
-                    "Enter the new note.\n\n" +
-                    "Type NONE to clear the note."
+                    "Enter the new note.\n\nType NONE to clear the note."
 
                 );
 
@@ -1144,6 +1008,7 @@ module.exports = async function personalDebtorsFlow(ctx) {
             return true;
 
         }
+
 
 
         // ==================================================
@@ -1166,7 +1031,7 @@ module.exports = async function personalDebtorsFlow(ctx) {
 
 
             const debtor =
-                personalDebtorApplication.getPersonalDebtor(
+                await personalDebtorApplication.getDebtor(
 
                     accountId,
 
@@ -1178,26 +1043,24 @@ module.exports = async function personalDebtorsFlow(ctx) {
             if (!debtor) {
 
                 await ctx.reply(
-                    "⚠️ Debtor not found."
+                    "âš ï¸ Debtor not found."
                 );
-
 
                 clearSession(
                     telegramId
                 );
-
 
                 return true;
 
             }
 
 
-            const updateData = {};
+            let updateData = {};
 
 
-            // --------------------------------------------------
+            // ----------------------------------------------
             // NAME
-            // --------------------------------------------------
+            // ----------------------------------------------
 
             if (field === "1") {
 
@@ -1206,7 +1069,6 @@ module.exports = async function personalDebtorsFlow(ctx) {
                     await ctx.reply(
                         "Please enter a valid name."
                     );
-
 
                     return true;
 
@@ -1219,11 +1081,78 @@ module.exports = async function personalDebtorsFlow(ctx) {
             }
 
 
-            // --------------------------------------------------
-            // NOTE
-            // --------------------------------------------------
+            // ----------------------------------------------
+            // TOTAL AMOUNT
+            // ----------------------------------------------
 
             else if (field === "2") {
+
+                const amount =
+                    Number(
+                        text.replace(
+                            /,/g,
+                            ""
+                        )
+                    );
+
+
+                if (
+                    !Number.isFinite(amount) ||
+                    amount <= 0
+                ) {
+
+                    await ctx.reply(
+                        "âš ï¸ Please enter a valid positive amount."
+                    );
+
+                    return true;
+
+                }
+
+
+                const paidAmount =
+                    getPaidAmount(
+                        debtor
+                    );
+
+
+                if (amount < paidAmount) {
+
+                    await ctx.reply(
+
+                        `âš ï¸ The new amount cannot be less than the amount already received (â‚¦${money(paidAmount)}).`
+
+                    );
+
+                    return true;
+
+                }
+
+
+                updateData.originalAmount =
+                    amount;
+
+
+                updateData.remainingAmount =
+                    Math.max(
+                        amount - paidAmount,
+                        0
+                    );
+
+
+                updateData.status =
+                    updateData.remainingAmount <= 0
+                        ? "PAID"
+                        : "ACTIVE";
+
+            }
+
+
+            // ----------------------------------------------
+            // NOTE
+            // ----------------------------------------------
+
+            else if (field === "3") {
 
                 updateData.notes =
                     text.toUpperCase() === "NONE"
@@ -1236,14 +1165,12 @@ module.exports = async function personalDebtorsFlow(ctx) {
             else {
 
                 await ctx.reply(
-                    "⚠️ Invalid update option."
+                    "âš ï¸ Invalid update option."
                 );
-
 
                 clearSession(
                     telegramId
                 );
-
 
                 return true;
 
@@ -1251,7 +1178,7 @@ module.exports = async function personalDebtorsFlow(ctx) {
 
 
             const updatedDebtor =
-                personalDebtorApplication.updatePersonalDebtor(
+                await personalDebtorApplication.updateDebtor(
 
                     accountId,
 
@@ -1269,23 +1196,19 @@ module.exports = async function personalDebtorsFlow(ctx) {
 
             await ctx.reply(
 
-                "✅ DEBTOR UPDATED\n\n" +
+                "âœ… DEBTOR UPDATED\n\n" +
 
-                `👤 ${updatedDebtor.name}\n` +
+                `ðŸ‘¤ ${updatedDebtor.name}\n` +
 
-                `💰 Total: ₦${money(
+                `ðŸ’° Total: â‚¦${money(
                     getOriginalAmount(updatedDebtor)
                 )}\n` +
 
-                `💵 Paid: ₦${money(
-                    getPaidAmount(updatedDebtor)
-                )}\n` +
-
-                `🔴 Remaining: ₦${money(
+                `ðŸ’µ Remaining: â‚¦${money(
                     getRemaining(updatedDebtor)
                 )}\n` +
 
-                `📌 Status: ${updatedDebtor.status}`,
+                `ðŸ“Œ Status: ${updatedDebtor.status}`,
 
                 personalDebtorKeyboard
 
@@ -1297,20 +1220,9 @@ module.exports = async function personalDebtorsFlow(ctx) {
         }
 
 
+
         // ==================================================
         // COMPLETE DEBTOR
-        // ==================================================
-        //
-        // IMPORTANT:
-        //
-        // Completion is only allowed when the balance is
-        // already zero.
-        //
-        // We do NOT invent a separate completeDebtor()
-        // application method.
-        //
-        // The actual financial event is the final payment.
-        //
         // ==================================================
 
         if (
@@ -1319,17 +1231,17 @@ module.exports = async function personalDebtorsFlow(ctx) {
         ) {
 
             const debtorId =
-                parsePositiveInteger(
-                    text
-                );
+                Number(text);
 
 
-            if (!debtorId) {
+            if (
+                !Number.isInteger(debtorId) ||
+                debtorId <= 0
+            ) {
 
                 await ctx.reply(
-                    "⚠️ Please enter a valid debtor ID."
+                    "âš ï¸ Please enter a valid debtor ID."
                 );
-
 
                 return true;
 
@@ -1337,7 +1249,7 @@ module.exports = async function personalDebtorsFlow(ctx) {
 
 
             const debtor =
-                personalDebtorApplication.getPersonalDebtor(
+                await personalDebtorApplication.getDebtor(
 
                     accountId,
 
@@ -1349,68 +1261,31 @@ module.exports = async function personalDebtorsFlow(ctx) {
             if (!debtor) {
 
                 await ctx.reply(
-                    "⚠️ Debtor not found."
+                    "âš ï¸ Debtor not found."
                 );
-
 
                 return true;
 
             }
 
 
-            const remaining =
-                getRemaining(
-                    debtor
-                );
-
-
-            // ==================================================
-            // OUTSTANDING BALANCE
-            // ==================================================
-            //
-            // Keep the session active so the user can still
-            // enter another debtor ID or use Back.
-            //
-            // Back is handled at the top of this flow.
-            //
-            // ==================================================
-
-            if (remaining > 0) {
-
-                await ctx.reply(
-
-                    `⚠️ This debtor still has an outstanding balance of ₦${money(remaining)}.\n\n` +
-
-                    "Record the final payment before completing the debtor.\n\n" +
-
-                    "Use 💳 Receive Payment to record the payment, " +
-                    "or press ⬅️ Back to return to Personal Finance."
-
-                );
-
-
-                return true;
-
-            }
-
-
-            // ==================================================
-            // MARK AS PAID
-            // ==================================================
-
-            if (
-                debtor.status !== "PAID"
-            ) {
-
-                personalDebtorApplication.updatePersonalDebtorStatus(
+            const completed =
+                await personalDebtorApplication.completeDebtor(
 
                     accountId,
 
-                    debtorId,
-
-                    "PAID"
+                    debtorId
 
                 );
+
+
+            if (!completed) {
+
+                await ctx.reply(
+                    "âš ï¸ The debtor could not be completed."
+                );
+
+                return true;
 
             }
 
@@ -1420,26 +1295,19 @@ module.exports = async function personalDebtorsFlow(ctx) {
             );
 
 
-            // ==================================================
-            // RETURN TO PERSONAL DASHBOARD
-            // ==================================================
-
             await ctx.reply(
 
-                "✅ DEBTOR COMPLETED\n\n" +
+                "âœ… DEBTOR COMPLETED\n\n" +
 
-                `👤 ${debtor.name}\n` +
+                `ðŸ‘¤ ${debtor.name}\n` +
 
-                `💰 Amount: ₦${money(
+                `ðŸ’° Amount: â‚¦${money(
                     getOriginalAmount(debtor)
                 )}\n\n` +
 
-                "The debtor has been marked as fully paid.\n\n" +
+                "The debtor has been marked as fully paid.",
 
-                "👤 PERSONAL FINANCE\n\n" +
-                "Choose an option below 👇",
-
-                personalKeyboard
+                personalDebtorKeyboard
 
             );
 
@@ -1447,6 +1315,7 @@ module.exports = async function personalDebtorsFlow(ctx) {
             return true;
 
         }
+
 
 
         // ==================================================
@@ -1459,17 +1328,17 @@ module.exports = async function personalDebtorsFlow(ctx) {
         ) {
 
             const debtorId =
-                parsePositiveInteger(
-                    text
-                );
+                Number(text);
 
 
-            if (!debtorId) {
+            if (
+                !Number.isInteger(debtorId) ||
+                debtorId <= 0
+            ) {
 
                 await ctx.reply(
-                    "⚠️ Please enter a valid debtor ID."
+                    "âš ï¸ Please enter a valid debtor ID."
                 );
-
 
                 return true;
 
@@ -1477,7 +1346,7 @@ module.exports = async function personalDebtorsFlow(ctx) {
 
 
             const debtor =
-                personalDebtorApplication.getPersonalDebtor(
+                await personalDebtorApplication.getDebtor(
 
                     accountId,
 
@@ -1489,9 +1358,8 @@ module.exports = async function personalDebtorsFlow(ctx) {
             if (!debtor) {
 
                 await ctx.reply(
-                    "⚠️ Debtor not found."
+                    "âš ï¸ Debtor not found."
                 );
-
 
                 return true;
 
@@ -1499,7 +1367,7 @@ module.exports = async function personalDebtorsFlow(ctx) {
 
 
             const result =
-                personalDebtorApplication.deletePersonalDebtor(
+                await personalDebtorApplication.deleteDebtor(
 
                     accountId,
 
@@ -1509,16 +1377,13 @@ module.exports = async function personalDebtorsFlow(ctx) {
 
 
             if (
-                !result ||
-                !result.deleted
+                result &&
+                result.success === false
             ) {
 
                 await ctx.reply(
-
-                    "⚠️ The debtor could not be deleted."
-
+                    "âš ï¸ The debtor could not be deleted."
                 );
-
 
                 return true;
 
@@ -1532,9 +1397,9 @@ module.exports = async function personalDebtorsFlow(ctx) {
 
             await ctx.reply(
 
-                "🗑️ DEBTOR DELETED\n\n" +
+                "ðŸ—‘ï¸ DEBTOR DELETED\n\n" +
 
-                `👤 ${debtor.name}\n\n` +
+                `ðŸ‘¤ ${debtor.name}\n` +
 
                 "The debtor record has been removed.",
 
@@ -1548,6 +1413,7 @@ module.exports = async function personalDebtorsFlow(ctx) {
         }
 
 
+
         // ==================================================
         // UNKNOWN SESSION
         // ==================================================
@@ -1555,6 +1421,7 @@ module.exports = async function personalDebtorsFlow(ctx) {
         return false;
 
     }
+
 
     catch (error) {
 
@@ -1565,13 +1432,18 @@ module.exports = async function personalDebtorsFlow(ctx) {
 
 
         clearSession(
-            telegramId
+
+            ctx.from &&
+            ctx.from.id
+                ? ctx.from.id
+                : null
+
         );
 
 
         await ctx.reply(
 
-            "⚠️ Something went wrong while processing the debtor operation.\n\n" +
+            "âš ï¸ Something went wrong while processing the debtor operation.\n\n" +
             "Please try again.",
 
             personalDebtorKeyboard

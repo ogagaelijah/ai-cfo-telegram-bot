@@ -54,6 +54,14 @@ const STATES =
 
 
 // ======================================================
+// PERSONAL DEBTORS FLOW
+// ======================================================
+
+const personalDebtorsFlow =
+    require("../flows/personal/personalDebtorsFlow");
+
+
+// ======================================================
 // MENU HANDLER
 // ======================================================
 //
@@ -591,8 +599,11 @@ module.exports = async function menuHandler(ctx) {
         // VIEW PERSONAL DEBTORS
         // ==================================================
         //
-        // The personalDebtorsFlow performs the actual
-        // database lookup and sends the results.
+        // This is an immediate action.
+        //
+        // Set the required state and invoke the flow
+        // immediately. The user does not need to send
+        // another message.
         //
         // ==================================================
 
@@ -618,7 +629,9 @@ module.exports = async function menuHandler(ctx) {
             );
 
 
-            return false;
+            return await personalDebtorsFlow(
+                ctx
+            );
 
         }
 
@@ -667,8 +680,11 @@ module.exports = async function menuHandler(ctx) {
         // DEBTOR SUMMARY
         // ==================================================
         //
-        // The personalDebtorsFlow performs the actual
-        // database lookup and sends the summary.
+        // This is an immediate action.
+        //
+        // Set the required state and invoke the flow
+        // immediately. The user does not need to send
+        // another message.
         //
         // ==================================================
 
@@ -694,7 +710,9 @@ module.exports = async function menuHandler(ctx) {
             );
 
 
-            return false;
+            return await personalDebtorsFlow(
+                ctx
+            );
 
         }
 

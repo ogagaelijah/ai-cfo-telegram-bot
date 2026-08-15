@@ -6,100 +6,128 @@ const personalDebtorRepository =
 // PERSONAL DEBTOR SERVICE
 // ======================================================
 //
-// BUSINESS LOGIC LAYER
+// INTERFACE-NEUTRAL BUSINESS LOGIC LAYER
 //
-// Personal debtor:
-// Someone who owes money TO the user.
+// Personal Debtor means:
 //
-// Flow
-//    ↓
+// Someone owes money to the user.
+//
+// Example:
+//
+// John owes the user ₦100,000.
+//
+// This service knows NOTHING about:
+//
+// - Telegram
+// - Website
+// - Mobile App
+// - API
+// - ctx
+// - telegramId
+// - keyboards
+// - sessions
+//
+// It receives an accountId and applies business rules.
+//
+// Architecture:
+//
+// Interface Adapter
+//        ↓
 // Application
-//    ↓
-// Service
-//    ↓
-// Repository
-//
-// The service layer is responsible for:
-// - Validation
-// - Financial consistency
-// - Business rules
-// - Passing clean data to repository
+//        ↓
+// Personal Debtor Service
+//        ↓
+// Personal Debtor Repository
+//        ↓
+// Database
 //
 // ======================================================
 
 
 // ======================================================
-// HELPERS
+// VALIDATE ACCOUNT ID
 // ======================================================
 
-function requireAccountId(accountId) {
-
-    if (!accountId) {
-
-        throw new Error(
-            "ACCOUNT_ID_REQUIRED"
-        );
-
-    }
-
-}
-
-
-function requireDebtorId(debtorId) {
-
-    const id =
-        Number(debtorId);
+function validateAccountId(accountId) {
 
     if (
-        !Number.isInteger(id) ||
-        id <= 0
+        !Number.isInteger(
+            Number(accountId)
+        ) ||
+        Number(accountId) <= 0
     ) {
 
         throw new Error(
-            "INVALID_DEBTOR_ID"
+            "A valid account ID is required."
         );
 
     }
 
-    return id;
-
 }
 
 
-function parseAmount(
-    value,
-    errorCode
-) {
+// ======================================================
+// VALIDATE DEBTOR ID
+// ======================================================
 
-    const amount =
-        Number(value);
+function validateDebtorId(debtorId) {
 
     if (
-        !Number.isFinite(amount) ||
-        amount < 0
+        !Number.isInteger(
+            Number(debtorId)
+        ) ||
+        Number(debtorId) <= 0
     ) {
 
         throw new Error(
-            errorCode
+            "A valid debtor ID is required."
         );
 
     }
-
-    return amount;
 
 }
 
 
 // ======================================================
-// CREATE DEBTOR
+// NORMALIZE AMOUNT
 // ======================================================
 
-async function createDebtor(
+function normalizeAmount(amount) {
+
+    const value =
+        Number(
+            String(amount)
+                .replace(/,/g, "")
+                .trim()
+        );
+
+
+    if (
+        !Number.isFinite(value)
+    ) {
+
+        throw new Error(
+            "Amount must be a valid number."
+        );
+
+    }
+
+
+    return value;
+
+}
+
+
+// ======================================================
+// CREATE PERSONAL DEBTOR
+// ======================================================
+
+function createPersonalDebtor(
     accountId,
     data
 ) {
 
-    requireAccountId(
+    validateAccountId(
         accountId
     );
 
@@ -107,7 +135,7 @@ async function createDebtor(
     if (!data) {
 
         throw new Error(
-            "DEBTOR_DATA_REQUIRED"
+            "Personal debtor data is required."
         );
 
     }
@@ -122,63 +150,44 @@ async function createDebtor(
     if (!name) {
 
         throw new Error(
-            "DEBTOR_NAME_REQUIRED"
+            "Debtor name is required."
         );
 
     }
 
 
     const originalAmount =
-        parseAmount(
-            data.originalAmount,
-            "INVALID_DEBTOR_AMOUNT"
+        normalizeAmount(
+            data.originalAmount
         );
-
-
-    if (originalAmount <= 0) {
-
-        throw new Error(
-            "INVALID_DEBTOR_AMOUNT"
-        );
-
-    }
-
-
-    const paidAmount =
-        data.paidAmount !== undefined
-            ? parseAmount(
-                data.paidAmount,
-                "INVALID_PAID_AMOUNT"
-            )
-            : 0;
 
 
     if (
-        paidAmount >
-        originalAmount
+        originalAmount <= 0
     ) {
 
         throw new Error(
-            "PAID_AMOUNT_EXCEEDS_DEBT"
+            "Debtor amount must be greater than zero."
         );
 
     }
 
 
-    const remainingAmount =
-        originalAmount -
-        paidAmount;
+    const dueDate =
+        data.dueDate
+            ? String(data.dueDate).trim()
+            : null;
 
 
-    const status =
-        remainingAmount <= 0
-            ? "PAID"
-            : "ACTIVE";
+    const notes =
+        data.notes
+            ? String(data.notes).trim()
+            : "";
 
 
-    return personalDebtorRepository.create(
+    return personalDebtorRepository.createPersonalDebtor(
 
-        accountId,
+        Number(accountId),
 
         {
 
@@ -186,20 +195,17 @@ async function createDebtor(
 
             originalAmount,
 
-            paidAmount,
+            paidAmount: 0,
 
-            remainingAmount,
+            remainingAmount:
+                originalAmount,
 
-            dueDate:
-                data.dueDate ||
-                null,
+            dueDate,
 
-            notes:
-                String(
-                    data.notes || ""
-                ).trim(),
+            notes,
 
-            status
+            status:
+                "ACTIVE"
 
         }
 
@@ -209,30 +215,262 @@ async function createDebtor(
 
 
 // ======================================================
-// GET ONE DEBTOR
+// GET DEBTOR BY ID
 // ======================================================
 
-async function getDebtor(
+function getPersonalDebtorById(
     accountId,
     debtorId
 ) {
 
-    requireAccountId(
+    validateAccountId(
         accountId
     );
 
 
-    const id =
-        requireDebtorId(
-            debtorId
+    validateDebtorId(
+        debtorId
+    );
+
+
+    return personalDebtorRepository.getPersonalDebtorById(
+
+        Number(accountId),
+
+        Number(debtorId)
+
+    );
+
+}
+
+
+// ======================================================
+// GET ALL PERSONAL DEBTORS
+// ======================================================
+
+function getPersonalDebtors(
+    accountId
+) {
+
+    validateAccountId(
+        accountId
+    );
+
+
+    return personalDebtorRepository.getPersonalDebtors(
+
+        Number(accountId)
+
+    );
+
+}
+
+
+// ======================================================
+// GET ACTIVE PERSONAL DEBTORS
+// ======================================================
+
+function getActivePersonalDebtors(
+    accountId
+) {
+
+    validateAccountId(
+        accountId
+    );
+
+
+    return personalDebtorRepository.getActivePersonalDebtors(
+
+        Number(accountId)
+
+    );
+
+}
+
+
+// ======================================================
+// SEARCH PERSONAL DEBTORS
+// ======================================================
+
+function searchPersonalDebtors(
+    accountId,
+    searchTerm
+) {
+
+    validateAccountId(
+        accountId
+    );
+
+
+    const term =
+        String(
+            searchTerm || ""
+        ).trim();
+
+
+    if (!term) {
+
+        throw new Error(
+            "Search term is required."
+        );
+
+    }
+
+
+    return personalDebtorRepository.searchPersonalDebtors(
+
+        Number(accountId),
+
+        term
+
+    );
+
+}
+
+
+// ======================================================
+// RECORD PAYMENT
+// ======================================================
+//
+// Business rules:
+//
+// 1. Debtor must exist.
+// 2. Payment must be greater than zero.
+// 3. Payment cannot exceed outstanding balance.
+// 4. Remaining balance is recalculated.
+// 5. Status becomes:
+//      ACTIVE
+//      PARTIALLY_PAID
+//      PAID
+//
+// ======================================================
+
+function recordPayment(
+    accountId,
+    debtorId,
+    paymentAmount
+) {
+
+    validateAccountId(
+        accountId
+    );
+
+
+    validateDebtorId(
+        debtorId
+    );
+
+
+    const amount =
+        normalizeAmount(
+            paymentAmount
         );
 
 
-    return personalDebtorRepository.findById(
+    if (
+        amount <= 0
+    ) {
 
-        accountId,
+        throw new Error(
+            "Payment amount must be greater than zero."
+        );
 
-        id
+    }
+
+
+    const debtor =
+        personalDebtorRepository.getPersonalDebtorById(
+
+            Number(accountId),
+
+            Number(debtorId)
+
+        );
+
+
+    if (!debtor) {
+
+        throw new Error(
+            "Personal debtor not found."
+        );
+
+    }
+
+
+    const remaining =
+        Number(
+            debtor.remaining_amount
+        );
+
+
+    if (
+        remaining <= 0
+    ) {
+
+        throw new Error(
+            "This debtor has already been fully paid."
+        );
+
+    }
+
+
+    if (
+        amount > remaining
+    ) {
+
+        throw new Error(
+            "Payment cannot be greater than the outstanding balance."
+        );
+
+    }
+
+
+    const newRemaining =
+        remaining - amount;
+
+
+    const paidAmount =
+        Number(
+            debtor.paid_amount
+        ) + amount;
+
+
+    let status;
+
+
+    if (
+        newRemaining === 0
+    ) {
+
+        status =
+            "PAID";
+
+    } else if (
+        paidAmount > 0
+    ) {
+
+        status =
+            "PARTIALLY_PAID";
+
+    } else {
+
+        status =
+            "ACTIVE";
+
+    }
+
+
+    return personalDebtorRepository.recordPayment(
+
+        Number(accountId),
+
+        Number(debtorId),
+
+        amount,
+
+        newRemaining,
+
+        status
 
     );
 
@@ -240,245 +478,111 @@ async function getDebtor(
 
 
 // ======================================================
-// GET ALL DEBTORS
+// UPDATE PERSONAL DEBTOR
+// ======================================================
+//
+// Editable fields:
+//
+// - name
+// - dueDate
+// - notes
+//
+// Financial values are NOT changed here.
+//
+// Payments must go through recordPayment().
+//
 // ======================================================
 
-async function getDebtors(
-    accountId
-) {
-
-    requireAccountId(
-        accountId
-    );
-
-
-    return personalDebtorRepository.findAll(
-        accountId
-    );
-
-}
-
-
-// ======================================================
-// GET ACTIVE DEBTORS
-// ======================================================
-
-async function getActiveDebtors(
-    accountId
-) {
-
-    requireAccountId(
-        accountId
-    );
-
-
-    return personalDebtorRepository.findActive(
-        accountId
-    );
-
-}
-
-
-// ======================================================
-// UPDATE DEBTOR
-// ======================================================
-
-async function updateDebtor(
+function updatePersonalDebtor(
     accountId,
     debtorId,
     data
 ) {
 
-    requireAccountId(
+    validateAccountId(
         accountId
     );
 
 
-    const id =
-        requireDebtorId(
-            debtorId
-        );
+    validateDebtorId(
+        debtorId
+    );
 
 
     if (!data) {
 
         throw new Error(
-            "DEBTOR_DATA_REQUIRED"
+            "Update data is required."
         );
 
     }
 
 
-    const updateData = {};
+    const existing =
+        personalDebtorRepository.getPersonalDebtorById(
+
+            Number(accountId),
+
+            Number(debtorId)
+
+        );
 
 
-
-    // --------------------------------------------------
-    // NAME
-    // --------------------------------------------------
-
-    if (
-        data.name !== undefined
-    ) {
-
-        const name =
-            String(
-                data.name
-            ).trim();
-
-
-        if (!name) {
-
-            throw new Error(
-                "DEBTOR_NAME_REQUIRED"
-            );
-
-        }
-
-
-        updateData.name =
-            name;
-
-    }
-
-
-
-    // --------------------------------------------------
-    // ORIGINAL AMOUNT
-    // --------------------------------------------------
-
-    if (
-        data.originalAmount !== undefined
-    ) {
-
-        const originalAmount =
-            parseAmount(
-                data.originalAmount,
-                "INVALID_DEBTOR_AMOUNT"
-            );
-
-
-        if (
-            originalAmount <= 0
-        ) {
-
-            throw new Error(
-                "INVALID_DEBTOR_AMOUNT"
-            );
-
-        }
-
-
-        updateData.originalAmount =
-            originalAmount;
-
-    }
-
-
-
-    // --------------------------------------------------
-    // PAID AMOUNT
-    // --------------------------------------------------
-
-    if (
-        data.paidAmount !== undefined
-    ) {
-
-        updateData.paidAmount =
-            parseAmount(
-                data.paidAmount,
-                "INVALID_PAID_AMOUNT"
-            );
-
-    }
-
-
-
-    // --------------------------------------------------
-    // REMAINING AMOUNT
-    // --------------------------------------------------
-
-    if (
-        data.remainingAmount !== undefined
-    ) {
-
-        updateData.remainingAmount =
-            parseAmount(
-                data.remainingAmount,
-                "INVALID_REMAINING_AMOUNT"
-            );
-
-    }
-
-
-
-    // --------------------------------------------------
-    // DUE DATE
-    // --------------------------------------------------
-
-    if (
-        data.dueDate !== undefined
-    ) {
-
-        updateData.dueDate =
-            data.dueDate ||
-            null;
-
-    }
-
-
-
-    // --------------------------------------------------
-    // NOTES
-    // --------------------------------------------------
-
-    if (
-        data.notes !== undefined
-    ) {
-
-        updateData.notes =
-            String(
-                data.notes || ""
-            ).trim();
-
-    }
-
-
-
-    // --------------------------------------------------
-    // STATUS
-    // --------------------------------------------------
-
-    if (
-        updateData.remainingAmount !== undefined
-    ) {
-
-        updateData.status =
-            updateData.remainingAmount <= 0
-                ? "PAID"
-                : "ACTIVE";
-
-    }
-
-
-    if (
-        Object.keys(updateData).length === 0
-    ) {
+    if (!existing) {
 
         throw new Error(
-            "NO_DEBTOR_UPDATES"
+            "Personal debtor not found."
         );
 
     }
 
 
-    return personalDebtorRepository.update(
+    const name =
+        data.name !== undefined
+            ? String(data.name).trim()
+            : existing.name;
 
-        accountId,
 
-        id,
+    if (!name) {
 
-        updateData
+        throw new Error(
+            "Debtor name is required."
+        );
+
+    }
+
+
+    const dueDate =
+        data.dueDate !== undefined
+            ? (
+                data.dueDate
+                    ? String(data.dueDate).trim()
+                    : null
+            )
+            : existing.due_date;
+
+
+    const notes =
+        data.notes !== undefined
+            ? String(data.notes).trim()
+            : existing.notes;
+
+
+    return personalDebtorRepository.updatePersonalDebtor(
+
+        Number(accountId),
+
+        Number(debtorId),
+
+        {
+
+            name,
+
+            dueDate,
+
+            notes
+
+        }
 
     );
 
@@ -486,51 +590,87 @@ async function updateDebtor(
 
 
 // ======================================================
-// ADD PAYMENT
+// UPDATE STATUS
+// ======================================================
+//
+// Status changes should normally be driven by business
+// events.
+//
+// This method is kept here for controlled service-level
+// status changes.
+//
 // ======================================================
 
-async function addPayment(
+function updatePersonalDebtorStatus(
     accountId,
     debtorId,
-    amount
+    status
 ) {
 
-    requireAccountId(
+    validateAccountId(
         accountId
     );
 
 
-    const id =
-        requireDebtorId(
-            debtorId
-        );
+    validateDebtorId(
+        debtorId
+    );
 
 
-    const paymentAmount =
-        parseAmount(
-            amount,
-            "INVALID_PAYMENT_AMOUNT"
-        );
+    const allowedStatuses = [
+
+        "ACTIVE",
+
+        "PARTIALLY_PAID",
+
+        "PAID",
+
+        "OVERDUE",
+
+        "CANCELLED"
+
+    ];
 
 
     if (
-        paymentAmount <= 0
+        !allowedStatuses.includes(
+            status
+        )
     ) {
 
         throw new Error(
-            "INVALID_PAYMENT_AMOUNT"
+            "Invalid personal debtor status."
         );
 
     }
 
 
-    return personalDebtorRepository.addPayment(
+    const debtor =
+        personalDebtorRepository.getPersonalDebtorById(
 
-        accountId,
+            Number(accountId),
 
-        id,
+            Number(debtorId)
 
-        paymentAmount
+        );
+
+
+    if (!debtor) {
+
+        throw new Error(
+            "Personal debtor not found."
+        );
+
+    }
+
+
+    return personalDebtorRepository.updatePersonalDebtorStatus(
+
+        Number(accountId),
+
+        Number(debtorId),
+
+        status
 
     );
 
@@ -538,30 +678,53 @@ async function addPayment(
 
 
 // ======================================================
-// COMPLETE DEBTOR
+// DELETE PERSONAL DEBTOR
+// ======================================================
+//
+// The service verifies that the debtor exists before
+// deletion.
+//
 // ======================================================
 
-async function completeDebtor(
+function deletePersonalDebtor(
     accountId,
     debtorId
 ) {
 
-    requireAccountId(
+    validateAccountId(
         accountId
     );
 
 
-    const id =
-        requireDebtorId(
-            debtorId
+    validateDebtorId(
+        debtorId
+    );
+
+
+    const debtor =
+        personalDebtorRepository.getPersonalDebtorById(
+
+            Number(accountId),
+
+            Number(debtorId)
+
         );
 
 
-    return personalDebtorRepository.complete(
+    if (!debtor) {
 
-        accountId,
+        throw new Error(
+            "Personal debtor not found."
+        );
 
-        id
+    }
+
+
+    return personalDebtorRepository.deletePersonalDebtor(
+
+        Number(accountId),
+
+        Number(debtorId)
 
     );
 
@@ -569,51 +732,44 @@ async function completeDebtor(
 
 
 // ======================================================
-// DELETE DEBTOR
+// GET TOTAL OUTSTANDING
 // ======================================================
 
-async function deleteDebtor(
-    accountId,
-    debtorId
-) {
-
-    requireAccountId(
-        accountId
-    );
-
-
-    const id =
-        requireDebtorId(
-            debtorId
-        );
-
-
-    return personalDebtorRepository.remove(
-
-        accountId,
-
-        id
-
-    );
-
-}
-
-
-// ======================================================
-// DEBTOR SUMMARY
-// ======================================================
-
-async function getDebtorSummary(
+function getTotalOutstanding(
     accountId
 ) {
 
-    requireAccountId(
+    validateAccountId(
+        accountId
+    );
+
+
+    return personalDebtorRepository.getTotalOutstanding(
+
+        Number(accountId)
+
+    );
+
+}
+
+
+// ======================================================
+// GET SUMMARY
+// ======================================================
+
+function getSummary(
+    accountId
+) {
+
+    validateAccountId(
         accountId
     );
 
 
     return personalDebtorRepository.getSummary(
-        accountId
+
+        Number(accountId)
+
     );
 
 }
@@ -625,22 +781,26 @@ async function getDebtorSummary(
 
 module.exports = {
 
-    createDebtor,
+    createPersonalDebtor,
 
-    getDebtor,
+    getPersonalDebtorById,
 
-    getDebtors,
+    getPersonalDebtors,
 
-    getActiveDebtors,
+    getActivePersonalDebtors,
 
-    updateDebtor,
+    searchPersonalDebtors,
 
-    addPayment,
+    recordPayment,
 
-    completeDebtor,
+    updatePersonalDebtor,
 
-    deleteDebtor,
+    updatePersonalDebtorStatus,
 
-    getDebtorSummary
+    deletePersonalDebtor,
+
+    getTotalOutstanding,
+
+    getSummary
 
 };

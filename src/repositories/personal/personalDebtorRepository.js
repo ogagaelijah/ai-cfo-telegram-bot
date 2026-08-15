@@ -1,191 +1,165 @@
-const db =
-    require("../../database/database");
+const db = require("../../database/database");
 
 
 // ======================================================
 // PERSONAL DEBTOR REPOSITORY
 // ======================================================
 //
-// DATABASE ACCESS ONLY
+// INTERFACE-NEUTRAL DATA ACCESS LAYER
 //
-// Personal debtor means:
+// Personal Debtor means:
 //
-// Someone owes money TO the user.
+// Someone owes money to the user.
 //
-// This repository handles ONLY:
+// Example:
 //
-// - SQLite
-// - personal_debtors table
-// - account scoped queries
-// - database CRUD operations
+// John owes the user ₦100,000.
 //
-// It does NOT handle:
+// This repository knows NOTHING about:
 //
 // - Telegram
+// - Website
+// - Mobile App
+// - API
 // - ctx
+// - telegramId
 // - sessions
 // - keyboards
-// - user interaction
-// - application logic
+// - user interface
+// - business rules
+//
+// It only works with:
+//
+// accountId
+// debtor data
+//
+// Business logic belongs in:
+//
+// services/personal/personalDebtorService.js
+//
+// Application orchestration belongs in:
+//
+// application/personal/personalDebtors.js
 //
 // ======================================================
 
 
 // ======================================================
-// CREATE DEBTOR
+// CREATE PERSONAL DEBTOR
+// ======================================================
+//
+// Creates a new amount owed to the user.
+//
 // ======================================================
 
-function create(
+function createPersonalDebtor(
     accountId,
-    debtor
+    data
 ) {
 
-    if (!accountId) {
+    const result = db.prepare(`
+        INSERT INTO personal_debtors
+        (
+            account_id,
+            name,
+            original_amount,
+            paid_amount,
+            remaining_amount,
+            due_date,
+            notes,
+            status
+        )
 
-        throw new Error(
-            "ACCOUNT_ID_REQUIRED"
-        );
-
-    }
-
-    if (!debtor) {
-
-        throw new Error(
-            "DEBTOR_DATA_REQUIRED"
-        );
-
-    }
-
-
-    const result =
-        db.prepare(`
-
-            INSERT INTO personal_debtors
-            (
-                account_id,
-                name,
-                original_amount,
-                paid_amount,
-                remaining_amount,
-                due_date,
-                notes,
-                status,
-                created_at,
-                updated_at
-            )
-
-            VALUES
-            (
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                CURRENT_TIMESTAMP,
-                CURRENT_TIMESTAMP
-            )
-
-        `).run(
-
-            accountId,
-
-            debtor.name,
-
-            debtor.originalAmount,
-
-            debtor.paidAmount,
-
-            debtor.remainingAmount,
-
-            debtor.dueDate || null,
-
-            debtor.notes || "",
-
-            debtor.status
-
-        );
-
-
-    return findById(
+        VALUES
+        (
+            @accountId,
+            @name,
+            @originalAmount,
+            @paidAmount,
+            @remainingAmount,
+            @dueDate,
+            @notes,
+            @status
+        )
+    `).run({
 
         accountId,
 
-        result.lastInsertRowid
+        name:
+            data.name,
 
+        originalAmount:
+            data.originalAmount,
+
+        paidAmount:
+            data.paidAmount ?? 0,
+
+        remainingAmount:
+            data.remainingAmount,
+
+        dueDate:
+            data.dueDate ?? null,
+
+        notes:
+            data.notes ?? "",
+
+        status:
+            data.status ?? "ACTIVE"
+
+    });
+
+
+    return getPersonalDebtorById(
+        accountId,
+        result.lastInsertRowid
     );
 
 }
 
 
 // ======================================================
-// FIND ONE DEBTOR
+// GET DEBTOR BY ID
+// ======================================================
+//
+// IMPORTANT:
+//
+// accountId is always included.
+//
+// This prevents accidentally retrieving a debtor
+// belonging to another account.
+//
 // ======================================================
 
-function findById(
+function getPersonalDebtorById(
     accountId,
     debtorId
 ) {
 
-    if (!accountId) {
-
-        throw new Error(
-            "ACCOUNT_ID_REQUIRED"
-        );
-
-    }
-
-    if (!debtorId) {
-
-        throw new Error(
-            "DEBTOR_ID_REQUIRED"
-        );
-
-    }
-
-
     return db.prepare(`
-
         SELECT
-
             id,
-
             account_id,
-
             name,
-
             original_amount,
-
             paid_amount,
-
             remaining_amount,
-
             due_date,
-
             notes,
-
             status,
-
             created_at,
-
             updated_at
 
         FROM personal_debtors
 
         WHERE
-
             id = ?
 
             AND account_id = ?
 
         LIMIT 1
-
     `).get(
 
         debtorId,
-
         accountId
 
     );
@@ -194,60 +168,34 @@ function findById(
 
 
 // ======================================================
-// FIND ALL DEBTORS
+// GET ALL PERSONAL DEBTORS
 // ======================================================
 
-function findAll(
+function getPersonalDebtors(
     accountId
 ) {
 
-    if (!accountId) {
-
-        throw new Error(
-            "ACCOUNT_ID_REQUIRED"
-        );
-
-    }
-
-
     return db.prepare(`
-
         SELECT
-
             id,
-
             account_id,
-
             name,
-
             original_amount,
-
             paid_amount,
-
             remaining_amount,
-
             due_date,
-
             notes,
-
             status,
-
             created_at,
-
             updated_at
 
         FROM personal_debtors
 
         WHERE
-
             account_id = ?
 
         ORDER BY
-
-            created_at DESC,
-
-            id DESC
-
+            created_at DESC
     `).all(
 
         accountId
@@ -258,62 +206,36 @@ function findAll(
 
 
 // ======================================================
-// FIND ACTIVE DEBTORS
+// GET ACTIVE PERSONAL DEBTORS
 // ======================================================
 
-function findActive(
+function getActivePersonalDebtors(
     accountId
 ) {
 
-    if (!accountId) {
-
-        throw new Error(
-            "ACCOUNT_ID_REQUIRED"
-        );
-
-    }
-
-
     return db.prepare(`
-
         SELECT
-
             id,
-
             account_id,
-
             name,
-
             original_amount,
-
             paid_amount,
-
             remaining_amount,
-
             due_date,
-
             notes,
-
             status,
-
             created_at,
-
             updated_at
 
         FROM personal_debtors
 
         WHERE
-
             account_id = ?
 
             AND status = 'ACTIVE'
 
         ORDER BY
-
-            created_at DESC,
-
-            id DESC
-
+            created_at DESC
     `).all(
 
         accountId
@@ -324,140 +246,103 @@ function findActive(
 
 
 // ======================================================
-// UPDATE DEBTOR
+// SEARCH PERSONAL DEBTORS
+// ======================================================
+//
+// Searches by debtor name.
+//
+// accountId is mandatory for account isolation.
+//
 // ======================================================
 
-function update(
+function searchPersonalDebtors(
     accountId,
-    debtorId,
-    debtor
+    searchTerm
 ) {
 
-    if (!accountId) {
+    return db.prepare(`
+        SELECT
+            id,
+            account_id,
+            name,
+            original_amount,
+            paid_amount,
+            remaining_amount,
+            due_date,
+            notes,
+            status,
+            created_at,
+            updated_at
 
-        throw new Error(
-            "ACCOUNT_ID_REQUIRED"
-        );
+        FROM personal_debtors
 
-    }
+        WHERE
+            account_id = ?
 
-    if (!debtorId) {
+            AND name LIKE ?
 
-        throw new Error(
-            "DEBTOR_ID_REQUIRED"
-        );
+        ORDER BY
+            name ASC
+    `).all(
 
-    }
+        accountId,
+        `%${searchTerm}%`
 
-    if (!debtor) {
+    );
 
-        throw new Error(
-            "DEBTOR_DATA_REQUIRED"
-        );
-
-    }
-
-
-    const existing =
-        findById(
-
-            accountId,
-
-            debtorId
-
-        );
+}
 
 
-    if (!existing) {
+// ======================================================
+// RECORD PAYMENT
+// ======================================================
+//
+// This repository operation records a payment against
+// an existing personal debtor.
+//
+// The service layer is responsible for deciding:
+//
+// - whether the amount is valid
+// - whether the debtor is active
+// - whether payment exceeds the balance
+// - what status should result
+//
+// The repository simply persists the calculated values.
+//
+// ======================================================
 
-        return null;
+function recordPayment(
+    accountId,
+    debtorId,
+    paidAmount,
+    remainingAmount,
+    status
+) {
 
-    }
-
-
-    const name =
-        debtor.name !== undefined
-            ? debtor.name
-            : existing.name;
-
-
-    const originalAmount =
-        debtor.originalAmount !== undefined
-            ? debtor.originalAmount
-            : existing.original_amount;
-
-
-    const paidAmount =
-        debtor.paidAmount !== undefined
-            ? debtor.paidAmount
-            : existing.paid_amount;
-
-
-    const remainingAmount =
-        debtor.remainingAmount !== undefined
-            ? debtor.remainingAmount
-            : existing.remaining_amount;
-
-
-    const dueDate =
-        debtor.dueDate !== undefined
-            ? debtor.dueDate
-            : existing.due_date;
-
-
-    const notes =
-        debtor.notes !== undefined
-            ? debtor.notes
-            : existing.notes;
-
-
-    const status =
-        debtor.status !== undefined
-            ? debtor.status
-            : existing.status;
-
-
-    db.prepare(`
-
+    const result = db.prepare(`
         UPDATE personal_debtors
 
         SET
+            paid_amount = paid_amount + @paidAmount,
 
-            name = ?,
+            remaining_amount =
+                @remainingAmount,
 
-            original_amount = ?,
+            status =
+                @status,
 
-            paid_amount = ?,
-
-            remaining_amount = ?,
-
-            due_date = ?,
-
-            notes = ?,
-
-            status = ?,
-
-            updated_at = CURRENT_TIMESTAMP
+            updated_at =
+                CURRENT_TIMESTAMP
 
         WHERE
+            id = @debtorId
 
-            id = ?
-
-            AND account_id = ?
-
-    `).run(
-
-        name,
-
-        originalAmount,
+            AND account_id = @accountId
+    `).run({
 
         paidAmount,
 
         remainingAmount,
-
-        dueDate,
-
-        notes,
 
         status,
 
@@ -465,321 +350,180 @@ function update(
 
         accountId
 
-    );
+    });
 
 
-    return findById(
+    if (result.changes === 0) {
 
+        return null;
+
+    }
+
+
+    return getPersonalDebtorById(
         accountId,
-
         debtorId
-
     );
 
 }
 
 
 // ======================================================
-// ADD PAYMENT
+// UPDATE PERSONAL DEBTOR
+// ======================================================
+//
+// The service layer determines what fields are allowed
+// to change.
+//
+// This repository persists those already-validated values.
+//
 // ======================================================
 
-function addPayment(
+function updatePersonalDebtor(
     accountId,
     debtorId,
-    amount
+    data
 ) {
 
-    if (!accountId) {
+    const result = db.prepare(`
+        UPDATE personal_debtors
 
-        throw new Error(
-            "ACCOUNT_ID_REQUIRED"
-        );
+        SET
+            name =
+                @name,
 
-    }
+            due_date =
+                @dueDate,
 
-    if (!debtorId) {
+            notes =
+                @notes,
 
-        throw new Error(
-            "DEBTOR_ID_REQUIRED"
-        );
+            updated_at =
+                CURRENT_TIMESTAMP
 
-    }
+        WHERE
+            id = @debtorId
 
-    if (
-        amount === undefined ||
-        amount === null
-    ) {
+            AND account_id = @accountId
+    `).run({
 
-        throw new Error(
-            "PAYMENT_AMOUNT_REQUIRED"
-        );
+        name:
+            data.name,
 
-    }
+        dueDate:
+            data.dueDate ?? null,
 
+        notes:
+            data.notes ?? "",
 
-    const paymentAmount =
-        Number(
-            amount
-        );
+        debtorId,
 
+        accountId
 
-    if (
-        !Number.isFinite(
-            paymentAmount
-        ) ||
-        paymentAmount <= 0
-    ) {
-
-        throw new Error(
-            "INVALID_PAYMENT_AMOUNT"
-        );
-
-    }
+    });
 
 
-    const debtor =
-        findById(
-
-            accountId,
-
-            debtorId
-
-        );
-
-
-    if (!debtor) {
+    if (result.changes === 0) {
 
         return null;
 
     }
 
 
-    const currentRemaining =
-        Number(
-            debtor.remaining_amount
-        );
+    return getPersonalDebtorById(
+        accountId,
+        debtorId
+    );
+
+}
 
 
-    if (
-        paymentAmount >
-        currentRemaining
-    ) {
+// ======================================================
+// UPDATE STATUS
+// ======================================================
 
-        throw new Error(
-            "PAYMENT_EXCEEDS_BALANCE"
-        );
+function updatePersonalDebtorStatus(
+    accountId,
+    debtorId,
+    status
+) {
 
-    }
-
-
-    const newPaidAmount =
-        Number(
-            debtor.paid_amount
-        ) +
-        paymentAmount;
-
-
-    const newRemainingAmount =
-        Math.max(
-
-            Number(
-                debtor.original_amount
-            ) -
-            newPaidAmount,
-
-            0
-
-        );
-
-
-    const newStatus =
-        newRemainingAmount <= 0
-            ? "PAID"
-            : "ACTIVE";
-
-
-    db.prepare(`
-
+    const result = db.prepare(`
         UPDATE personal_debtors
 
         SET
-
-            paid_amount = ?,
-
-            remaining_amount = ?,
-
             status = ?,
 
-            updated_at = CURRENT_TIMESTAMP
+            updated_at =
+                CURRENT_TIMESTAMP
 
         WHERE
-
             id = ?
 
             AND account_id = ?
-
     `).run(
 
-        newPaidAmount,
-
-        newRemainingAmount,
-
-        newStatus,
-
+        status,
         debtorId,
-
         accountId
 
     );
 
 
-    return findById(
-
-        accountId,
-
-        debtorId
-
-    );
-
-}
-
-
-// ======================================================
-// COMPLETE DEBTOR
-// ======================================================
-
-function complete(
-    accountId,
-    debtorId
-) {
-
-    if (!accountId) {
-
-        throw new Error(
-            "ACCOUNT_ID_REQUIRED"
-        );
-
-    }
-
-    if (!debtorId) {
-
-        throw new Error(
-            "DEBTOR_ID_REQUIRED"
-        );
-
-    }
-
-
-    const debtor =
-        findById(
-
-            accountId,
-
-            debtorId
-
-        );
-
-
-    if (!debtor) {
+    if (result.changes === 0) {
 
         return null;
 
     }
 
 
-    db.prepare(`
-
-        UPDATE personal_debtors
-
-        SET
-
-            paid_amount = original_amount,
-
-            remaining_amount = 0,
-
-            status = 'PAID',
-
-            updated_at = CURRENT_TIMESTAMP
-
-        WHERE
-
-            id = ?
-
-            AND account_id = ?
-
-    `).run(
-
-        debtorId,
-
-        accountId
-
-    );
-
-
-    return findById(
-
+    return getPersonalDebtorById(
         accountId,
-
         debtorId
-
     );
 
 }
 
 
 // ======================================================
-// DELETE DEBTOR
+// DELETE PERSONAL DEBTOR
+// ======================================================
+//
+// Hard deletion is deliberately kept at repository
+// level.
+//
+// The service/application layer decides whether the
+// operation is permitted.
+//
 // ======================================================
 
-function remove(
+function deletePersonalDebtor(
     accountId,
     debtorId
 ) {
 
-    if (!accountId) {
+    const result = db.prepare(`
+        DELETE FROM personal_debtors
 
-        throw new Error(
-            "ACCOUNT_ID_REQUIRED"
-        );
+        WHERE
+            id = ?
 
-    }
+            AND account_id = ?
+    `).run(
 
-    if (!debtorId) {
+        debtorId,
+        accountId
 
-        throw new Error(
-            "DEBTOR_ID_REQUIRED"
-        );
-
-    }
-
-
-    const result =
-        db.prepare(`
-
-            DELETE FROM personal_debtors
-
-            WHERE
-
-                id = ?
-
-                AND account_id = ?
-
-        `).run(
-
-            debtorId,
-
-            accountId
-
-        );
+    );
 
 
     return {
 
-        success:
+        deleted:
             result.changes > 0,
 
-        deletedId:
-            debtorId
+        changes:
+            result.changes
 
     };
 
@@ -787,255 +531,102 @@ function remove(
 
 
 // ======================================================
-// GET TOTAL DEBT
+// GET TOTAL OUTSTANDING PERSONAL DEBTORS
 // ======================================================
 //
-// Total amount currently outstanding.
+// Returns the total amount currently owed to the user.
 //
 // ======================================================
 
-function getTotalDebt(
+function getTotalOutstanding(
     accountId
 ) {
 
-    if (!accountId) {
+    const result = db.prepare(`
+        SELECT
+            COALESCE(
+                SUM(remaining_amount),
+                0
+            ) AS total
 
-        throw new Error(
-            "ACCOUNT_ID_REQUIRED"
-        );
+        FROM personal_debtors
 
-    }
+        WHERE
+            account_id = ?
 
+            AND remaining_amount > 0
+    `).get(
 
-    const result =
-        db.prepare(`
+        accountId
 
-            SELECT
-
-                COALESCE(
-                    SUM(remaining_amount),
-                    0
-                ) AS total
-
-            FROM personal_debtors
-
-            WHERE
-
-                account_id = ?
-
-                AND status = 'ACTIVE'
-
-        `).get(
-
-            accountId
-
-        );
+    );
 
 
     return Number(
-        result.total || 0
+        result.total
     );
 
 }
 
 
 // ======================================================
-// GET TOTAL PAID
+// GET PERSONAL DEBTOR SUMMARY
 // ======================================================
-
-function getTotalPaid(
-    accountId
-) {
-
-    if (!accountId) {
-
-        throw new Error(
-            "ACCOUNT_ID_REQUIRED"
-        );
-
-    }
-
-
-    const result =
-        db.prepare(`
-
-            SELECT
-
-                COALESCE(
-                    SUM(paid_amount),
-                    0
-                ) AS total
-
-            FROM personal_debtors
-
-            WHERE
-
-                account_id = ?
-
-        `).get(
-
-            accountId
-
-        );
-
-
-    return Number(
-        result.total || 0
-    );
-
-}
-
-
-// ======================================================
-// GET TOTAL REMAINING
-// ======================================================
-
-function getTotalRemaining(
-    accountId
-) {
-
-    if (!accountId) {
-
-        throw new Error(
-            "ACCOUNT_ID_REQUIRED"
-        );
-
-    }
-
-
-    const result =
-        db.prepare(`
-
-            SELECT
-
-                COALESCE(
-                    SUM(remaining_amount),
-                    0
-                ) AS total
-
-            FROM personal_debtors
-
-            WHERE
-
-                account_id = ?
-
-                AND status = 'ACTIVE'
-
-        `).get(
-
-            accountId
-
-        );
-
-
-    return Number(
-        result.total || 0
-    );
-
-}
-
-
-// ======================================================
-// GET SUMMARY
+//
+// Provides aggregate information for dashboards,
+// reports and future AI intelligence.
+//
 // ======================================================
 
 function getSummary(
     accountId
 ) {
 
-    if (!accountId) {
+    return db.prepare(`
+        SELECT
 
-        throw new Error(
-            "ACCOUNT_ID_REQUIRED"
-        );
+            COUNT(*) AS total_debtors,
 
-    }
+            COALESCE(
+                SUM(original_amount),
+                0
+            ) AS total_original_amount,
 
+            COALESCE(
+                SUM(paid_amount),
+                0
+            ) AS total_paid_amount,
 
-    const result =
-        db.prepare(`
+            COALESCE(
+                SUM(remaining_amount),
+                0
+            ) AS total_remaining_amount,
 
-            SELECT
+            SUM(
+                CASE
+                    WHEN status = 'ACTIVE'
+                    THEN 1
+                    ELSE 0
+                END
+            ) AS active_debtors,
 
-                COUNT(*) AS total_debtors,
+            SUM(
+                CASE
+                    WHEN status = 'PAID'
+                    THEN 1
+                    ELSE 0
+                END
+            ) AS paid_debtors
 
-                COALESCE(
-                    SUM(original_amount),
-                    0
-                ) AS total_amount,
+        FROM personal_debtors
 
-                COALESCE(
-                    SUM(paid_amount),
-                    0
-                ) AS total_paid,
+        WHERE
+            account_id = ?
+    `).get(
 
-                COALESCE(
-                    SUM(remaining_amount),
-                    0
-                ) AS total_remaining,
+        accountId
 
-                SUM(
-                    CASE
-                        WHEN status = 'ACTIVE'
-                        THEN 1
-                        ELSE 0
-                    END
-                ) AS active_debtors,
-
-                SUM(
-                    CASE
-                        WHEN status = 'PAID'
-                        THEN 1
-                        ELSE 0
-                    END
-                ) AS paid_debtors
-
-            FROM personal_debtors
-
-            WHERE
-
-                account_id = ?
-
-        `).get(
-
-            accountId
-
-        );
-
-
-    return {
-
-        totalDebtors:
-            Number(
-                result.total_debtors || 0
-            ),
-
-        totalAmount:
-            Number(
-                result.total_amount || 0
-            ),
-
-        totalPaid:
-            Number(
-                result.total_paid || 0
-            ),
-
-        totalRemaining:
-            Number(
-                result.total_remaining || 0
-            ),
-
-        activeDebtors:
-            Number(
-                result.active_debtors || 0
-            ),
-
-        paidDebtors:
-            Number(
-                result.paid_debtors || 0
-            )
-
-    };
+    );
 
 }
 
@@ -1046,27 +637,25 @@ function getSummary(
 
 module.exports = {
 
-    create,
+    createPersonalDebtor,
 
-    findById,
+    getPersonalDebtorById,
 
-    findAll,
+    getPersonalDebtors,
 
-    findActive,
+    getActivePersonalDebtors,
 
-    update,
+    searchPersonalDebtors,
 
-    addPayment,
+    recordPayment,
 
-    complete,
+    updatePersonalDebtor,
 
-    remove,
+    updatePersonalDebtorStatus,
 
-    getTotalDebt,
+    deletePersonalDebtor,
 
-    getTotalPaid,
-
-    getTotalRemaining,
+    getTotalOutstanding,
 
     getSummary
 

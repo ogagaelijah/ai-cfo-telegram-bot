@@ -1,41 +1,36 @@
-const { Markup } = require("telegraf");
+const {
+    Markup
+} = require("telegraf");
 
 // ======================================================
-// PERSONAL DEBT KEYBOARD
-// ======================================================
-//
-// Interface layer only.
-//
-// This keyboard contains navigation options for the
-// Personal Debts module.
-//
-// Business logic does NOT belong here.
-//
+// PERSONAL DEBTOR KEYBOARD
 // ======================================================
 
-module.exports = Markup.keyboard([
+module.exports =
+    Markup.keyboard([
 
-    [
-        "➕ Add Debt",
-        "📊 View Debts"
-    ],
+        [
+            "➕ Add Debtor",
+            "📊 View Debtors"
+        ],
 
-    [
-        "💳 Make Payment",
-        "📈 Debt Summary"
-    ],
+        [
+            "💳 Receive Payment",
+            "📈 Debtor Summary"
+        ],
 
-    [
-        "✏️ Update Debt",
-        "✅ Complete Debt"
-    ],
+        [
+            "✏️ Update Debtor",
+            "✅ Complete Debtor"
+        ],
 
-    [
-        "🗑️ Delete Debt"
-    ],
+        [
+            "🗑️ Delete Debtor"
+        ],
 
-    [
-        "⬅️ Back"
-    ]
+        [
+            "⬅️ Back"
+        ]
 
-]).resize();
+    ])
+    .resize();
